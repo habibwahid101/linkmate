@@ -73,10 +73,10 @@ export function assertDurableDatabase(get: (key: string) => string | undefined):
 /** Purchases, commissions, and wallet mutations require durable Postgres in production. */
 export function assertDurableMutations(
   get: (key: string) => string | undefined,
-  source: "neon" | "pglite",
+  source: "neon" | "postgres" | "pglite",
 ): void {
   assertDurableDatabase(get);
-  if (requiresDurableDatabase(get) && source !== "neon") {
+  if (requiresDurableDatabase(get) && source === "pglite") {
     throw new Error(
       "DATABASE_URL is required when APP_ENV=production (ephemeral storage is not allowed).",
     );

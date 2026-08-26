@@ -1,0 +1,11 @@
+aws_region   = "ap-south-1"
+name_prefix  = "linkmate-prod"
+
+# Optional — leave empty until you are ready.
+domain_name       = ""
+route53_zone_id   = ""
+ses_from_email    = ""
+budget_email      = ""
+
+# Set true only after the first image has been pushed to ECR.
+enable_app_runner = false

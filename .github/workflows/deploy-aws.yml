@@ -1,0 +1,64 @@
+name: AWS production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: aws-prod
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: typecheck + tests + node-server build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:app
+      - run: npm run build:aws
+
+  deploy:
+    name: ECR + App Runner
+    needs: test
+    if: github.ref == 'refs/heads/main' && vars.AWS_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION: ap-south-1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: login-ecr
+      - name: Build and push
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE: linkmate-prod
+        run: |
+          docker build -t "$ECR_REGISTRY/$IMAGE:${{ github.sha }}" -t "$ECR_REGISTRY/$IMAGE:latest" .
+          docker push "$ECR_REGISTRY/$IMAGE:${{ github.sha }}"
+          docker push "$ECR_REGISTRY/$IMAGE:latest"
+      - name: Update App Runner if it exists
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          set -e
+          SERVICE=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='linkmate-prod'].ServiceArn" --output text)
+          if [ -z "$SERVICE" ] || [ "$SERVICE" = "None" ]; then
+            echo "App Runner service not created yet. Run terraform apply -var enable_app_runner=true after the first image exists."
+            exit 0
+          fi
+          aws apprunner start-deployment --service-arn "$SERVICE"

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AuthFrame } from "@/components/auth-frame";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { GROK_PROVIDERS, authClient, signIn } from "@/lib/auth/client";
+import { GROK_PROVIDERS, authClient, grokBrokerEnabled, signIn } from "@/lib/auth/client";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/signup")({ component: Signup });
@@ -20,6 +20,8 @@ function Signup() {
     const fromUrl = search?.get("ref");
     const stored = window.localStorage.getItem("lm-ref");
     setReferral((fromUrl || stored || "").toUpperCase());
+    const pkg = search?.get("pkg");
+    if (pkg) window.localStorage.setItem("lm-pkg", pkg);
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
@@ -32,12 +34,12 @@ function Signup() {
         email,
         password,
         name,
-        callbackURL: "/app",
+        callbackURL: "/app/packages",
       });
-      if (err) throw new Error(err.message ?? "Could not create account");
-      window.location.href = "/app";
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create account");
+      if (err) throw new Error("Could not create account");
+      window.location.href = "/app/packages";
+    } catch {
+      setError("Could not create account. Try a different email or contact support.");
       setBusy(false);
     }
   }
@@ -67,6 +69,7 @@ function Signup() {
             type="password"
             required
             minLength={8}
+            maxLength={128}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
@@ -87,27 +90,31 @@ function Signup() {
           {busy ? "Creating…" : "Create account"}
         </Button>
       </form>
-      <div className="my-6 flex items-center gap-3 text-xs text-muted">
-        <span className="h-px flex-1 bg-border" />
-        or
-        <span className="h-px flex-1 bg-border" />
-      </div>
-      <div className="space-y-2">
-        {GROK_PROVIDERS.map((p) => (
-          <Button
-            key={p.providerId}
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={() => {
-              if (referral) window.localStorage.setItem("lm-ref", referral.toUpperCase());
-              void signIn(p.providerId, { callbackURL: "/app" });
-            }}
-          >
-            Continue with {p.label}
-          </Button>
-        ))}
-      </div>
+      {grokBrokerEnabled ? (
+        <>
+          <div className="my-6 flex items-center gap-3 text-xs text-muted">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <div className="space-y-2">
+            {GROK_PROVIDERS.map((p) => (
+              <Button
+                key={p.providerId}
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  if (referral) window.localStorage.setItem("lm-ref", referral.toUpperCase());
+                  void signIn(p.providerId, { callbackURL: "/app" });
+                }}
+              >
+                Continue with {p.label}
+              </Button>
+            ))}
+          </div>
+        </>
+      ) : null}
       <p className="mt-6 text-center text-sm text-muted">
         Already have an account?{" "}
         <Link to="/login" className="font-medium text-ink underline-offset-4 hover:underline">

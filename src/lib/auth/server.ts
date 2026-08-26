@@ -75,8 +75,18 @@ const authDisabled = env("VITE_AUTH_ENABLED") === "false";
 // otherwise fall back to the shared live-preview client, which the broker accepts
 // for any `*.grok-sandbox.com` callback (see `./preview`).
 const grokIssuer = env("GROK_AUTH_ISSUER") ?? GROK_ISSUER_DEFAULT;
-const grokClientId = env("GROK_AUTH_CLIENT_ID") ?? PREVIEW_CLIENT_ID;
-const grokClientSecret = env("GROK_AUTH_CLIENT_SECRET") ?? PREVIEW_CLIENT_SECRET;
+const productionRuntime =
+  env("APP_ENV") === "production" || env("VERCEL_ENV") === "production";
+const grokBrokerOff =
+  env("AUTH_BROKER") === "off" ||
+  env("VITE_GROK_BROKER") === "false" ||
+  (productionRuntime && !env("GROK_AUTH_CLIENT_ID"));
+const grokClientId = grokBrokerOff
+  ? env("GROK_AUTH_CLIENT_ID")
+  : env("GROK_AUTH_CLIENT_ID") ?? PREVIEW_CLIENT_ID;
+const grokClientSecret = grokBrokerOff
+  ? env("GROK_AUTH_CLIENT_SECRET")
+  : env("GROK_AUTH_CLIENT_SECRET") ?? PREVIEW_CLIENT_SECRET;
 
 /** True when federated sign-in is active (real auth is enforced). */
 export const authConfigured =
@@ -203,7 +213,33 @@ function createAuth() {
   session: { cookieCache: { enabled: true, maxAge: 300 } },
 
   // Local email/password — toggled only via `./email-password` (not a plugin).
-  ...(emailAndPasswordEnabled ? { emailAndPassword: { enabled: true } } : {}),
+  ...(emailAndPasswordEnabled
+    ? {
+        emailAndPassword: {
+          enabled: true,
+          minPasswordLength: 8,
+          sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
+            const { sendTransactionalEmail } = await import("../email/ses");
+            await sendTransactionalEmail({
+              to: user.email,
+              subject: "Reset your Link Mate password",
+              text: `Reset your password using this link:\n${url}\n\nIf you did not request this, ignore this email.`,
+            });
+          },
+        },
+        emailVerification: {
+          sendOnSignUp: Boolean(env("SES_FROM_EMAIL")),
+          sendVerificationEmail: async ({ user, url }: { user: { email: string }; url: string }) => {
+            const { sendTransactionalEmail } = await import("../email/ses");
+            await sendTransactionalEmail({
+              to: user.email,
+              subject: "Verify your Link Mate email",
+              text: `Confirm your email using this link:\n${url}\n\nIf you did not create an account, ignore this email.`,
+            });
+          },
+        },
+      }
+    : {}),
 
   // `__Host-` prefixed cookies: the browser REFUSES any same-named cookie that
   // carries a `Domain` attribute, so a sibling `*.grok.me` app cannot "toss" a

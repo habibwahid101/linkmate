@@ -37,6 +37,9 @@ export const authClient = createAuthClient({
  */
 export const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== "false";
 
+/** Grok auth broker (Google/X). Off in AWS production (`VITE_GROK_BROKER=false`). */
+export const grokBrokerEnabled = import.meta.env.VITE_GROK_BROKER !== "false";
+
 /** The upstream providers to render sign-in buttons for. */
 export { GROK_PROVIDERS };
 

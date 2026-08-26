@@ -230,7 +230,7 @@ describe("assertDurableMutations", () => {
     assert.doesNotThrow(() =>
       assertDurableMutations(
         bag({ APP_ENV: "production", DATABASE_URL: "postgres://x" }),
-        "neon",
+        "postgres",
       ),
     );
   });

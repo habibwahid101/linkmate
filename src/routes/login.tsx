@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AuthFrame } from "@/components/auth-frame";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { GROK_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
+import { GROK_PROVIDERS, authClient, authEnabled, grokBrokerEnabled, signIn } from "@/lib/auth/client";
 import { useState } from "react";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
@@ -29,13 +29,18 @@ function Login() {
       if (err) throw new Error(err.message ?? "Sign-in failed");
       window.location.href = "/app";
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-in failed");
+      const msg = err instanceof Error ? err.message : "";
+      setError(
+        msg.includes("Too many")
+          ? "Too many attempts. Try again in a few minutes."
+          : "Email or password is incorrect.",
+      );
       setBusy(false);
     }
   }
 
   return (
-    <AuthFrame title="Sign in" subtitle="Use your email or continue with a connected account.">
+    <AuthFrame title="Sign in" subtitle="Use the email and password for your Link Mate account.">
       {!authEnabled ? (
         <p className="text-sm text-muted">Sign-in is disabled.</p>
       ) : (
@@ -75,24 +80,28 @@ function Login() {
               {busy ? "Signing in…" : "Sign in"}
             </Button>
           </form>
-          <div className="my-6 flex items-center gap-3 text-xs text-muted">
-            <span className="h-px flex-1 bg-border" />
-            or
-            <span className="h-px flex-1 bg-border" />
-          </div>
-          <div className="space-y-2">
-            {GROK_PROVIDERS.map((p) => (
-              <Button
-                key={p.providerId}
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => signIn(p.providerId, { callbackURL: "/app" })}
-              >
-                Continue with {p.label}
-              </Button>
-            ))}
-          </div>
+          {grokBrokerEnabled ? (
+            <>
+              <div className="my-6 flex items-center gap-3 text-xs text-muted">
+                <span className="h-px flex-1 bg-border" />
+                or
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <div className="space-y-2">
+                {GROK_PROVIDERS.map((p) => (
+                  <Button
+                    key={p.providerId}
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => signIn(p.providerId, { callbackURL: "/app" })}
+                  >
+                    Continue with {p.label}
+                  </Button>
+                ))}
+              </div>
+            </>
+          ) : null}
           <p className="mt-6 text-center text-sm text-muted">
             New to Link Mate?{" "}
             <Link to="/signup" className="font-medium text-ink underline-offset-4 hover:underline">

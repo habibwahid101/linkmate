@@ -7,7 +7,7 @@ import {
 } from "./runtime";
 
 /** Which database backend is active. */
-export type DbSource = "neon" | "pglite";
+export type DbSource = "postgres" | "neon" | "pglite";
 
 // An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
 // "unset" — otherwise production would silently run on the PGLite fallback.
@@ -23,7 +23,7 @@ const databaseUrl =
  * included. Swap in Postgres later by just setting `DATABASE_URL`; no code
  * changes.
  */
-export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
+export const dbSource: DbSource = databaseUrl ? "postgres" : "pglite";
 
 /**
  * Minimal shared SQL surface, satisfied by both Neon and PGLite. Both the
@@ -239,7 +239,7 @@ async function createSql(): Promise<Sql> {
   assertDurableDatabase(get);
   assertProductionSecrets(get);
   assertDurableMutations(get, dbSource);
-  return dbSource === "neon" ? createNeonSql() : createPgliteSql();
+  return dbSource === "pglite" ? createPgliteSql() : createNeonSql();
 }
 
 /**

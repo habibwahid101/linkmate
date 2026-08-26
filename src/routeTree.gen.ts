@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminAuditRouteImport } from './routes/admin/audit'
@@ -41,6 +42,7 @@ import { Route as AppLevelsRouteImport } from './routes/app/levels'
 import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
 import { Route as AppPackagesRouteImport } from './routes/app/packages'
 import { Route as AppProfileRouteImport } from './routes/app/profile'
+import { Route as AppQualificationRouteImport } from './routes/app/qualification'
 import { Route as AppSettingsRouteImport } from './routes/app/settings'
 import { Route as AppTeamRouteImport } from './routes/app/team'
 import { Route as AppTransactionsRouteImport } from './routes/app/transactions'
@@ -75,6 +77,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -207,6 +214,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
+const AppQualificationRoute = AppQualificationRouteImport.update({
+  id: '/qualification',
+  path: '/qualification',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -240,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/commissions': typeof AdminCommissionsRoute
@@ -264,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/app/notifications': typeof AppNotificationsRoute
   '/app/packages': typeof AppPackagesRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/qualification': typeof AppQualificationRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/transactions': typeof AppTransactionsRoute
@@ -277,6 +291,7 @@ export interface FileRoutesByTo {
   '/$': typeof SplatRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/commissions': typeof AdminCommissionsRoute
@@ -301,6 +316,7 @@ export interface FileRoutesByTo {
   '/app/notifications': typeof AppNotificationsRoute
   '/app/packages': typeof AppPackagesRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/qualification': typeof AppQualificationRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/transactions': typeof AppTransactionsRoute
@@ -317,6 +333,7 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/commissions': typeof AdminCommissionsRoute
@@ -341,6 +358,7 @@ export interface FileRoutesById {
   '/app/notifications': typeof AppNotificationsRoute
   '/app/packages': typeof AppPackagesRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/qualification': typeof AppQualificationRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/team': typeof AppTeamRoute
   '/app/transactions': typeof AppTransactionsRoute
@@ -358,6 +376,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/signup'
     | '/admin/audit'
     | '/admin/commissions'
@@ -382,6 +401,7 @@ export interface FileRouteTypes {
     | '/app/notifications'
     | '/app/packages'
     | '/app/profile'
+    | '/app/qualification'
     | '/app/settings'
     | '/app/team'
     | '/app/transactions'
@@ -395,6 +415,7 @@ export interface FileRouteTypes {
     | '/$'
     | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/signup'
     | '/admin/audit'
     | '/admin/commissions'
@@ -419,6 +440,7 @@ export interface FileRouteTypes {
     | '/app/notifications'
     | '/app/packages'
     | '/app/profile'
+    | '/app/qualification'
     | '/app/settings'
     | '/app/team'
     | '/app/transactions'
@@ -434,6 +456,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/signup'
     | '/admin/audit'
     | '/admin/commissions'
@@ -458,6 +481,7 @@ export interface FileRouteTypes {
     | '/app/notifications'
     | '/app/packages'
     | '/app/profile'
+    | '/app/qualification'
     | '/app/settings'
     | '/app/team'
     | '/app/transactions'
@@ -474,6 +498,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiVersionRoute: typeof ApiVersionRoute
@@ -522,6 +547,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -706,6 +738,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/qualification': {
+      id: '/app/qualification'
+      path: '/qualification'
+      fullPath: '/app/qualification'
+      preLoaderRoute: typeof AppQualificationRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/settings': {
       id: '/app/settings'
       path: '/settings'
@@ -790,6 +829,7 @@ interface AppRouteChildren {
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppPackagesRoute: typeof AppPackagesRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppQualificationRoute: typeof AppQualificationRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTeamRoute: typeof AppTeamRoute
   AppTransactionsRoute: typeof AppTransactionsRoute
@@ -805,6 +845,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppNotificationsRoute: AppNotificationsRoute,
   AppPackagesRoute: AppPackagesRoute,
   AppProfileRoute: AppProfileRoute,
+  AppQualificationRoute: AppQualificationRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTeamRoute: AppTeamRoute,
   AppTransactionsRoute: AppTransactionsRoute,
@@ -821,6 +862,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiVersionRoute: ApiVersionRoute,
