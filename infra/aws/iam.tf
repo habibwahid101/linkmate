@@ -35,9 +35,16 @@ resource "aws_iam_role" "apprunner_instance" {
 
 data "aws_iam_policy_document" "apprunner_instance_inline" {
   statement {
-    sid       = "ReadAppSecret"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.app.arn]
+    sid     = "ReadAppSecrets"
+    actions = ["secretsmanager:GetSecretValue"]
+    resources = compact([
+      aws_secretsmanager_secret.app.arn,
+      aws_secretsmanager_secret.database_url.arn,
+      aws_secretsmanager_secret.better_auth_secret.arn,
+      aws_secretsmanager_secret.app_url.arn,
+      aws_secretsmanager_secret.better_auth_url.arn,
+      var.ses_from_email != "" ? aws_secretsmanager_secret.ses_from_email[0].arn : null,
+    ])
   }
   statement {
     sid       = "SendEmail"
@@ -68,7 +75,11 @@ data "aws_iam_policy_document" "github_oidc_assume" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main"]
+      # GitHub immutable OIDC subject (owner@id/repo@id). Classic name-only
+      # subjects no longer match for this repository.
+      values = [
+        "repo:${var.github_org}@${var.github_owner_id}/${var.github_repo}@${var.github_repository_id}:*",
+      ]
     }
   }
 }
@@ -118,14 +129,8 @@ data "aws_iam_policy_document" "github_deploy" {
       "apprunner:CreateService",
       "apprunner:UpdateService",
       "apprunner:StartDeployment",
-      "apprunner:ListOperations",
     ]
     resources = ["*"]
-  }
-  statement {
-    sid       = "PassAppRunnerRoles"
-    actions   = ["iam:PassRole"]
-    resources = [aws_iam_role.apprunner_ecr.arn, aws_iam_role.apprunner_instance.arn]
   }
 }
 

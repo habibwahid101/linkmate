@@ -51,6 +51,17 @@ output "secrets_arn" {
   value = aws_secretsmanager_secret.app.arn
 }
 
+output "app_runner_secret_arns" {
+  description = "Per-key Secrets Manager ARNs referenced by App Runner runtime_environment_secrets."
+  value = {
+    DATABASE_URL       = aws_secretsmanager_secret.database_url.arn
+    BETTER_AUTH_SECRET = aws_secretsmanager_secret.better_auth_secret.arn
+    APP_URL            = aws_secretsmanager_secret.app_url.arn
+    BETTER_AUTH_URL    = aws_secretsmanager_secret.better_auth_url.arn
+    SES_FROM_EMAIL     = try(aws_secretsmanager_secret.ses_from_email[0].arn, null)
+  }
+}
+
 output "acm_certificate_arn" {
   value = try(aws_acm_certificate.domain[0].arn, null)
 }

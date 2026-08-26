@@ -91,6 +91,18 @@ variable "github_repo" {
   default = "linkmate"
 }
 
+variable "github_owner_id" {
+  type        = string
+  description = "Numeric GitHub owner ID used in immutable OIDC subject claims."
+  default     = "260748622"
+}
+
+variable "github_repository_id" {
+  type        = string
+  description = "Numeric GitHub repository ID used in immutable OIDC subject claims."
+  default     = "1347172093"
+}
+
 variable "create_github_oidc_provider" {
   type        = bool
   description = "Create the GitHub OIDC provider if this account does not already have one."

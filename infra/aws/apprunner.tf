@@ -1,8 +1,9 @@
 locals {
+  # PORT is intentionally omitted — App Runner reserves PORT and injects the
+  # listening port from image_configuration.port.
   app_env = {
     APP_ENV                 = "production"
     NODE_ENV                = "production"
-    PORT                    = "8080"
     HOST                    = "0.0.0.0"
     PAYMENTS_MODE           = "disabled"
     MANUAL_PAYMENTS_ENABLED = "true"
@@ -13,6 +14,19 @@ locals {
     AUTH_BROKER             = "off"
     AWS_REGION              = var.aws_region
   }
+
+  # App Runner requires full Secrets Manager ARNs (no JSON-key suffixes).
+  app_runtime_secrets = merge(
+    {
+      DATABASE_URL       = aws_secretsmanager_secret.database_url.arn
+      BETTER_AUTH_SECRET = aws_secretsmanager_secret.better_auth_secret.arn
+      APP_URL            = aws_secretsmanager_secret.app_url.arn
+      BETTER_AUTH_URL    = aws_secretsmanager_secret.better_auth_url.arn
+    },
+    var.ses_from_email != "" ? {
+      SES_FROM_EMAIL = aws_secretsmanager_secret.ses_from_email[0].arn
+    } : {},
+  )
 }
 
 resource "aws_apprunner_service" "this" {
@@ -29,13 +43,7 @@ resource "aws_apprunner_service" "this" {
       image_configuration {
         port                          = "8080"
         runtime_environment_variables = local.app_env
-        runtime_environment_secrets = {
-          DATABASE_URL       = "${aws_secretsmanager_secret.app.arn}:DATABASE_URL::"
-          BETTER_AUTH_SECRET = "${aws_secretsmanager_secret.app.arn}:BETTER_AUTH_SECRET::"
-          APP_URL            = "${aws_secretsmanager_secret.app.arn}:APP_URL::"
-          BETTER_AUTH_URL    = "${aws_secretsmanager_secret.app.arn}:BETTER_AUTH_URL::"
-          SES_FROM_EMAIL     = "${aws_secretsmanager_secret.app.arn}:SES_FROM_EMAIL::"
-        }
+        runtime_environment_secrets   = local.app_runtime_secrets
       }
     }
     auto_deployments_enabled = false
