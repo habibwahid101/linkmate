@@ -72,7 +72,7 @@ variable "monthly_budget_usd" {
 
 variable "enable_app_runner" {
   type        = bool
-  description = "Legacy App Runner service. Leave false — production runtime is EC2."
+  description = "Legacy App Runner service. Leave false - production runtime is EC2."
   default     = false
 }
 
@@ -90,7 +90,7 @@ variable "ec2_instance_type" {
 
 variable "ec2_root_volume_gb" {
   type    = number
-  default = 8
+  default = 30
 }
 
 variable "image_tag" {
