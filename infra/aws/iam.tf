@@ -41,8 +41,8 @@ data "aws_iam_policy_document" "apprunner_instance_inline" {
       aws_secretsmanager_secret.app.arn,
       aws_secretsmanager_secret.database_url.arn,
       aws_secretsmanager_secret.better_auth_secret.arn,
-      aws_secretsmanager_secret.app_url.arn,
-      aws_secretsmanager_secret.better_auth_url.arn,
+      var.domain_name != "" ? aws_secretsmanager_secret.app_url[0].arn : null,
+      var.domain_name != "" ? aws_secretsmanager_secret.better_auth_url[0].arn : null,
       var.ses_from_email != "" ? aws_secretsmanager_secret.ses_from_email[0].arn : null,
     ])
   }
@@ -59,7 +59,7 @@ resource "aws_iam_role_policy" "apprunner_instance" {
   policy = data.aws_iam_policy_document.apprunner_instance_inline.json
 }
 
-# GitHub Actions OIDC — push to ECR and deploy EC2 without long-lived keys.
+# GitHub Actions OIDC - push to ECR and deploy EC2 without long-lived keys.
 data "aws_iam_policy_document" "github_oidc_assume" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
