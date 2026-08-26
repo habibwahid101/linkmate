@@ -72,8 +72,25 @@ variable "monthly_budget_usd" {
 
 variable "enable_app_runner" {
   type        = bool
-  description = "Create the App Runner service. Set true only after the first ECR image exists."
+  description = "Legacy App Runner service. Leave false — production runtime is EC2."
   default     = false
+}
+
+variable "enable_ec2" {
+  type        = bool
+  description = "Create the public EC2 Docker host (final production runtime)."
+  default     = true
+}
+
+variable "ec2_instance_type" {
+  type        = string
+  description = "Smallest sensible x86_64 production instance."
+  default     = "t3.micro"
+}
+
+variable "ec2_root_volume_gb" {
+  type    = number
+  default = 8
 }
 
 variable "image_tag" {
