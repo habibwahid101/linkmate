@@ -58,7 +58,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='linkmate-prod']" --output json > /tmp/apr.json
+          aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='linkmate-prod']" --output json > /tmp/apr.json || echo '[]' > /tmp/apr.json
           cat /tmp/apr.json
           ARN=$(jq -r '.[0].ServiceArn // empty' /tmp/apr.json)
           STATUS=$(jq -r '.[0].Status // empty' /tmp/apr.json)
@@ -70,29 +70,28 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           set -euo pipefail
-          INSTANCE=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=linkmate-prod" "Name=instance-state-name,Values=running,pending" \
-            --query "Reservations[].Instances[].InstanceId" --output text 2>/tmp/ec2.err || true)
-          if [ -z "$INSTANCE" ] || [ "$INSTANCE" = "None" ]; then
-            echo "tag lookup empty; using EC2_INSTANCE_ID=$EC2_INSTANCE_ID"
-            cat /tmp/ec2.err || true
-            INSTANCE="$EC2_INSTANCE_ID"
-          fi
+          INSTANCE="$EC2_INSTANCE_ID"
           echo "INSTANCE=$INSTANCE" >> "$GITHUB_ENV"
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Link Mate deploy $IMAGE_TAG" \
+            --comment "Link Mate RDS CA + deploy $IMAGE_TAG" \
             --parameters "commands=[
               \"set -euo pipefail\",
-              \"sed -i 's|^export LM_TAG=.*|export LM_TAG=$IMAGE_TAG|' /opt/linkmate/env.sh || true\",
-              \"echo export LM_TAG=$IMAGE_TAG >> /opt/linkmate/env.sh\",
-              \"test -x /opt/linkmate/deploy.sh && /opt/linkmate/deploy.sh\",
-              \"docker inspect --format='{{.State.Status}} {{.Config.Image}}' linkmate || true\"
+              \"install -d -m 0755 /opt/linkmate /opt/linkmate/certs\",
+              \"curl -fsSL -o /opt/linkmate/certs/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem\",
+              \"curl -fsSL -o /opt/linkmate/deploy.sh https://raw.githubusercontent.com/habibwahid101/linkmate/main/infra/aws/ec2-deploy.sh\",
+              \"chmod 0755 /opt/linkmate/deploy.sh\",
+              \"sed -i 's|^export LM_TAG=.*|export LM_TAG=$IMAGE_TAG|' /opt/linkmate/env.sh || echo export LM_TAG=$IMAGE_TAG >> /opt/linkmate/env.sh\",
+              \"/opt/linkmate/deploy.sh\",
+              \"docker inspect --format='{{.State.Status}} {{.Config.Image}}' linkmate\",
+              \"sleep 8\",
+              \"curl -fsS -m 10 http://127.0.0.1/api/health || true\",
+              \"curl -fsS -m 10 http://127.0.0.1/api/readiness || true\"
             ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD on $INSTANCE"
-          for i in $(seq 1 30); do
+          for i in $(seq 1 36); do
             STATUS=$(aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
             echo "status=$STATUS"
             if [ "$STATUS" = "Success" ]; then
@@ -112,6 +111,7 @@ jobs:
         run: |
           IP=15.206.74.98
           echo "PUBLIC_URL=http://$IP"
+          sleep 5
           for path in /api/health /api/readiness /; do
             echo "GET http://$IP$path"
             curl -fsS -m 20 "http://$IP$path" || echo "probe_failed path=$path"
