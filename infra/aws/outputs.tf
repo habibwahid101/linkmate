@@ -68,8 +68,8 @@ output "app_runner_secret_arns" {
   value = {
     DATABASE_URL       = aws_secretsmanager_secret.database_url.arn
     BETTER_AUTH_SECRET = aws_secretsmanager_secret.better_auth_secret.arn
-    APP_URL            = aws_secretsmanager_secret.app_url.arn
-    BETTER_AUTH_URL    = aws_secretsmanager_secret.better_auth_url.arn
+    APP_URL            = try(aws_secretsmanager_secret.app_url[0].arn, null)
+    BETTER_AUTH_URL    = try(aws_secretsmanager_secret.better_auth_url[0].arn, null)
     SES_FROM_EMAIL     = try(aws_secretsmanager_secret.ses_from_email[0].arn, null)
   }
 }

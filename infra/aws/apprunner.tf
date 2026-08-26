@@ -1,5 +1,5 @@
 locals {
-  # PORT is intentionally omitted — App Runner reserves PORT and injects the
+  # PORT is intentionally omitted - App Runner reserves PORT and injects the
   # listening port from image_configuration.port.
   app_env = {
     APP_ENV                 = "production"
@@ -20,9 +20,11 @@ locals {
     {
       DATABASE_URL       = aws_secretsmanager_secret.database_url.arn
       BETTER_AUTH_SECRET = aws_secretsmanager_secret.better_auth_secret.arn
-      APP_URL            = aws_secretsmanager_secret.app_url.arn
-      BETTER_AUTH_URL    = aws_secretsmanager_secret.better_auth_url.arn
     },
+    var.domain_name != "" ? {
+      APP_URL         = aws_secretsmanager_secret.app_url[0].arn
+      BETTER_AUTH_URL = aws_secretsmanager_secret.better_auth_url[0].arn
+    } : {},
     var.ses_from_email != "" ? {
       SES_FROM_EMAIL = aws_secretsmanager_secret.ses_from_email[0].arn
     } : {},
