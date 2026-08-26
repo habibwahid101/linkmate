@@ -1,0 +1,1 @@
+import{O as e}from"./index-C389H2kG.js";import{t}from"./utils-BTiaFJ86.js";var n=e();function r({className:e,...r}){return(0,n.jsx)(`div`,{className:t(`rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)] sm:p-5`,e),...r})}function i({className:e,...r}){return(0,n.jsx)(`h2`,{className:t(`text-base font-semibold tracking-tight text-ink`,e),...r})}export{i as n,r as t};

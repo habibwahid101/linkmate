@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Link Mate",
+      "hasCanvas": false,
+      "bodyTextLen": 1030,
+      "bodyTextHash": "af3d039a91070a8c8d4d505480946b0ffd242e148e547fdc88368c867e5f8cbc",
+      "bodyTextPrefix": "Link Mate Sign in Get started MEMBERSHIP · GENERATION COMMISSION",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Link Mate",
+      "hasCanvas": false,
+      "bodyTextLen": 1022,
+      "bodyTextHash": "bceb33cf12b8bdeee4c743659df8ce844f10229bb9e8757a54f5219f44b5c060",
+      "bodyTextPrefix": "Link Mate Get started MEMBERSHIP · GENERATION COMMISSION Members",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

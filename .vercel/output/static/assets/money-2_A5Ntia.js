@@ -1,0 +1,1 @@
+import{O as e}from"./index-C389H2kG.js";import{t}from"./utils-BTiaFJ86.js";import{t as n}from"./money-CFLxqZQK.js";var r=e();function i({amount:e,className:i,size:a=`md`}){return(0,r.jsx)(`span`,{className:t(`tabular font-semibold tracking-tight`,{sm:`text-sm`,md:`text-lg`,lg:`text-2xl`,xl:`text-[1.75rem] leading-none sm:text-3xl`}[a],i),children:n(e)})}export{i as t};

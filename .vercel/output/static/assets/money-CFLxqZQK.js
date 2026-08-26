@@ -1,0 +1,1 @@
+function e(e){let t=typeof e==`string`?Number(e):e??0;if(!Number.isFinite(t))return`৳0`;let n=Math.round(t),r=Math.abs(n).toLocaleString(`en-US`);return n<0?`−৳${r}`:`৳${r}`}function t(e){if(e==null)return 0;let t=typeof e==`string`?Number(e):e;return Number.isFinite(t)?Math.round(t):0}export{t as n,e as t};

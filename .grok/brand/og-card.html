@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Link Mate</title>
+    <style>
+      @font-face {
+        font-family: "Manrope";
+        font-weight: 600;
+        font-style: normal;
+        src: url("./Manrope-SemiBold.ttf") format("truetype");
+      }
+      @font-face {
+        font-family: "Manrope";
+        font-weight: 700;
+        font-style: normal;
+        src: url("./Manrope-Bold.ttf") format("truetype");
+      }
+      @font-face {
+        font-family: "Manrope";
+        font-weight: 800;
+        font-style: normal;
+        src: url("./Manrope-ExtraBold.ttf") format("truetype");
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: #f3f1ec;
+      }
+      .card {
+        position: relative;
+        width: 1200px;
+        height: 630px;
+        background: radial-gradient(ellipse at 50% 42%, #fffcf7 0%, #f3f1ec 62%, #ebe7df 100%);
+        color: #161513;
+        font-family: "Manrope", ui-sans-serif, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .grain {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.045;
+        mix-blend-mode: multiply;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      .frame {
+        position: absolute;
+        inset: 40px;
+        border: 1px solid rgba(22, 21, 19, 0.1);
+        pointer-events: none;
+      }
+      .frame-inner {
+        position: absolute;
+        inset: 48px;
+        border: 1px solid rgba(31, 77, 69, 0.14);
+        pointer-events: none;
+      }
+      .lockup {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .mark {
+        display: block;
+        margin-bottom: 40px;
+      }
+      h1 {
+        font-size: 108px;
+        font-weight: 700;
+        letter-spacing: -0.038em;
+        line-height: 1;
+        color: #161513;
+        font-kerning: normal;
+      }
+      .rule {
+        width: 44px;
+        height: 2px;
+        background: #1f4d45;
+        margin: 28px 0 18px;
+      }
+      .tag {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.34em;
+        text-transform: uppercase;
+        color: #1f4d45;
+        padding-left: 0.34em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="grain"></div>
+      <div class="frame"></div>
+      <div class="frame-inner"></div>
+      <div class="lockup">
+        <svg class="mark" width="240" height="72" viewBox="0 0 240 72" aria-hidden="true">
+          <rect x="42" y="27" width="156" height="18" rx="9" fill="#1F4D45" />
+          <circle cx="50" cy="36" r="24" fill="#1F4D45" />
+          <circle cx="120" cy="36" r="24" fill="#1F4D45" />
+          <circle cx="190" cy="36" r="24" fill="#1F4D45" />
+        </svg>
+        <h1>Link Mate</h1>
+        <div class="rule"></div>
+        <div class="tag">Membership</div>
+      </div>
+    </div>
+  </body>
+</html>

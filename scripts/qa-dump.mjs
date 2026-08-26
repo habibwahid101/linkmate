@@ -1,0 +1,28 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch({ args: ["--no-sandbox"] });
+const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+page.on("pageerror", (e) => console.log("PAGEERROR", e.message, e.stack?.slice(0, 400)));
+page.on("console", (m) => console.log("CONSOLE", m.type(), m.text().slice(0, 300)));
+
+await page.goto("http://127.0.0.1:8080/login", { waitUntil: "networkidle" });
+const email = `dump.${Date.now()}@linkmate.test`;
+await page.goto("http://127.0.0.1:8080/signup", { waitUntil: "networkidle" });
+await page.getByLabel("Full name").fill("Dump User");
+await page.getByLabel("Email").fill(email);
+await page.getByLabel("Password").fill("Password123!");
+await page.getByRole("button", { name: "Create account" }).click();
+await page.waitForTimeout(3000);
+console.log("URL", page.url());
+const main = await page.locator("main").innerHTML().catch((e) => e.message);
+console.log("MAIN", String(main).slice(0, 1500));
+const body = await page.locator("body").innerText();
+console.log("BODY", body.slice(0, 800));
+await page.goto("http://127.0.0.1:8080/app/", { waitUntil: "networkidle" });
+await page.waitForTimeout(2000);
+console.log("URL2", page.url());
+console.log("MAIN2", String(await page.locator("main").innerHTML()).slice(0, 1500));
+await page.goto("http://127.0.0.1:8080/app/wallet", { waitUntil: "networkidle" });
+await page.waitForTimeout(2000);
+console.log("URL3", page.url());
+console.log("MAIN3", String(await page.locator("main").innerHTML()).slice(0, 1500));
+await browser.close();

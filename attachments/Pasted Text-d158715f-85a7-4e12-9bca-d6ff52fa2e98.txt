@@ -1,0 +1,622 @@
+Start building the complete Link Mate MVP now in the preview.
+
+Follow the master brief exactly and DO NOT change any locked business rule.
+
+Use the existing React/TanStack setup in this workspace unless there is a strong technical reason not to. Do not rebuild the whole project in another framework just because Next.js was mentioned in the brief.
+
+Build a real working MVP, not just wireframes or static mockups.
+
+Build in this order:
+
+1. Authentication and onboarding
+2. Mobile-first responsive dashboard
+3. Package page
+4. Multi-ID management
+5. Sponsor / referral structure
+6. Team / generation progress
+7. Commission engine
+8. Held commission logic
+9. Wallet release logic
+10. Transaction history
+11. Admin dashboard
+12. Responsive QA
+13. Business logic QA
+14. Final cleanup and polish
+
+LOCKED BUSINESS RULES:
+
+Packages:
+- Builder = BDT 11,000 = 1 ID
+- Turbo = BDT 44,000 = 4 IDs
+- Super Turbo = BDT 143,000 = 13 IDs
+- Hyper Turbo = BDT 242,000 = 22 IDs
+
+Sponsor logic:
+- External sponsor connects to the buyer’s first ID only.
+- Additional IDs created by a multi-ID package belong to the buyer’s internal package structure.
+
+Turbo example:
+- External sponsor earns from the buyer’s first ID only.
+- Standard ID value = BDT 11,000.
+- Level-1 rate = 8%.
+- External sponsor commission = BDT 880.
+- Buyer’s first ID sponsors the remaining 3 package IDs.
+- Those 3 IDs complete Level 1 for the buyer’s first ID.
+- Level-1 total = 880 × 3 = BDT 2,640.
+- After Level 1 is complete, BDT 2,640 is released to the wallet.
+
+Super Turbo:
+- 13 IDs
+- 1 root ID
+- next 3 IDs under the root
+- next 9 IDs under those positions
+
+Hyper Turbo:
+- 22 IDs
+- Do NOT invent an unsupported internal placement structure.
+- Keep Hyper Turbo internal placement configurable until the exact placement logic is formally finalized.
+
+LEVEL / GENERATION RULES:
+
+Level 1:
+- 1st Generation
+- 3 members
+- 8%
+
+Level 2:
+- 2nd Generation
+- 9 members
+- 6%
+
+Level 3:
+- 3rd Generation
+- 27 members
+- 3%
+
+Level 4:
+- 4th Generation
+- 54 members
+- 2%
+
+Level 5:
+- 5th Generation
+- 108 members
+- 1.2%
+
+Level 6:
+- 6th Generation
+- 162 members
+- 1%
+
+Level 7:
+- 7th Generation
+- 216 members
+- 1%
+
+Level 8:
+- 8th Generation
+- 270 members
+- 1%
+
+Level 9:
+- 9th Generation
+- 324 members
+- 1%
+
+IMPORTANT:
+Members must always remain in their actual generation position.
+
+Example:
+At Level 3:
+- 3 members are still 1st generation
+- 9 members are still 2nd generation
+- 27 members are 3rd generation
+
+Do not reclassify previous-generation members.
+
+MANDATORY DIRECT SPONSOR RULE:
+
+To complete Level 1:
+- Member must personally sponsor 3 direct members.
+
+After Level 1:
+- Later levels are completed by the required member count in the applicable generation.
+
+COMMISSION FORMULA:
+
+Commission per qualifying member =
+Applicable Joining Amount × Applicable Generation Percentage
+
+For a standard BDT 11,000 ID:
+
+Level 1:
+- 8%
+- BDT 880 per member
+- 3 members
+- Total = BDT 2,640
+
+Level 2:
+- 6%
+- BDT 660 per member
+- 9 members
+- Total = BDT 5,940
+
+Level 3:
+- 3%
+- BDT 330 per member
+- 27 members
+- Total = BDT 8,910
+
+Level 4:
+- 2%
+- BDT 220 per member
+- 54 members
+- Total = BDT 11,880
+
+Level 5:
+- 1.2%
+- BDT 132 per member
+- 108 members
+- Total = BDT 14,256
+
+Level 6:
+- 1%
+- BDT 110 per member
+- 162 members
+- Total = BDT 17,820
+
+Level 7:
+- 1%
+- BDT 110 per member
+- 216 members
+- Total = BDT 23,760
+
+Level 8:
+- 1%
+- BDT 110 per member
+- 270 members
+- Total = BDT 29,700
+
+Level 9:
+- 1%
+- BDT 110 per member
+- 324 members
+- Total = BDT 35,640
+
+GLOBAL COMMISSION RELEASE RULE:
+
+This rule applies to every level.
+
+Commission must:
+Generate
+→ Accumulate
+→ Stay Held
+→ Level Completes
+→ Full Accumulated Amount Releases to Wallet
+
+Do NOT partially release commission before the level is fully complete.
+
+LIVE PROGRESS EXAMPLE:
+
+Level 2
+2nd Generation
+6%
+
+Progress:
+6 / 9 Members
+
+Commission:
+BDT 3,960 / BDT 5,940
+
+Remaining:
+3 Members
+
+Status:
+In Progress
+
+Wallet Release:
+Pending
+
+When complete:
+
+9 / 9 Members
+BDT 5,940 / BDT 5,940
+
+Status:
+Completed
+
+Wallet:
+BDT 5,940 Released
+
+Every level must show:
+- Level
+- Generation
+- Commission rate
+- Required members
+- Completed members
+- Remaining members
+- Accumulated commission
+- Full level commission
+- Status
+- Release status
+
+WALLET:
+
+Separate:
+1. Held Commission
+2. Available Balance
+3. Released Earnings
+4. Transaction History
+
+Held commission is not withdrawable.
+
+Only released commission goes to Available Wallet.
+
+Every transaction should show:
+- Source
+- Level
+- Generation
+- Amount
+- Date
+- Status
+- Related member / ID
+- Transaction ID
+
+DASHBOARD:
+
+At a glance show:
+- User name
+- Main ID
+- Package
+- Total IDs
+- Current level
+- Direct sponsor progress
+- Held commission
+- Available wallet
+- Total released earnings
+- Next milestone
+- Recent activity
+
+Main cards:
+- My Package
+- My IDs
+- Current Level
+- Held Commission
+- Available Wallet
+- Total Earnings
+
+TEAM / NETWORK:
+
+Do not show a huge unreadable tree by default.
+
+Use progressive disclosure.
+
+Example:
+Level 1 — 3 / 3
+Level 2 — 6 / 9
+Level 3 — 12 / 27
+
+Tap a level to see members.
+
+Each member card:
+- Name
+- ID
+- Package
+- Joining date
+- Generation
+- Sponsor
+- Status
+
+PACKAGE PAGE:
+
+Show:
+- Builder
+- Turbo
+- Super Turbo
+- Hyper Turbo
+
+Each card should show:
+- Package name
+- Amount
+- IDs
+- Structure summary
+- CTA
+
+MY IDs:
+
+Each ID should show:
+- ID number
+- Package
+- Sponsor ID
+- Parent ID
+- Created date
+- Current level
+- Held commission
+- Available commission
+- Status
+
+Allow user to switch between owned IDs.
+
+NAVIGATION:
+
+Mobile:
+- Home
+- Team
+- Packages
+- Wallet
+- Profile
+
+Desktop:
+- Clean sidebar
+
+AUTH:
+- Signup
+- Login
+- Forgot password
+- Secure sessions
+- Logout
+- OTP-ready architecture
+
+Do not invent mandatory KYC unless it is explicitly added later.
+
+REFERRAL:
+- Unique referral code
+- Referral link
+- QR code
+- Share button
+- Preserve sponsor attribution
+
+ADMIN PANEL:
+
+Include:
+- Dashboard
+- Users
+- IDs
+- Packages
+- Purchases
+- Sponsor Network
+- Levels
+- Commissions
+- Held Commissions
+- Wallets
+- Transactions
+- Reports
+- Notifications
+- Settings
+- Audit Logs
+
+Admin KPIs:
+- Total users
+- Total active IDs
+- Package distribution
+- Package sales
+- Total joining value
+- Total held commission
+- Total released commission
+- Wallet liabilities
+- Level completion counts
+
+DATA MODEL:
+
+At minimum:
+- User
+- Package
+- UserPackage
+- UserID
+- SponsorRelationship
+- PlacementRelationship
+- GenerationMembership
+- LevelDefinition
+- LevelProgress
+- CommissionRule
+- CommissionEntry
+- HeldCommission
+- Wallet
+- WalletTransaction
+- PackagePurchase
+- Payment
+- AuditLog
+- Notification
+
+Keep SponsorRelationship and PlacementRelationship separate.
+
+COMMISSION LEDGER:
+
+Do not use only mutable wallet balances.
+
+Use ledger entries.
+
+CommissionEntry should include:
+- beneficiary user
+- beneficiary ID
+- source user
+- source ID
+- joining amount
+- generation
+- level
+- commission rate
+- commission amount
+- status
+- held date
+- release date
+- wallet transaction ID
+- rule version
+
+Statuses:
+- HELD
+- RELEASED
+- REVERSED
+
+LEVEL PROGRESS ENGINE:
+
+Track:
+- user ID
+- level
+- generation
+- required members
+- completed members
+- remaining members
+- accumulated commission
+- full commission
+- status
+- completed at
+- released at
+
+TRANSACTION SAFETY:
+
+Commission processing must be idempotent.
+
+A single joining event must never create duplicate commission.
+
+Use:
+- unique event IDs
+- atomic transactions
+- duplicate prevention
+- audit logs
+
+NOTIFICATIONS:
+
+Notify for:
+- new direct member
+- new generation member
+- progress change
+- level complete
+- held commission increase
+- commission release
+- package purchase
+- new ID creation
+
+UI/UX QUALITY:
+
+This is critical.
+
+The product must be:
+- Mobile-first
+- Fully responsive
+- Premium
+- Clean
+- Fintech-style
+- Minimal
+- Easy to understand
+- Fast
+- Visually balanced
+
+Test at:
+- 320px
+- 360px
+- 375px
+- 390px
+- 414px
+- 480px
+- 768px
+- 1024px
+- 1280px
+- 1440px+
+
+No:
+- horizontal scrolling
+- broken cards
+- text overlap
+- clipped text
+- inconsistent spacing
+- oversized desktop UI
+- tiny mobile touch targets
+- excessive empty space
+- cheap MLM visual style
+
+Use:
+- Inter or Manrope
+- restrained premium palette
+- subtle shadows
+- soft borders
+- progress bars
+- badges
+- skeleton loaders
+- smooth transitions
+- bottom sheets on mobile
+- proper modals on desktop
+
+RESPONSIVE BEHAVIOR:
+
+Mobile:
+- Bottom nav
+- Stacked cards
+- Compact progress UI
+- Bottom sheets
+
+Desktop:
+- Sidebar
+- Grid layouts
+- Proper tables
+- Richer network view
+
+Do not simply stretch mobile UI to desktop.
+
+PWA:
+- Installable
+- Manifest
+- Icons
+- Service worker
+- Offline fallback
+- Add-to-home-screen support
+
+SECURITY:
+- Server-side commission calculation
+- Strong auth
+- Secure password hashing
+- RBAC
+- Input validation
+- Rate limiting
+- Audit logs
+- No client-side trust for financial rules
+
+QA:
+
+Before calling it complete, test:
+
+Business logic:
+- Builder
+- Turbo
+- Super Turbo
+- External sponsor
+- Internal sponsor
+- Level-1 direct rule
+- Generation assignment
+- Commission calculation
+- Held commission
+- Level completion
+- Wallet release
+- Duplicate prevention
+
+Responsive:
+- All listed breakpoints
+
+Functional:
+- Signup
+- Login
+- Referral
+- Package purchase simulation
+- ID creation
+- Commission event
+- Level progress
+- Wallet release
+- Admin reports
+
+FINAL INSTRUCTION:
+
+Start building now.
+
+Do not stop after planning.
+Do not stop after wireframes.
+Do not ask me whether you should start.
+
+Build the working MVP in the preview.
+
+After each major module:
+1. Test it
+2. Fix issues
+3. Continue
+
+Do not mark the project complete while any Critical or High issue remains.
+
+The final product should look like a serious funded startup product, not a template, student project, generic dashboard, or rough AI prototype.

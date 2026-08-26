@@ -1,0 +1,1469 @@
+You are acting as a senior product architect, UI/UX lead, frontend engineer, backend architect, QA engineer, and business-systems analyst.
+
+Your task is to design and build a complete production-ready MVP for a platform called:
+
+LINK MATE
+
+This is a package-based membership and generation commission platform.
+
+IMPORTANT:
+Do not invent or alter any business rule.
+Do not mix this project with any other business model.
+Follow the exact locked rules below.
+If any implementation detail is not explicitly defined, choose the safest, most scalable, and most user-friendly implementation without changing the business logic.
+
+==================================================
+1. CORE PRODUCT GOAL
+==================================================
+
+Build a premium, highly polished, mobile-first, responsive web application / PWA for Link Mate.
+
+The application must feel modern, trustworthy, simple, fast, and premium.
+
+The UI/UX quality must be comparable to polished fintech / SaaS products.
+
+The interface must be:
+- Mobile-first
+- Fully responsive
+- Perfect on Android
+- Perfect on iPhone
+- Perfect on tablet
+- Perfect on desktop
+- No broken layouts
+- No horizontal scrolling
+- No overlapping text
+- No unnecessary empty space
+- No awkward card heights
+- No inconsistent spacing
+- No weak typography
+- No clutter
+- No confusing hierarchy
+- No oversized desktop elements
+- No tiny mobile controls
+
+The user should understand at a glance:
+- What package they have
+- How many IDs they own
+- Their sponsor position
+- Their current level
+- Their current generation progress
+- How much commission is held
+- How much has been released
+- What is in their wallet
+- What they need to do next
+
+==================================================
+2. DESIGN DIRECTION
+==================================================
+
+Design language:
+- Premium
+- Minimal
+- Clean
+- Fintech-grade
+- High trust
+- Modern
+- Elegant
+- Easy to scan
+- Mobile focused
+
+Use:
+- Strong information hierarchy
+- Generous but controlled spacing
+- Rounded cards
+- Subtle shadows
+- Soft borders
+- Smooth transitions
+- Skeleton loaders
+- Bottom sheets on mobile
+- Responsive modal behavior
+- Progress bars
+- Progress rings where useful
+- Clear badges
+- Subtle microinteractions
+
+Avoid:
+- Flashy MLM-style visuals
+- Neon gradients
+- Excessive animation
+- Cheap-looking cards
+- Dense tables on mobile
+- Huge empty hero sections
+- Overuse of icons
+- Unnecessary decorative graphics
+
+Use professional typography such as:
+- Inter
+or
+- Manrope
+
+Use a restrained professional palette:
+- Deep charcoal / near black
+- White / off-white
+- One premium accent color
+- Clear success / warning / pending states
+
+Do not overuse color.
+
+==================================================
+3. RESPONSIVE SYSTEM
+==================================================
+
+The application must be responsive at minimum for:
+
+- 320px
+- 360px
+- 375px
+- 390px
+- 414px
+- 480px
+- 768px
+- 1024px
+- 1280px
+- 1440px+
+
+Mobile must be designed first.
+
+Desktop must not simply stretch the mobile UI.
+
+Use adaptive layouts.
+
+Examples:
+- Mobile: bottom navigation
+- Desktop: left sidebar or compact top + side navigation
+- Mobile: stacked cards
+- Desktop: grid
+- Mobile: bottom sheets
+- Desktop: modal/dialog
+- Mobile tables: cards or horizontal-safe transformed layouts
+- Desktop: proper tables
+
+All buttons:
+- Minimum touch target
+- Correct spacing
+- Proper disabled states
+- Loading states
+- Hover states on desktop
+- Active states
+- Focus states
+
+==================================================
+4. PACKAGE STRUCTURE — LOCKED
+==================================================
+
+There are 4 packages:
+
+1. Builder
+Amount: BDT 11,000
+IDs: 1
+
+2. Turbo
+Amount: BDT 44,000
+IDs: 4
+
+3. Super Turbo
+Amount: BDT 143,000
+IDs: 13
+
+4. Hyper Turbo
+Amount: BDT 242,000
+IDs: 22
+
+Do not change these values.
+
+==================================================
+5. STANDARD ID VALUE
+==================================================
+
+Base single ID value:
+
+BDT 11,000 = 1 ID
+
+Use this standard ID value for all standard commission examples unless the business logic explicitly provides another joining amount.
+
+==================================================
+6. MULTI-ID PACKAGE LOGIC — LOCKED
+==================================================
+
+Higher packages create multiple IDs.
+
+External sponsor connects to the buyer's FIRST ID only.
+
+The buyer's first ID then internally sponsors package-generated IDs according to the package structure.
+
+Turbo example:
+
+Turbo = 4 IDs
+
+External sponsor
+↓
+Buyer ID 1
+↓
+Buyer ID 2
+Buyer ID 3
+Buyer ID 4
+
+Meaning:
+- External sponsor earns commission from Buyer ID 1 only
+- Buyer ID 1 sponsors Buyer IDs 2, 3, 4
+- Those 3 IDs complete Buyer ID 1's Level 1
+
+Do not treat the external sponsor as sponsor of all 4 IDs.
+
+Super Turbo:
+13 IDs
+
+Structure includes:
+- Root / first ID
+- Next 3 IDs under first ID
+- Next 9 IDs under those positions
+
+Total = 13 IDs
+
+Hyper Turbo:
+22 IDs
+
+The exact complete internal placement map beyond the already-confirmed logic is not fully specified.
+
+Therefore:
+- Build the architecture so Hyper Turbo placement rules can be configured
+- Do not invent an irreversible unsupported placement structure
+- Admin/system configuration should allow future approved placement definition
+
+==================================================
+7. LEVEL & GENERATION STRUCTURE — LOCKED
+==================================================
+
+Level 1
+Generation: 1st
+Required members: 3
+Commission: 8%
+
+Level 2
+Generation: 2nd
+Required members: 9
+Commission: 6%
+
+Level 3
+Generation: 3rd
+Required members: 27
+Commission: 3%
+
+Level 4
+Generation: 4th
+Required members: 54
+Commission: 2%
+
+Level 5
+Generation: 5th
+Required members: 108
+Commission: 1.2%
+
+Level 6
+Generation: 6th
+Required members: 162
+Commission: 1%
+
+Level 7
+Generation: 7th
+Required members: 216
+Commission: 1%
+
+Level 8
+Generation: 8th
+Required members: 270
+Commission: 1%
+
+Level 9
+Generation: 9th
+Required members: 324
+Commission: 1%
+
+Do not change these percentages or counts.
+
+==================================================
+8. GENERATION IDENTITY RULE — LOCKED
+==================================================
+
+Members must always remain assigned to their actual generation.
+
+Example:
+
+At Level 3:
+- 3 members are still 1st generation
+- 9 members are still 2nd generation
+- 27 members are 3rd generation
+
+Never reclassify 2nd-generation users as 3rd-generation users.
+
+Generation is based on actual network distance.
+
+==================================================
+9. LEVEL 1 DIRECT SPONSOR RULE — LOCKED
+==================================================
+
+To complete Level 1:
+
+A member must personally sponsor 3 direct members.
+
+This direct sponsorship requirement is mandatory for Level 1.
+
+After Level 1:
+Later levels are completed based on the required member count in the applicable generation.
+
+==================================================
+10. COMMISSION ENGINE — LOCKED
+==================================================
+
+Formula:
+
+Commission Per Qualifying Member =
+Applicable Joining Amount × Applicable Generation Percentage
+
+Standard ID amount:
+BDT 11,000
+
+Examples:
+
+Level 1:
+8% × 11,000 = BDT 880 per member
+
+3 members:
+880 × 3 = BDT 2,640
+
+Level 2:
+6% × 11,000 = BDT 660 per member
+
+9 members:
+660 × 9 = BDT 5,940
+
+Level 3:
+3% × 11,000 = BDT 330 per member
+
+27 members:
+330 × 27 = BDT 8,910
+
+Level 4:
+2% × 11,000 = BDT 220 per member
+
+54 members:
+220 × 54 = BDT 11,880
+
+Level 5:
+1.2% × 11,000 = BDT 132 per member
+
+108 members:
+132 × 108 = BDT 14,256
+
+Level 6:
+1% × 11,000 = BDT 110 per member
+
+162 members:
+110 × 162 = BDT 17,820
+
+Level 7:
+1% × 11,000 = BDT 110 per member
+
+216 members:
+110 × 216 = BDT 23,760
+
+Level 8:
+1% × 11,000 = BDT 110 per member
+
+270 members:
+110 × 270 = BDT 29,700
+
+Level 9:
+1% × 11,000 = BDT 110 per member
+
+324 members:
+110 × 324 = BDT 35,640
+
+==================================================
+11. GLOBAL COMMISSION HOLD & RELEASE RULE — LOCKED
+==================================================
+
+This applies to ALL levels.
+
+Commission accumulates member by member.
+
+It is NOT released immediately.
+
+It remains in:
+HELD / PENDING COMMISSION
+
+until the required member count for that level is fully completed.
+
+Then:
+
+FULL ACCUMULATED LEVEL COMMISSION
+→ RELEASED TO WALLET
+
+Pattern:
+
+Generate
+→ Accumulate
+→ Hold
+→ Complete
+→ Release
+
+Do not partially release a level's commission before that level is completed.
+
+==================================================
+12. PROGRESS SYSTEM — REQUIRED
+==================================================
+
+Every level must show live progress.
+
+Show:
+
+- Level number
+- Generation
+- Commission rate
+- Required members
+- Completed members
+- Remaining members
+- Current accumulated commission
+- Full possible level commission
+- Level status
+- Release status
+
+Example Level 2:
+
+Level 2
+2nd Generation
+6%
+
+Progress:
+6 / 9 Members
+
+Commission:
+BDT 3,960 / BDT 5,940
+
+Remaining:
+3 Members
+
+Status:
+In Progress
+
+Wallet Release:
+Pending
+
+Once complete:
+
+9 / 9 Members
+BDT 5,940 / BDT 5,940
+
+Status:
+Completed
+
+Wallet:
+BDT 5,940 Released
+
+==================================================
+13. LEVEL STATUS SYSTEM
+==================================================
+
+Use clear statuses:
+
+LOCKED
+IN PROGRESS
+COMPLETED
+RELEASED
+
+Optional additional UI status:
+ELIGIBLE
+
+But do not change the actual business logic.
+
+==================================================
+14. WALLET ARCHITECTURE
+==================================================
+
+Wallet must clearly separate:
+
+1. Held Commission
+Generated but not yet releasable
+
+2. Available Balance
+Commission released after level completion
+
+3. Released Earnings History
+
+4. Transaction History
+
+Every wallet entry should show:
+- Source
+- Level
+- Generation
+- Amount
+- Date
+- Status
+- Related member / ID
+- Transaction ID
+
+Do not allow admin to silently edit wallet balances.
+
+All corrections should be ledger-based adjustments.
+
+==================================================
+15. USER DASHBOARD
+==================================================
+
+The dashboard should show at a glance:
+
+- User name
+- Main ID
+- Package
+- Number of IDs
+- Current active level
+- Direct sponsor progress
+- Total generation members
+- Held commission
+- Available wallet
+- Total released earnings
+- Next milestone
+- Recent activity
+
+Main dashboard cards:
+
+My Package
+My IDs
+Current Level
+Held Commission
+Available Wallet
+Total Earnings
+
+Then:
+
+Level Progress
+Network Snapshot
+Recent Earnings
+Recent Members
+
+==================================================
+16. TEAM / NETWORK MODULE
+==================================================
+
+Create a responsive network module.
+
+Do NOT show a giant unreadable tree by default.
+
+Use progressive disclosure.
+
+Show:
+
+Level 1
+3 / 3
+
+Level 2
+6 / 9
+
+Level 3
+12 / 27
+
+etc.
+
+On tap:
+Show members in that generation.
+
+Each member card:
+- Name
+- ID
+- Package
+- Joining date
+- Status
+- Generation
+- Sponsor relationship
+
+Desktop can have a richer tree or hierarchy view.
+
+Mobile should use collapsible levels / cards.
+
+==================================================
+17. PACKAGE PAGE
+==================================================
+
+Show all 4 packages.
+
+Each package card should display:
+
+- Package name
+- Amount
+- Number of IDs
+- Internal structure summary
+- What the buyer receives
+- Clear CTA
+
+Highlight the user's current package.
+
+Turbo card should visually explain:
+4 IDs
+1 root ID + 3 internal Level-1 IDs
+
+Super Turbo:
+13 IDs
+1 root + 3 first generation + 9 second generation
+
+Hyper Turbo:
+22 IDs
+Show only confirmed structure and clearly label remaining internal placement as configurable if not finalized.
+
+==================================================
+18. ID MANAGEMENT
+==================================================
+
+A user may own multiple IDs depending on package.
+
+Provide:
+
+My IDs screen
+
+Each ID should show:
+- ID number
+- Package
+- Sponsor ID
+- Parent ID
+- Created date
+- Current level
+- Held commission
+- Available commission
+- Status
+
+Allow switching between owned IDs.
+
+The user must be able to understand which ID is generating which commission.
+
+==================================================
+19. EXTERNAL SPONSOR EXAMPLE — TURBO
+==================================================
+
+Show this correctly in the system.
+
+Turbo purchase:
+BDT 44,000
+4 IDs
+
+External sponsor earns from first ID only:
+
+8% × BDT 11,000
+= BDT 880
+
+Buyer ID 1 internally sponsors 3 IDs:
+
+3 × BDT 880
+= BDT 2,640
+
+After those 3 internal IDs complete Level 1:
+
+BDT 2,640
+→ Released to Buyer ID 1 wallet
+
+This must be reflected correctly in:
+- Sponsor tree
+- Commission engine
+- Wallet
+- Progress
+- Transaction history
+
+==================================================
+20. USER APP NAVIGATION
+==================================================
+
+Recommended mobile bottom navigation:
+
+Home
+Team
+Packages
+Wallet
+Profile
+
+Use a prominent action where useful for:
+Invite / Sponsor
+
+Do not clutter the navigation.
+
+Desktop:
+Use a clean sidebar.
+
+==================================================
+21. AUTHENTICATION
+==================================================
+
+Implement:
+
+- Sign up
+- Login
+- Forgot password
+- OTP-ready mobile verification architecture
+- Secure password handling
+- Session management
+- Logout
+- Device/session security
+
+Prepare architecture for future:
+- 2FA
+- KYC
+if needed
+
+Do not invent KYC as a mandatory business rule unless explicitly enabled.
+
+==================================================
+22. REFERRAL / INVITE
+==================================================
+
+Each user / ID should have:
+
+- Unique referral code
+- Unique referral link
+- QR code
+- Share button
+
+Share options:
+- WhatsApp
+- Messenger
+- Copy Link
+- Native share
+
+Referral should preserve correct sponsor attribution.
+
+==================================================
+23. ADMIN DASHBOARD
+==================================================
+
+Create a secure admin panel.
+
+Admin modules:
+
+Overview
+Users
+Packages
+IDs
+Sponsor Network
+Levels
+Commissions
+Held Commissions
+Wallets
+Transactions
+Package Purchases
+Reports
+Settings
+Audit Logs
+
+Admin dashboard KPIs:
+
+- Total users
+- Total active IDs
+- Package distribution
+- Builder sales
+- Turbo sales
+- Super Turbo sales
+- Hyper Turbo sales
+- Total joining value
+- Total held commission
+- Total released commission
+- Wallet liabilities
+- Level completion counts
+
+==================================================
+24. ADMIN PACKAGE MANAGEMENT
+==================================================
+
+Package rules must be stored in configuration.
+
+But locked values should not be editable casually.
+
+Use:
+- versioning
+- admin permissions
+- audit log
+- confirmation
+
+Fields:
+- Package name
+- Amount
+- ID count
+- Placement rule version
+- Active/inactive
+
+==================================================
+25. COMMISSION CONFIGURATION
+==================================================
+
+Store commission rules centrally.
+
+For each level:
+
+level
+generation
+requiredMemberCount
+rate
+status
+version
+
+Locked defaults:
+
+1 / 1st / 3 / 8%
+2 / 2nd / 9 / 6%
+3 / 3rd / 27 / 3%
+4 / 4th / 54 / 2%
+5 / 5th / 108 / 1.2%
+6 / 6th / 162 / 1%
+7 / 7th / 216 / 1%
+8 / 8th / 270 / 1%
+9 / 9th / 324 / 1%
+
+==================================================
+26. DATA MODEL
+==================================================
+
+Design a proper relational schema.
+
+At minimum:
+
+User
+Package
+UserPackage
+UserID
+SponsorRelationship
+PlacementRelationship
+GenerationMembership
+LevelDefinition
+LevelProgress
+CommissionRule
+CommissionEntry
+HeldCommission
+Wallet
+WalletTransaction
+PackagePurchase
+Payment
+AuditLog
+Notification
+
+Keep sponsor relationship and placement relationship separate.
+
+This is important.
+
+==================================================
+27. COMMISSION LEDGER
+==================================================
+
+Do not store commission as a simple mutable balance.
+
+Use ledger transactions.
+
+CommissionEntry should include:
+
+- id
+- beneficiaryUserId
+- beneficiaryID
+- sourceUserId
+- sourceID
+- sourceJoiningAmount
+- generation
+- level
+- commissionRate
+- commissionAmount
+- status
+- heldAt
+- releasedAt
+- walletTransactionId
+- ruleVersion
+
+Statuses:
+HELD
+RELEASED
+REVERSED
+
+==================================================
+28. LEVEL PROGRESS ENGINE
+==================================================
+
+LevelProgress should track:
+
+- userID
+- level
+- generation
+- requiredMembers
+- completedMembers
+- remainingMembers
+- accumulatedCommission
+- expectedFullCommission
+- status
+- completedAt
+- releasedAt
+
+Update progress automatically when a qualifying member joins.
+
+==================================================
+29. TRANSACTION SAFETY
+==================================================
+
+Commission calculations must be idempotent.
+
+A single joining event must never generate duplicate commission.
+
+Use:
+- unique event IDs
+- transaction locking
+- atomic database transactions
+- duplicate prevention
+- audit logs
+
+==================================================
+30. NOTIFICATIONS
+==================================================
+
+Notify users when:
+
+- New direct member joins
+- New generation member is counted
+- Level progress changes
+- Level completes
+- Held commission increases
+- Commission releases to wallet
+- Package purchase succeeds
+- New ID is created
+
+Use clean notification language.
+
+==================================================
+31. REPORTS
+==================================================
+
+User reports:
+
+- Earnings by level
+- Held commission
+- Released commission
+- Network growth
+- Package history
+- ID performance
+
+Admin reports:
+
+- Package sales
+- Commission liability
+- Released payouts
+- Held commission
+- Level completion
+- Sponsor growth
+- User growth
+- Revenue
+- ID creation
+
+==================================================
+32. EMPTY STATES
+==================================================
+
+Every empty screen must be useful.
+
+Example:
+
+No Level 2 members yet.
+
+Message:
+“Your Level 2 progress will appear here as your network grows.”
+
+CTA:
+View Team
+
+Do not show blank screens.
+
+==================================================
+33. LOADING STATES
+==================================================
+
+Use skeleton loaders for:
+- Dashboard
+- Team
+- Wallet
+- Packages
+- Transactions
+
+Avoid large spinners.
+
+==================================================
+34. ERROR STATES
+==================================================
+
+Create polished states for:
+- Failed request
+- Offline
+- Session expired
+- Invalid referral
+- Payment failed
+- No access
+- Not found
+
+==================================================
+35. PWA REQUIREMENTS
+==================================================
+
+Make the application installable.
+
+Include:
+- Manifest
+- Icons
+- Service worker
+- Offline fallback
+- Add-to-home-screen support
+- Responsive splash behavior
+
+Do not cache sensitive financial data insecurely.
+
+==================================================
+36. ACCESSIBILITY
+==================================================
+
+Follow WCAG-friendly standards.
+
+Include:
+- Sufficient contrast
+- Keyboard navigation
+- Focus indicators
+- Semantic HTML
+- ARIA where required
+- Proper labels
+- Screen-reader-friendly status messages
+
+==================================================
+37. PERFORMANCE
+==================================================
+
+Target:
+- Fast initial load
+- Lazy loading
+- Optimized images
+- Code splitting
+- Minimal JS bundle
+- Efficient queries
+- Pagination
+- Virtualized large member lists if needed
+
+Aim for strong Core Web Vitals.
+
+==================================================
+38. SECURITY
+==================================================
+
+Implement:
+
+- Secure authentication
+- Password hashing
+- CSRF protection where relevant
+- XSS protection
+- SQL injection protection
+- Rate limiting
+- Secure cookies
+- RBAC
+- Audit logs
+- Input validation
+- Server-side authorization
+- No client-side trust for commission rules
+
+All financial calculations must be server-side.
+
+==================================================
+39. QA REQUIREMENTS
+==================================================
+
+Act as your own QA team.
+
+Before considering the project complete, test:
+
+BUSINESS LOGIC
+- Builder IDs
+- Turbo IDs
+- Super Turbo IDs
+- External sponsor logic
+- Internal sponsor logic
+- Level 1 direct requirement
+- Generation assignment
+- Commission calculations
+- Held commission
+- Level completion
+- Wallet release
+- Duplicate prevention
+
+RESPONSIVENESS
+- 320px
+- 360px
+- 375px
+- 390px
+- 414px
+- 768px
+- 1024px
+- 1280px
+- 1440px
+
+UI
+- No overflow
+- No broken cards
+- No clipped text
+- No inconsistent spacing
+- No overlapping UI
+- Proper touch targets
+- Proper mobile navigation
+- Proper desktop layout
+
+FUNCTIONAL
+- Signup
+- Login
+- Referral
+- Package purchase simulation
+- ID creation
+- Commission event
+- Level progress
+- Wallet release
+- Admin reports
+
+==================================================
+40. DEVELOPMENT QUALITY
+==================================================
+
+Use:
+- Clean architecture
+- Reusable components
+- Strong typing
+- Clear folder structure
+- Environment configuration
+- Proper validation
+- Error boundaries
+- Logging
+- Centralized business rules
+- No magic numbers
+- No duplicated commission logic
+
+Do not hardcode business rules across multiple components.
+
+Use a centralized rules/configuration layer.
+
+==================================================
+41. RECOMMENDED STACK
+==================================================
+
+Use a modern production-ready stack.
+
+Preferred:
+
+Frontend:
+Next.js
+TypeScript
+Tailwind CSS
+
+UI:
+Accessible custom components or shadcn/ui style architecture
+
+Backend:
+Next.js server architecture or Node.js API
+
+Database:
+PostgreSQL
+
+ORM:
+Prisma or equivalent
+
+Auth:
+Secure production-ready authentication
+
+State/Data:
+React Query / server state approach
+
+Charts:
+Lightweight responsive charting only where useful
+
+PWA:
+Manifest + service worker
+
+If you choose another stack, explain why before implementing.
+
+==================================================
+42. DATABASE SEED DATA
+==================================================
+
+Create realistic development data.
+
+Include examples for:
+
+Builder
+Turbo
+Super Turbo
+Users at different levels
+Held commission
+Released commission
+Incomplete Level 2
+Completed Level 1
+Multiple IDs
+
+Do not use lorem ipsum.
+
+==================================================
+43. DASHBOARD SAMPLE DATA
+==================================================
+
+Use realistic BDT formatting.
+
+Example:
+
+Available Wallet
+৳12,580
+
+Held Commission
+৳3,960
+
+Current Level
+Level 2
+
+Progress
+6 / 9 Members
+
+Next Release
+৳5,940
+
+Remaining
+3 Members
+
+==================================================
+44. MONEY FORMATTING
+==================================================
+
+Use consistent money formatting.
+
+Examples:
+
+৳11,000
+৳44,000
+৳143,000
+৳242,000
+
+or
+
+BDT 11,000
+
+Choose one dominant UI convention and stay consistent.
+
+==================================================
+45. MOBILE EXPERIENCE
+==================================================
+
+Mobile is the primary product.
+
+At one glance the user must see:
+
+Wallet
+Held commission
+Current level
+Progress
+Next target
+
+Do not make users scroll excessively before seeing essential information.
+
+Keep the most important information above the fold.
+
+==================================================
+46. DESKTOP EXPERIENCE
+==================================================
+
+Desktop should feel like a real SaaS dashboard.
+
+Use:
+- Sidebar
+- Main content
+- KPI cards
+- Wider progress panels
+- Detailed tables
+- Network visualization
+
+Do not simply enlarge mobile cards.
+
+==================================================
+47. FINAL PRODUCT STRUCTURE
+==================================================
+
+USER APP:
+
+1. Login / Signup
+2. Home
+3. My Package
+4. My IDs
+5. Team
+6. Level Progress
+7. Wallet
+8. Earnings
+9. Transactions
+10. Referral / Invite
+11. Notifications
+12. Profile
+13. Settings
+
+ADMIN:
+
+1. Dashboard
+2. Users
+3. IDs
+4. Packages
+5. Purchases
+6. Sponsor Network
+7. Levels
+8. Commission
+9. Held Commission
+10. Wallets
+11. Transactions
+12. Reports
+13. Notifications
+14. Settings
+15. Audit Logs
+
+==================================================
+48. FINAL BUSINESS RULE SUMMARY — DO NOT MODIFY
+==================================================
+
+Packages:
+Builder = BDT 11,000 / 1 ID
+Turbo = BDT 44,000 / 4 IDs
+Super Turbo = BDT 143,000 / 13 IDs
+Hyper Turbo = BDT 242,000 / 22 IDs
+
+External sponsor:
+Connects to first ID only.
+
+Turbo:
+External sponsor gets BDT 880 from first ID.
+First ID sponsors remaining 3 IDs.
+Those 3 can complete first ID's Level 1.
+Level 1 full standard commission = BDT 2,640.
+
+Level 1:
+3 direct sponsors
+8%
+
+Level 2:
+9 second-generation members
+6%
+
+Level 3:
+27 third-generation members
+3%
+
+Level 4:
+54 fourth-generation members
+2%
+
+Level 5:
+108 fifth-generation members
+1.2%
+
+Level 6:
+162 sixth-generation members
+1%
+
+Level 7:
+216 seventh-generation members
+1%
+
+Level 8:
+270 eighth-generation members
+1%
+
+Level 9:
+324 ninth-generation members
+1%
+
+Commission:
+Joining amount × level/generation rate
+
+Commission release:
+Accumulate member-by-member
+Hold until full level completion
+Release complete accumulated level commission to wallet
+
+Generation:
+Always based on actual network position.
+
+==================================================
+49. DELIVERY METHOD
+==================================================
+
+Do not jump directly into random coding.
+
+Work in this order:
+
+STEP 1
+Restate and validate the business logic.
+
+STEP 2
+Create information architecture.
+
+STEP 3
+Create database model.
+
+STEP 4
+Create complete user flows.
+
+STEP 5
+Create responsive design system.
+
+STEP 6
+Create all key screens.
+
+STEP 7
+Implement core sponsor and commission engine.
+
+STEP 8
+Implement held commission and wallet release.
+
+STEP 9
+Implement admin panel.
+
+STEP 10
+Perform business-logic QA.
+
+STEP 11
+Perform responsive QA.
+
+STEP 12
+Perform security QA.
+
+STEP 13
+Fix all identified defects.
+
+STEP 14
+Provide final implementation summary.
+
+Do not mark the project complete while any Critical or High issue remains.
+
+==================================================
+50. FINAL QUALITY BAR
+==================================================
+
+The final product must look and behave like a serious funded startup product.
+
+It must not look like:
+- a template
+- a student project
+- a basic MLM website
+- a generic dashboard
+- an AI-generated rough prototype
+
+The result should feel:
+- premium
+- deliberate
+- scalable
+- trustworthy
+- polished
+- production-oriented
+- mobile-first
+- extremely easy to understand
+
+Every screen must have a clear purpose.
+
+Every number must be correct.
+
+Every commission calculation must be traceable.
+
+Every generation relationship must be deterministic.
+
+Every responsive breakpoint must work.
+
+Build Link Mate as if it will be handed to real users, finance staff, administrators, and a professional QA team.

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Link Mate">
+  <rect width="32" height="32" rx="8" fill="#1F4D45"/>
+  <rect x="8.5" y="14.64" width="15" height="2.72" rx="1.36" fill="#F3F1EC"/>
+  <circle cx="8.5" cy="16" r="3.78" fill="#F3F1EC"/>
+  <circle cx="16" cy="16" r="3.78" fill="#F3F1EC"/>
+  <circle cx="23.5" cy="16" r="3.78" fill="#F3F1EC"/>
+</svg>
