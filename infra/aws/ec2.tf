@@ -1,4 +1,4 @@
-# Public subnet + IGW only — no NAT. EC2 reaches ECR/SSM over the public
+# Public subnet + IGW only - no NAT. EC2 reaches ECR/SSM over the public
 # internet and RDS over the private VPC path.
 resource "aws_internet_gateway" "this" {
   count  = var.enable_ec2 ? 1 : 0
@@ -37,7 +37,7 @@ resource "aws_route_table_association" "public" {
 resource "aws_security_group" "ec2" {
   count       = var.enable_ec2 ? 1 : 0
   name        = "${var.name_prefix}-ec2"
-  description = "Link Mate EC2 — public 80/443, private Postgres to RDS"
+  description = "Link Mate EC2 - public 80/443, private Postgres to RDS"
   vpc_id      = aws_vpc.this.id
   tags        = { Name = "${var.name_prefix}-ec2" }
 }
@@ -145,8 +145,8 @@ data "aws_iam_policy_document" "ec2_inline" {
       aws_secretsmanager_secret.app.arn,
       aws_secretsmanager_secret.database_url.arn,
       aws_secretsmanager_secret.better_auth_secret.arn,
-      aws_secretsmanager_secret.app_url.arn,
-      aws_secretsmanager_secret.better_auth_url.arn,
+      var.domain_name != "" ? aws_secretsmanager_secret.app_url[0].arn : null,
+      var.domain_name != "" ? aws_secretsmanager_secret.better_auth_url[0].arn : null,
       var.ses_from_email != "" ? aws_secretsmanager_secret.ses_from_email[0].arn : null,
     ])
   }
@@ -188,7 +188,7 @@ resource "aws_instance" "app" {
   ami                         = data.aws_ami.al2023[0].id
   instance_type               = var.ec2_instance_type
   subnet_id                   = aws_subnet.public[0].id
-  vpc_security_group_ids      = [aws_security_group.ec2[0].id]
+  vpc_security_group_ids      = [aws_security_group.ec2[0].id
   iam_instance_profile        = aws_iam_instance_profile.ec2[0].name
   associate_public_ip_address = true
   monitoring                  = false
@@ -213,8 +213,8 @@ resource "aws_instance" "app" {
     image_tag    = var.image_tag
     secret_db    = aws_secretsmanager_secret.database_url.name
     secret_auth  = aws_secretsmanager_secret.better_auth_secret.name
-    secret_app   = aws_secretsmanager_secret.app_url.name
-    secret_authu = aws_secretsmanager_secret.better_auth_url.name
+    secret_app   = var.domain_name != "" ? aws_secretsmanager_secret.app_url[0].name : ""
+    secret_authu = var.domain_name != "" ? aws_secretsmanager_secret.better_auth_url[0].name : ""
     secret_ses   = var.ses_from_email != "" ? aws_secretsmanager_secret.ses_from_email[0].name : ""
   })
 
