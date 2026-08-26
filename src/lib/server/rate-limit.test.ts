@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { assertRateLimit } from "./rate-limit.ts";
 import type { Sql } from "../db.ts";
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 function wrap(pg: PGlite): Sql {
   const sql = (async <T>(strings: TemplateStringsArray, ...values: unknown[]) => {
@@ -24,7 +27,7 @@ describe("assertRateLimit", () => {
   it("allows traffic under the limit and blocks over it", async () => {
     const pg = new PGlite();
     await pg.waitReady;
-    await pg.exec(readFileSync("/workspace/migrations/0004_production.sql", "utf8"));
+    await pg.exec(readFileSync(join(ROOT, "migrations", "0004_production.sql"), "utf8"));
     const sql = wrap(pg);
     await assertRateLimit(sql, "t:one", 2, 60);
     await assertRateLimit(sql, "t:one", 2, 60);

@@ -112,6 +112,21 @@ node scripts/provision-admin.mjs
 
 Never auto-promote the first public user.
 
+## 11b. Manual payment smoke (after first admin)
+
+1. Sign in as a **member** (separate from the admin account when possible).
+2. Packages → Builder → bKash (or Cash if receiving numbers are not configured yet).
+3. Submit a transaction reference. Status must be **Pending Verification**.
+4. Confirm: no membership IDs, no commissions, no wallet change.
+5. Sign in as **admin** → Payments → open the request → Approve once.
+6. Confirm: payment APPROVED, IDs issued, commission path runs once.
+7. Approve the same request again → no duplicate IDs or commissions.
+8. Submit another request and Reject or Needs review → no IDs.
+
+Automated gateway (`PAYMENTS_MODE`) remains **disabled**. Only manual approval activates packages.
+
+Payment settings (bKash/Nagad/Bank/Cash numbers) live in RDS via Admin → Settings. Do not hardcode them in the image.
+
 ## 12. SES
 
 1. Verify `SES_FROM_EMAIL` in the SES console (sandbox: only verified recipients receive mail).
