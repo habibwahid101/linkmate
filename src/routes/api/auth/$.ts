@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "@/lib/auth/server";
 import { getSql } from "@/lib/db";
+import { isPostgresUrl, requiresDurableDatabase } from "@/lib/runtime";
 import { assertRateLimit } from "@/lib/server/rate-limit";
 
 function clientKey(request: Request): string {
@@ -8,7 +9,18 @@ function clientKey(request: Request): string {
   return forwarded || request.headers.get("x-real-ip") || "unknown";
 }
 
+function authUnavailable(): Response {
+  return Response.json({ error: true, status: 503 }, { status: 503 });
+}
+
+function productionDbReady(): boolean {
+  const get = (key: string) => process.env[key];
+  if (!requiresDurableDatabase(get)) return true;
+  return isPostgresUrl(get("DATABASE_URL"));
+}
+
 async function limited(request: Request): Promise<Response> {
+  if (!productionDbReady()) return authUnavailable();
   const path = new URL(request.url).pathname.toLowerCase();
   const sql = await getSql();
   const ip = clientKey(request);
@@ -31,7 +43,7 @@ async function limited(request: Request): Promise<Response> {
 export const Route = createFileRoute("/api/auth/$")({
   server: {
     handlers: {
-      GET: ({ request }) => auth.handler(request),
+      GET: ({ request }) => (productionDbReady() ? auth.handler(request) : authUnavailable()),
       POST: ({ request }) => limited(request),
     },
   },

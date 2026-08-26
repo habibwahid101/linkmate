@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
-    "build": "node scripts/with-app-env.mjs vite build && npm run db:migrate",
-    "build:app": "node scripts/with-app-env.mjs vite build",
+    "build": "node scripts/with-app-env.mjs vite build && node scripts/patch-nitro-ssr.mjs && npm run db:migrate",
+    "build:app": "node scripts/with-app-env.mjs vite build && node scripts/patch-nitro-ssr.mjs",
     "start": "node .output/server/index.mjs",
     "db:migrate": "node scripts/migrate.mjs",
     "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
@@ -19,7 +19,10 @@
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
     "test": "node --test 'scripts/**/*.test.mjs' && npm run test:app",
-    "test:app": "node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/rules.test.ts src/lib/engine/placement.test.ts src/lib/engine/level-state.test.ts src/lib/engine/process.test.ts src/lib/runtime.test.ts",
+    "test:app": "node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/rules.test.ts src/lib/engine/placement.test.ts src/lib/engine/level-state.test.ts src/lib/engine/process.test.ts src/lib/runtime.test.ts src/lib/qualification.test.ts src/lib/public-error.test.ts src/lib/health.test.ts src/lib/server/rate-limit.test.ts src/lib/migration-safety.test.ts",
+    "test:boot": "node --test scripts/patch-nitro-ssr.test.mjs scripts/production-boot.test.mjs",
+    "db:export": "node scripts/db-export.mjs",
+    "db:restore": "node scripts/db-restore.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

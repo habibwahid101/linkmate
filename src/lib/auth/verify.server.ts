@@ -1,6 +1,7 @@
 import { getRequest } from "@tanstack/react-start/server";
 import { gateIdentityEnabled } from "./gate-identity.server";
 import { auth, authConfigured } from "./server";
+import { isPostgresUrl, requiresDurableDatabase } from "../runtime";
 
 /**
  * Server-side session resolution (server-only).
@@ -44,6 +45,12 @@ export class UnauthorizedError extends Error {
 
 export type VerifiedUser = { id: string; email: string | null };
 
+function authDatabaseReady(): boolean {
+  const get = (key: string) => process.env[key];
+  if (!requiresDurableDatabase(get)) return true;
+  return isPostgresUrl(get("DATABASE_URL"));
+}
+
 /**
  * Resolve the signed-in user from the current request, or `null` when auth isn't
  * configured / nobody is signed in. Safe to call from server functions and SSR
@@ -58,6 +65,7 @@ export async function getSessionUser(
   bearerToken?: string,
 ): Promise<VerifiedUser | null> {
   if (!authConfigured && !gateIdentityEnabled()) return null;
+  if (!authDatabaseReady()) return null;
   const request = getRequest();
   if (!request) return null;
   let headers = request.headers;

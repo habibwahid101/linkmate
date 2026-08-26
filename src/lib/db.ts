@@ -1,4 +1,10 @@
 import { pendingMigrations } from "../../scripts/migration-plan.mjs";
+import {
+  assertDurableDatabase,
+  assertProductionSecrets,
+  assertDurableMutations,
+  requiresDurableDatabase,
+} from "./runtime";
 
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
@@ -224,12 +230,15 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
-  const prod =
-    process.env.APP_ENV === "production" ||
-    (process.env.NODE_ENV === "production" && Boolean(databaseUrl));
-  if (prod && !databaseUrl) {
-    throw new Error("DATABASE_URL is required when APP_ENV=production (PGLite is not allowed).");
+  const get = (key: string) => process.env[key];
+  if (requiresDurableDatabase(get) && dbSource === "pglite") {
+    throw new Error(
+      "DATABASE_URL is required when APP_ENV=production (ephemeral storage is not allowed).",
+    );
   }
+  assertDurableDatabase(get);
+  assertProductionSecrets(get);
+  assertDurableMutations(get, dbSource);
   return dbSource === "neon" ? createNeonSql() : createPgliteSql();
 }
 
@@ -254,6 +263,11 @@ export function getSql(): Promise<Sql> {
  * Kysely dialect). Throws when `DATABASE_URL` is set (that path uses Neon).
  */
 export async function getPglite(): Promise<import("@electric-sql/pglite").PGlite> {
+  if (requiresDurableDatabase((key) => process.env[key])) {
+    throw new Error(
+      "DATABASE_URL is required when APP_ENV=production (ephemeral storage is not allowed).",
+    );
+  }
   if (dbSource !== "pglite") {
     throw new Error("getPglite() is only available on the PGLite fallback (no DATABASE_URL)");
   }
@@ -274,22 +288,19 @@ export async function getPglite(): Promise<import("@electric-sql/pglite").PGlite
  * module kick it off immediately (see bottom of file).
  */
 export function ensureDbReady(): Promise<void> {
+  const get = (key: string) => process.env[key];
+  // Production must never boot PGLite, including during module import.
+  if (requiresDurableDatabase(get)) return Promise.resolve();
   if (dbSource !== "pglite") return Promise.resolve();
   return getSql().then(() => undefined);
 }
 
-// Server-only eager start: kick PGLite bootstrap as soon as this module loads in
-// Node. Client bundles never hit this path (`getSql` throws in the browser).
-const globalBoot = globalThis as typeof globalThis & {
-  __pgBootstrapPromise__?: Promise<void>;
-};
-if (typeof window === "undefined" && dbSource === "pglite") {
-  globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
-    globalBoot.__pgBootstrapPromise__ = undefined;
-    console.error("[db] PGLite bootstrap failed:", err);
-    throw err;
-  });
+export function pgliteWasInitialized(): boolean {
+  return Boolean(globalRef.__pgliteInstance__);
 }
+
+// Do not eagerly boot PGLite. Preview initializes lazily on first getSql().
+// Production never constructs PGLite.
 
 /** Postgres advisory lock for multi-instance purchase/commission safety. No-op on PGLite. */
 export async function advisoryLock(sql: Sql, key: string): Promise<void> {
