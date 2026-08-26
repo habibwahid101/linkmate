@@ -188,7 +188,7 @@ resource "aws_instance" "app" {
   ami                         = data.aws_ami.al2023[0].id
   instance_type               = var.ec2_instance_type
   subnet_id                   = aws_subnet.public[0].id
-  vpc_security_group_ids      = [aws_security_group.ec2[0].id
+  vpc_security_group_ids      = [aws_security_group.ec2[0].id]
   iam_instance_profile        = aws_iam_instance_profile.ec2[0].name
   associate_public_ip_address = true
   monitoring                  = false
