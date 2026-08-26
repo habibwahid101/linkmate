@@ -32,6 +32,7 @@ import { Route as AdminTransactionsRouteImport } from './routes/admin/transactio
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminWalletsRouteImport } from './routes/admin/wallets'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppEarningsRouteImport } from './routes/app/earnings'
 import { Route as AppIdsRouteImport } from './routes/app/ids'
@@ -161,6 +162,11 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVersionRoute = ApiVersionRouteImport.update({
+  id: '/api/version',
+  path: '/api/version',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -250,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/admin/wallets': typeof AdminWalletsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/version': typeof ApiVersionRoute
   '/app/earnings': typeof AppEarningsRoute
   '/app/ids': typeof AppIdsRoute
   '/app/invite': typeof AppInviteRoute
@@ -286,6 +293,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/admin/wallets': typeof AdminWalletsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/version': typeof ApiVersionRoute
   '/app/earnings': typeof AppEarningsRoute
   '/app/ids': typeof AppIdsRoute
   '/app/invite': typeof AppInviteRoute
@@ -325,6 +333,7 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/admin/wallets': typeof AdminWalletsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/version': typeof ApiVersionRoute
   '/app/earnings': typeof AppEarningsRoute
   '/app/ids': typeof AppIdsRoute
   '/app/invite': typeof AppInviteRoute
@@ -365,6 +374,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/wallets'
     | '/api/health'
+    | '/api/version'
     | '/app/earnings'
     | '/app/ids'
     | '/app/invite'
@@ -401,6 +411,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/wallets'
     | '/api/health'
+    | '/api/version'
     | '/app/earnings'
     | '/app/ids'
     | '/app/invite'
@@ -439,6 +450,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/wallets'
     | '/api/health'
+    | '/api/version'
     | '/app/earnings'
     | '/app/ids'
     | '/app/invite'
@@ -464,6 +476,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiVersionRoute: typeof ApiVersionRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -628,6 +641,13 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/version': {
+      id: '/api/version'
+      path: '/api/version'
+      fullPath: '/api/version'
+      preLoaderRoute: typeof ApiVersionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -803,6 +823,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiVersionRoute: ApiVersionRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

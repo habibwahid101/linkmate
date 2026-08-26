@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   test:
-    name: typecheck + product tests
+    name: typecheck + product tests + patched production boot
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -23,3 +23,5 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test:app
+      - run: npm run build:app
+      - run: npm run test:boot

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -35,6 +35,17 @@ process.stdout.write(JSON.stringify({ importOk: true, results }));
 describe("built production server boot", () => {
   it("has a vercel serverless build to test", () => {
     assert.equal(existsSync(serverEntry), true, "run npm run build:app first");
+  });
+
+  it("writes a static version fingerprint proving the SSR patch ran", () => {
+    const file = join(root, ".vercel/output/static/version.json");
+    assert.equal(existsSync(file), true, "version.json missing — patch hook did not run");
+    const info = JSON.parse(readFileSync(file, "utf8"));
+    assert.equal(info.patched, true);
+    assert.equal(typeof info.commit, "string");
+    const raw = JSON.stringify(info);
+    assert.equal(raw.includes("DATABASE"), false);
+    assert.equal(raw.includes("postgres"), false);
   });
 
   it("production without DATABASE_URL: import succeeds, health is 503, pages boot", () => {

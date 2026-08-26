@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { patchSsrBarrel, patchSsrRuntime } from "./patch-nitro-ssr.mjs";
+import {
+  buildFingerprint,
+  patchNitroSsrPlugin,
+  patchSsrBarrel,
+  patchSsrRuntime,
+} from "./patch-nitro-ssr.mjs";
 
 describe("patchSsrBarrel", () => {
   it("defines the missing ssr_exports binding", () => {
@@ -33,5 +38,25 @@ var server_exports = __exportAll$1({ setCookie: () => setCookie$1 });
     assert.equal(next.includes('from "./ssr.mjs"'), false);
     assert.match(next, /var __exportAll\$1 = /);
     assert.match(next, /server_exports = __exportAll\$1/);
+  });
+});
+
+describe("patchNitroSsrPlugin", () => {
+  it("registers a Nitro compiled hook so vite build cannot skip the patch", () => {
+    const plugin = patchNitroSsrPlugin();
+    assert.equal(plugin.sharedDuringBuild, true);
+    assert.equal(typeof plugin.nitro?.setup, "function");
+  });
+});
+
+describe("buildFingerprint", () => {
+  it("exposes only public fields", () => {
+    const info = buildFingerprint(process.cwd(), { patched: true, builtAt: "2026-01-01T00:00:00.000Z" });
+    assert.equal(typeof info.commit, "string");
+    assert.equal(info.patched, true);
+    const raw = JSON.stringify(info);
+    assert.equal(raw.includes("DATABASE"), false);
+    assert.equal(raw.includes("SECRET"), false);
+    assert.equal(raw.includes("postgres"), false);
   });
 });
