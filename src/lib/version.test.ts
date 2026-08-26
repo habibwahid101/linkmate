@@ -8,10 +8,15 @@ describe("publicBuildFingerprint", () => {
       DATABASE_URL: process.env.DATABASE_URL,
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
       LINKMATE_BUILD_COMMIT: process.env.LINKMATE_BUILD_COMMIT,
+      GITHUB_SHA: process.env.GITHUB_SHA,
+      VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA,
     };
     process.env.DATABASE_URL = "postgresql://user:pass@hidden-host:5432/db";
     process.env.BETTER_AUTH_SECRET = "super-secret";
     process.env.LINKMATE_BUILD_COMMIT = "a5bdc50e153cc424a91c7b0f3d6c1106addaa047";
+    // Isolate from CI injectors so the fingerprint under test is deterministic.
+    delete process.env.GITHUB_SHA;
+    delete process.env.VERCEL_GIT_COMMIT_SHA;
     try {
       const info = publicBuildFingerprint();
       const raw = JSON.stringify(info);
