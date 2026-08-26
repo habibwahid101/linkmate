@@ -27,10 +27,11 @@ jobs:
       - run: npm run test:boot:aws
 
   deploy:
-    name: ECR + App Runner
+    name: ECR + EC2
     needs: test
     if: github.ref == 'refs/heads/main' && vars.AWS_DEPLOY == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     permissions:
       id-token: write
       contents: read
@@ -38,34 +39,6 @@ jobs:
       AWS_REGION: ap-south-1
     steps:
       - uses: actions/checkout@v4
-      - name: Diagnose GitHub OIDC claims
-        run: |
-          set -euo pipefail
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" | jq -r .value)
-          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-            echo "Failed to obtain OIDC token"
-            exit 1
-          fi
-          # Decode JWT payload only (middle segment). Do not print the raw JWT.
-          PAYLOAD=$(printf '%s' "$TOKEN" | cut -d. -f2 | tr '_-' '/+' )
-          # Pad base64 if needed
-          case $(( ${#PAYLOAD} % 4 )) in
-            2) PAYLOAD="${PAYLOAD}==" ;;
-            3) PAYLOAD="${PAYLOAD}=" ;;
-          esac
-          CLAIMS=$(printf '%s' "$PAYLOAD" | base64 -d 2>/dev/null || printf '%s' "$PAYLOAD" | base64 -d)
-          echo "=== OIDC non-secret claims (sts.amazonaws.com audience) ==="
-          echo "$CLAIMS" | jq -r '
-            "sub=\(.sub // "null")",
-            "aud=\(.aud // "null")",
-            "repository=\(.repository // "null")",
-            "repository_id=\(.repository_id // "null")",
-            "repository_owner=\(.repository_owner // "null")",
-            "repository_owner_id=\(.repository_owner_id // "null")",
-            "ref=\(.ref // "null")",
-            "environment=\(.environment // "null")"
-          '
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
@@ -80,14 +53,66 @@ jobs:
           docker build --build-arg LINKMATE_BUILD_COMMIT=${{ github.sha }} -t "$ECR_REGISTRY/$IMAGE:${{ github.sha }}" -t "$ECR_REGISTRY/$IMAGE:latest" .
           docker push "$ECR_REGISTRY/$IMAGE:${{ github.sha }}"
           docker push "$ECR_REGISTRY/$IMAGE:latest"
-      - name: Update App Runner if it exists
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      - name: Cleanup failed App Runner services
+        continue-on-error: true
         run: |
-          set -e
-          SERVICE=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='linkmate-prod'].ServiceArn" --output text)
-          if [ -z "$SERVICE" ] || [ "$SERVICE" = "None" ]; then
-            echo "App Runner service not created yet. Run terraform apply -var enable_app_runner=true after the first image exists."
+          set +e
+          aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='linkmate-prod']" --output json > /tmp/apr.json
+          cat /tmp/apr.json
+          ARN=$(jq -r '.[0].ServiceArn // empty' /tmp/apr.json)
+          STATUS=$(jq -r '.[0].Status // empty' /tmp/apr.json)
+          if [ -n "$ARN" ] && echo "$STATUS" | grep -Eq 'CREATE_FAILED|DELETE_FAILED|PAUSED'; then
+            aws apprunner delete-service --service-arn "$ARN" || true
+          fi
+      - name: Deploy to EC2 via SSM
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          INSTANCE=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=linkmate-prod" "Name=instance-state-name,Values=running,pending" \
+            --query "Reservations[].Instances[].InstanceId" --output text || true)
+          if [ -z "$INSTANCE" ] || [ "$INSTANCE" = "None" ]; then
+            echo "NO_EC2=1" >> "$GITHUB_ENV"
+            echo "::warning::No running linkmate-prod EC2. Apply Terraform with enable_ec2=true from the existing state, or attach the EC2/SSM statements on linkmate-prod-github-deploy and re-run."
             exit 0
           fi
-          aws apprunner start-deployment --service-arn "$SERVICE"
+          echo "INSTANCE=$INSTANCE" >> "$GITHUB_ENV"
+          CMD=$(aws ssm send-command \
+            --instance-ids "$INSTANCE" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Link Mate deploy $IMAGE_TAG" \
+            --parameters "commands=[
+              \"set -euo pipefail\",
+              \"sed -i 's|^export LM_TAG=.*|export LM_TAG=$IMAGE_TAG|' /opt/linkmate/env.sh || true\",
+              \"echo export LM_TAG=$IMAGE_TAG >> /opt/linkmate/env.sh\",
+              \"/opt/linkmate/deploy.sh\",
+              \"docker inspect --format='{{.State.Status}} {{.Config.Image}}' linkmate\"
+            ]" \
+            --query "Command.CommandId" --output text)
+          echo "Waiting for SSM $CMD on $INSTANCE"
+          for i in $(seq 1 30); do
+            STATUS=$(aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
+            echo "status=$STATUS"
+            if [ "$STATUS" = "Success" ]; then
+              aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query "[StandardOutputContent,StandardErrorContent]" --output text
+              exit 0
+            fi
+            if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+              aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query "[Status,StandardOutputContent,StandardErrorContent]" --output text
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "SSM timed out"
+          exit 1
+      - name: Probe public health
+        if: env.INSTANCE != ''
+        run: |
+          IP=$(aws ec2 describe-instances --instance-ids "$INSTANCE" --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
+          echo "PUBLIC_URL=http://$IP"
+          echo "PUBLIC_URL=http://$IP" >> "$GITHUB_STEP_SUMMARY"
+          for path in /api/health /api/readiness /; do
+            echo "GET http://$IP$path"
+            curl -fsS -m 20 "http://$IP$path" || echo "probe_failed path=$path"
+          done
