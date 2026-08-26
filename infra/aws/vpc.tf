@@ -18,8 +18,8 @@ resource "aws_subnet" "private" {
   tags                    = { Name = "${var.name_prefix}-private-${count.index + 1}" }
 }
 
-# No NAT Gateway: App Runner reaches the internet on its public path.
-# The VPC connector only needs private routes to RDS in this VPC.
+# No NAT Gateway. Production runtime is a public EC2 host (see ec2.tf).
+# Private subnets remain RDS-only. App Runner connector is unused.
 
 resource "aws_security_group" "apprunner" {
   name        = "${var.name_prefix}-apprunner"

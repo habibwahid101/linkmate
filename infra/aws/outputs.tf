@@ -43,6 +43,18 @@ output "app_runner_service_url" {
   value = try(aws_apprunner_service.this[0].service_url, null)
 }
 
+output "ec2_instance_id" {
+  value = try(aws_instance.app[0].id, null)
+}
+
+output "ec2_public_ip" {
+  value = try(aws_instance.app[0].public_ip, null)
+}
+
+output "ec2_public_url" {
+  value = try("http://${aws_instance.app[0].public_ip}", null)
+}
+
 output "github_deploy_role_arn" {
   value = aws_iam_role.github_deploy.arn
 }
