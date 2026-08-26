@@ -6,7 +6,15 @@ node_modules/
 !.env.example
 .output
 .vercel/output
-.local/
 .grok/preview.log
 .grok/preview.pid
 .grok/status
+.local/
+.tools/
+infra/aws/.terraform/
+infra/aws/*.tfstate
+infra/aws/*.tfstate.*
+infra/aws/terraform.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/

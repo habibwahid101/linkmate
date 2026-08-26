@@ -1,16 +1,17 @@
 locals {
   app_env = {
-    APP_ENV               = "production"
-    NODE_ENV              = "production"
-    PORT                  = "8080"
-    HOST                  = "0.0.0.0"
-    PAYMENTS_MODE         = "disabled"
-    ENABLE_DEMO_NETWORK   = "false"
-    ENABLE_SAMPLE_DATA    = "false"
-    ENABLE_SIMULATE_JOINS = "false"
-    ALLOW_BOOTSTRAP_ADMIN = "false"
-    AUTH_BROKER           = "off"
-    AWS_REGION            = var.aws_region
+    APP_ENV                    = "production"
+    NODE_ENV                   = "production"
+    PORT                       = "8080"
+    HOST                       = "0.0.0.0"
+    PAYMENTS_MODE              = "disabled"
+    MANUAL_PAYMENTS_ENABLED    = "true"
+    ENABLE_DEMO_NETWORK        = "false"
+    ENABLE_SAMPLE_DATA         = "false"
+    ENABLE_SIMULATE_JOINS      = "false"
+    ALLOW_BOOTSTRAP_ADMIN      = "false"
+    AUTH_BROKER                = "off"
+    AWS_REGION                 = var.aws_region
   }
 }
 
@@ -72,5 +73,5 @@ resource "aws_apprunner_service" "this" {
 
 resource "aws_cloudwatch_log_group" "apprunner" {
   name              = "/aws/apprunner/${var.name_prefix}/application"
-  retention_in_days = 30
+  retention_in_days = 14
 }

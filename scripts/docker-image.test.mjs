@@ -15,6 +15,7 @@ describe("production Dockerfile", () => {
     assert.match(dockerfile, /USER linkmate/);
     assert.match(dockerfile, /AUTH_BROKER=off/);
     assert.match(dockerfile, /PAYMENTS_MODE=disabled/);
+    assert.match(dockerfile, /MANUAL_PAYMENTS_ENABLED=true/);
     assert.match(dockerfile, /ALLOW_BOOTSTRAP_ADMIN=false/);
     assert.match(dockerfile, /EXPOSE 8080/);
     assert.equal(dockerfile.includes(".vercel/output"), false);
