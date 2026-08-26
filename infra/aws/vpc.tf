@@ -23,14 +23,14 @@ resource "aws_subnet" "private" {
 
 resource "aws_security_group" "apprunner" {
   name        = "${var.name_prefix}-apprunner"
-  description = "App Runner VPC connector — egress to RDS only"
+  description = "App Runner VPC connector - egress to RDS only"
   vpc_id      = aws_vpc.this.id
   tags        = { Name = "${var.name_prefix}-apprunner" }
 }
 
 resource "aws_security_group" "rds" {
   name        = "${var.name_prefix}-rds"
-  description = "Link Mate RDS — PostgreSQL from App Runner only"
+  description = "Link Mate RDS - PostgreSQL from App Runner only"
   vpc_id      = aws_vpc.this.id
   tags        = { Name = "${var.name_prefix}-rds" }
 }

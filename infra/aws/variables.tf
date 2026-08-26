@@ -38,7 +38,7 @@ variable "db_backup_retention_days" {
 
 variable "db_engine_version" {
   type    = string
-  default = "16.6"
+  default = "16.15"
 }
 
 variable "domain_name" {
