@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { pendingMigrations } from "../../scripts/migration-plan.mjs";
 import { DURABLE_TABLES } from "../../scripts/durable-tables.mjs";
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-const MIGRATIONS_DIR = "/workspace/migrations";
+const MIGRATIONS_DIR = join(ROOT, "migrations");
 
 const LEDGER_TABLES = [
   "app_users",
@@ -101,7 +103,6 @@ describe("migration safety", () => {
     );
     assert.equal(before.rows[0]?.n, 1);
 
-    // Second apply must no-op because _migrations already records each file.
     const applied = (await pg.query<{ name: string }>("select name from _migrations")).rows.map(
       (r) => r.name,
     );
