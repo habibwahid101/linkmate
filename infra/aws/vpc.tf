@@ -53,8 +53,10 @@ resource "aws_vpc_security_group_ingress_rule" "rds_from_apprunner" {
   description                  = "Postgres from App Runner connector"
 }
 
-# SES API over PrivateLink so App Runner VPC egress does not need a NAT Gateway.
+# SES API over PrivateLink — only when SES from-email is configured.
+# Avoids Interface endpoint hourly cost when mail is not yet enabled.
 resource "aws_security_group" "vpce" {
+  count       = var.ses_from_email != "" ? 1 : 0
   name        = "${var.name_prefix}-vpce"
   description = "Interface VPC endpoints (SES)"
   vpc_id      = aws_vpc.this.id
@@ -62,7 +64,8 @@ resource "aws_security_group" "vpce" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "vpce_https" {
-  security_group_id            = aws_security_group.vpce.id
+  count                        = var.ses_from_email != "" ? 1 : 0
+  security_group_id            = aws_security_group.vpce[0].id
   referenced_security_group_id = aws_security_group.apprunner.id
   ip_protocol                  = "tcp"
   from_port                    = 443
@@ -71,8 +74,9 @@ resource "aws_vpc_security_group_ingress_rule" "vpce_https" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "apprunner_https_vpce" {
+  count                        = var.ses_from_email != "" ? 1 : 0
   security_group_id            = aws_security_group.apprunner.id
-  referenced_security_group_id = aws_security_group.vpce.id
+  referenced_security_group_id = aws_security_group.vpce[0].id
   ip_protocol                  = "tcp"
   from_port                    = 443
   to_port                      = 443
@@ -80,11 +84,12 @@ resource "aws_vpc_security_group_egress_rule" "apprunner_https_vpce" {
 }
 
 resource "aws_vpc_endpoint" "ses" {
+  count               = var.ses_from_email != "" ? 1 : 0
   vpc_id              = aws_vpc.this.id
   service_name        = "com.amazonaws.${var.aws_region}.email"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.vpce.id]
+  security_group_ids  = [aws_security_group.vpce[0].id]
   private_dns_enabled = true
 }
 
