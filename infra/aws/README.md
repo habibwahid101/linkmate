@@ -47,11 +47,11 @@ aws rds create-db-instance-read-replica ...   # or restore-db-instance-to-point-
 # verify schema, then delete the temporary instance
 ```
 
-## Owner actions this workspace cannot perform
+See also:
 
-1. Provide AWS credentials or an IAM role this environment can assume.
-2. Confirm billing is enabled.
-3. DNS records if the domain is not in Route 53 (ACM validation CNAME — printed by terraform).
-4. SES production access (leave sandbox until AWS approves).
-5. GitHub secret `AWS_ROLE_ARN`.
-6. First admin via `provision-admin.mjs` after the first real signup.
+- [docs/DEPLOYMENT_RUNBOOK.md](../../docs/DEPLOYMENT_RUNBOOK.md)
+- [docs/ENVIRONMENT.md](../../docs/ENVIRONMENT.md)
+- [docs/BACKUP_RECOVERY.md](../../docs/BACKUP_RECOVERY.md)
+- [docs/COST_MODEL.md](../../docs/COST_MODEL.md)
+- [docs/ADMIN.md](../../docs/ADMIN.md)
+

@@ -4,6 +4,15 @@ export type HealthBody = {
   durable: boolean;
 };
 
+export type LiveBody = {
+  ok: true;
+  status: "live";
+};
+
+export function liveBody(): LiveBody {
+  return { ok: true, status: "live" };
+}
+
 export function healthBody(dbReachable: boolean, durable = false): HealthBody {
   return {
     ok: dbReachable,
@@ -18,8 +27,13 @@ function isPostgresUrl(url: string | undefined): boolean {
   return Boolean(url?.trim() && /^postgres(ql)?:\/\//i.test(url.trim()));
 }
 
+/** Process liveness. Never touches the database or secrets. */
+export function pingLive(): { status: 200; body: LiveBody } {
+  return { status: 200, body: liveBody() };
+}
+
 /**
- * Isolated production health probe. Never imports Better Auth, db.ts, or PGLite.
+ * Isolated production readiness probe. Never imports Better Auth, db.ts, or PGLite.
  * `durable` is true only when a PostgreSQL URL exists AND select 1 succeeds.
  */
 export async function pingHealth(): Promise<HealthPing> {
@@ -44,3 +58,5 @@ export async function pingHealth(): Promise<HealthPing> {
     return { status: 503, body: healthBody(false, false) };
   }
 }
+
+export const pingReadiness = pingHealth;

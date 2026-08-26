@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { pingLive } from "@/lib/health";
+import { pingReadiness } from "@/lib/health";
 
-export const Route = createFileRoute("/api/health")({
+export const Route = createFileRoute("/api/readiness")({
   server: {
     handlers: {
       GET: async () => {
-        const result = pingLive();
+        const result = await pingReadiness();
         return Response.json(result.body, { status: result.status });
       },
     },

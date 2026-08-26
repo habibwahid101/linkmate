@@ -24,6 +24,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:app
       - run: npm run build:aws
+      - run: npm run test:boot:aws
 
   deploy:
     name: ECR + App Runner
@@ -48,7 +49,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE: linkmate-prod
         run: |
-          docker build -t "$ECR_REGISTRY/$IMAGE:${{ github.sha }}" -t "$ECR_REGISTRY/$IMAGE:latest" .
+          docker build --build-arg LINKMATE_BUILD_COMMIT=${{ github.sha }} -t "$ECR_REGISTRY/$IMAGE:${{ github.sha }}" -t "$ECR_REGISTRY/$IMAGE:latest" .
           docker push "$ECR_REGISTRY/$IMAGE:${{ github.sha }}"
           docker push "$ECR_REGISTRY/$IMAGE:latest"
       - name: Update App Runner if it exists

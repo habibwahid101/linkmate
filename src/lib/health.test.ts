@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { healthBody, pingHealth } from "./health.ts";
+import { healthBody, liveBody, pingHealth, pingLive } from "./health.ts";
 
 describe("healthBody", () => {
   it("reports connected without exposing the backend", () => {
@@ -23,6 +23,22 @@ describe("healthBody", () => {
 
   it("marks preview storage as not durable", () => {
     assert.equal(healthBody(true, false).durable, false);
+  });
+});
+
+describe("pingLive", () => {
+  it("is 200 without reading the database", () => {
+    const prev = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
+    try {
+      const result = pingLive();
+      assert.equal(result.status, 200);
+      assert.deepEqual(result.body, liveBody());
+      assert.equal(JSON.stringify(result.body).includes("DATABASE"), false);
+    } finally {
+      if (prev === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = prev;
+    }
   });
 });
 

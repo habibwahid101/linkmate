@@ -15,7 +15,11 @@ function env(key: string): string | undefined {
 }
 
 export function publicBuildFingerprint(): BuildFingerprint {
-  const sha = env("VERCEL_GIT_COMMIT_SHA") || env("LINKMATE_BUILD_COMMIT") || "unknown";
+  const sha =
+    env("GITHUB_SHA") ||
+    env("VERCEL_GIT_COMMIT_SHA") ||
+    env("LINKMATE_BUILD_COMMIT") ||
+    "unknown";
   return {
     commit: sha.slice(0, 7),
     dirty: env("LINKMATE_BUILD_DIRTY") === "1",

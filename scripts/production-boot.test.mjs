@@ -48,7 +48,7 @@ describe("built production server boot", () => {
     assert.equal(raw.includes("postgres"), false);
   });
 
-  it("production without DATABASE_URL: import succeeds, health is 503, pages boot", () => {
+  it("production without DATABASE_URL: import succeeds, health is live, readiness is 503, pages boot", () => {
     const result = runScenario(
       {
         NODE_ENV: "production",
@@ -59,16 +59,20 @@ describe("built production server boot", () => {
         BETTER_AUTH_SECRET: "",
         BETTER_AUTH_URL: "",
       },
-      ["/api/health", "/", "/login", "/signup"],
+      ["/api/health", "/api/readiness", "/", "/login", "/signup"],
     );
     assert.equal(result.status, 0, result.stderr || result.stdout);
     const payload = JSON.parse(result.stdout);
     assert.equal(payload.importOk, true);
     const health = payload.results.find((row) => row.path === "/api/health");
-    assert.equal(health.status, 503);
-    assert.match(health.body, /"ok":false/);
-    assert.match(health.body, /"durable":false/);
-    assert.equal(health.body.includes("postgres"), false);
+    assert.equal(health.status, 200);
+    assert.match(health.body, /"ok":true/);
+    assert.match(health.body, /"status":"live"/);
+    const ready = payload.results.find((row) => row.path === "/api/readiness");
+    assert.equal(ready.status, 503);
+    assert.match(ready.body, /"ok":false/);
+    assert.match(ready.body, /"durable":false/);
+    assert.equal(ready.body.includes("postgres"), false);
     for (const path of ["/", "/login", "/signup"]) {
       const row = payload.results.find((item) => item.path === path);
       assert.equal(row.status, 200, path + " " + row.body);
@@ -84,7 +88,7 @@ describe("built production server boot", () => {
         VERCEL_ENV: "production",
         DATABASE_URL: "not-postgres",
       },
-      ["/api/health"],
+      ["/api/readiness"],
     );
     assert.equal(result.status, 0, result.stderr || result.stdout);
     const payload = JSON.parse(result.stdout);
@@ -100,13 +104,13 @@ describe("built production server boot", () => {
         VERCEL_ENV: "production",
         DATABASE_URL: "postgresql://user:pass@127.0.0.1:1/linkmate",
       },
-      ["/api/health", "/"],
+      ["/api/readiness", "/"],
     );
     assert.equal(result.status, 0, result.stderr || result.stdout);
     const payload = JSON.parse(result.stdout);
-    const health = payload.results.find((row) => row.path === "/api/health");
-    assert.equal(health.status, 503);
-    assert.equal(JSON.parse(health.body).durable, false);
+    const ready = payload.results.find((row) => row.path === "/api/readiness");
+    assert.equal(ready.status, 503);
+    assert.equal(JSON.parse(ready.body).durable, false);
     const home = payload.results.find((row) => row.path === "/");
     assert.equal(home.status, 200);
   });

@@ -58,7 +58,7 @@ resource "aws_apprunner_service" "this" {
 
   health_check_configuration {
     protocol            = "HTTP"
-    path                = "/api/health"
+    path                = "/api/readiness"
     interval            = 10
     timeout             = 5
     healthy_threshold   = 1
@@ -66,7 +66,7 @@ resource "aws_apprunner_service" "this" {
   }
 
   observability_configuration {
-    observability_enabled = true
+    observability_enabled = false
   }
 }
 
