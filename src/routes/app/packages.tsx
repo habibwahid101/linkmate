@@ -94,14 +94,29 @@ function Packages() {
         title="Packages"
         hint="Each ID is valued at ৳11,000 for commission. External sponsors attach to your first ID only."
       />
+      {dash.data.flags.paymentsMode === "disabled" ? (
+        <p className="mb-4 rounded-2xl bg-warning-soft px-4 py-3 text-sm text-warning">
+          Purchasing is not open yet. Payment is not connected — this is not a live checkout.
+        </p>
+      ) : dash.data.flags.paymentsMode === "simulation" ? (
+        <p className="mb-4 rounded-2xl bg-held-soft px-4 py-3 text-sm text-held">
+          Payment is simulated for preview and testing. No real money is collected.
+        </p>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
         {PACKAGE_LIST.map((pkg) => (
           <PackageCard
             key={pkg.id}
             pkg={pkg}
             current={current === pkg.id}
-            cta={current === pkg.id ? "Buy again" : "Select"}
-            onSelect={() => setPick(pkg.id)}
+            cta={
+              dash.data.flags.paymentsMode === "disabled"
+                ? "Unavailable"
+                : current === pkg.id
+                  ? "Buy again"
+                  : "Select"
+            }
+            onSelect={dash.data.flags.paymentsMode === "disabled" ? undefined : () => setPick(pkg.id)}
           />
         ))}
       </div>
@@ -110,7 +125,10 @@ function Packages() {
         {selected ? (
           <div className="space-y-4">
             <p className="text-sm text-muted">
-              {formatBdt(selected.amountBdt)} · {selected.idCount} ID{selected.idCount === 1 ? "" : "s"}. Payment is simulated for this MVP.
+              {formatBdt(selected.amountBdt)} · {selected.idCount} ID{selected.idCount === 1 ? "" : "s"}.
+              {dash.data.flags.paymentsMode === "simulation"
+                ? " Payment is simulated — not a real charge."
+                : ""}
             </p>
             <p className="text-sm">{selected.structureSummary}</p>
             <div>

@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { makeReferralCode, uid } from "@/lib/engine/ids";
-import { z } from "zod";
+import { runtimeFlags } from "@/lib/runtime";
 
 export type AppProfile = {
   userId: string;
@@ -68,10 +69,11 @@ export async function ensureProfileRow(
   const admins = await sql<{ n: number }>`select count(*)::int as n from app_users where role = 'admin' and is_synthetic = false`;
   const isFirst = (admins[0]?.n ?? 0) === 0;
   // Preview (PGLite) may bootstrap the first member as admin so the demo admin
-  // panel is reachable. Production (Neon / DATABASE_URL) never auto-promotes.
+  // panel is reachable. Production never auto-promotes — use scripts/provision-admin.mjs.
   const { dbSource } = await import("@/lib/db");
+  const flags = runtimeFlags();
   const allowBootstrap =
-    dbSource === "pglite" || process.env.ALLOW_BOOTSTRAP_ADMIN === "true";
+    (dbSource === "pglite" && !flags.isProduction) || flags.bootstrapAdmin;
   const role = isFirst && allowBootstrap ? "admin" : "member";
   let code = makeReferralCode(userId + Date.now());
   for (let i = 0; i < 5; i++) {
@@ -225,6 +227,6 @@ export const getShell = createServerFn({ method: "GET" })
     const idCount = await sql<{ n: number }>`
       select count(*)::int as n from member_ids where owner_user_id = ${context.userId}
     `;
-    return { profile, unread: unread[0]?.n ?? 0, idCount: idCount[0]?.n ?? 0 };
+    return { profile, unread: unread[0]?.n ?? 0, idCount: idCount[0]?.n ?? 0, flags: runtimeFlags() };
   });
 

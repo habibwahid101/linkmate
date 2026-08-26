@@ -49,10 +49,17 @@ function Home() {
         <PageHeader title={`Hello, ${d.profile.displayName.split(" ")[0]}`} hint="Choose a package to receive your first ID." />
         <EmptyState
           title="No membership yet"
-          body="Buy a package to create IDs, or load a Turbo sample to see Level 1 released and Level 2 in progress."
+          body={
+            d.flags.demoNetwork
+              ? "Buy a package to create IDs, or load a Turbo sample to see Level 1 released and Level 2 in progress."
+              : d.flags.paymentsMode === "disabled"
+                ? "Purchasing is not open yet. A payment provider has not been connected."
+                : "Buy a package to create IDs and start your generation network."
+          }
           action="View packages"
           actionTo="/app/packages"
         />
+        {d.flags.demoNetwork ? (
         <Button
           className="mt-4 w-full sm:w-auto"
           variant="outline"
@@ -61,6 +68,7 @@ function Home() {
         >
           {sample.isPending ? "Loading sample…" : "Load Turbo sample network"}
         </Button>
+        ) : null}
       </div>
     );
   }

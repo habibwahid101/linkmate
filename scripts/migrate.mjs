@@ -20,6 +20,10 @@ import { pendingMigrations } from "./migration-plan.mjs";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
+  if (process.env.APP_ENV === "production") {
+    console.error("[migrate] DATABASE_URL is required when APP_ENV=production.");
+    process.exit(1);
+  }
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
   );

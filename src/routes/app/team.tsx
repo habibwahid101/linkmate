@@ -71,6 +71,7 @@ function Team() {
         title="Team"
         hint={`Active ${team.data.activeId}. Generations stay in their true position.`}
         action={
+          team.data.flags.simulateJoins ? (
           <Button size="sm" onClick={() => {
             const mine = ids.data ?? [];
             const internal = mine.find((id) => !id.is_root);
@@ -79,6 +80,7 @@ function Team() {
           }}>
             Simulate join
           </Button>
+          ) : undefined
         }
       />
 

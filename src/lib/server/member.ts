@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getSql } from "@/lib/db";
+import { getSql, advisoryLock } from "@/lib/db";
+import { runtimeFlags } from "@/lib/runtime";
+import { assertRateLimit } from "@/lib/server/rate-limit";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { PACKAGES, PACKAGE_IDS, type PackageId } from "@/lib/rules";
 import { toInt } from "@/lib/money";
@@ -194,6 +196,7 @@ export const getDashboard = createServerFn({ method: "GET" })
       recentTx,
       recentMembers,
       unread: unread[0]?.n ?? 0,
+      flags: runtimeFlags(),
     };
   });
 
@@ -263,7 +266,7 @@ export const getTeam = createServerFn({ method: "GET" })
     const sql = await getSql();
     const activeId = await resolveActiveId(context.userId, data?.memberId ?? null);
     if (!activeId) {
-      return { activeId: null, levels: [], members: [] as never[] };
+      return { activeId: null, levels: [], members: [] as never[], flags: runtimeFlags() };
     }
     const progress = await sql<{
       level: number;
@@ -294,7 +297,7 @@ export const getTeam = createServerFn({ method: "GET" })
       where gm.beneficiary_id = ${activeId}
       order by gm.generation, m.created_at
     `;
-    return { activeId, levels: progress, members };
+    return { activeId, levels: progress, members, flags: runtimeFlags() };
   });
 
 export const getWallet = createServerFn({ method: "GET" })
@@ -414,8 +417,14 @@ export const purchasePackage = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ context, data }) => {
-    return withUserPurchaseLock(context.userId, async () => {
-    const sql = await getSql();
+    const flags = runtimeFlags();
+    if (flags.paymentsMode === "disabled") {
+      throw new Error("Purchasing is not open yet. A payment provider is not connected.");
+    }
+    const rootSql = await getSql();
+    return rootSql.withTransaction(async (sql) => {
+    await advisoryLock(sql, `purchase:${context.userId}`);
+    await assertRateLimit(sql, `purchase:${context.userId}`, 8, 3600);
     await sql`
       create table if not exists purchase_idempotency (
         key text primary key,
@@ -564,8 +573,12 @@ const SAMPLE_NAMES = [
 export const loadSampleNetwork = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
+    if (!runtimeFlags().demoNetwork) {
+      throw new Error("Sample network is disabled in this environment");
+    }
     return withUserPurchaseLock(context.userId, async () => {
     const sql = await getSql();
+    await assertRateLimit(sql, `sample:${context.userId}`, 3, 3600);
     await ensureProfileRow(context.userId, "Member", null);
     const existing = await sql<{ n: number }>`
       select count(*)::int as n from member_ids where owner_user_id = ${context.userId}
@@ -632,7 +645,11 @@ export const simulateDirectJoin = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ context, data }) => {
+    if (!runtimeFlags().simulateJoins) {
+      throw new Error("Simulated joins are disabled in this environment");
+    }
     const sql = await getSql();
+    await assertRateLimit(sql, `simulate:${context.userId}`, 20, 3600);
     const owned = await sql<{ id: string }>`
       select id from member_ids where id = ${data.sponsorMemberId} and owner_user_id = ${context.userId}
     `;
