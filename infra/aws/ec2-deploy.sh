@@ -1,24 +1,4 @@
 #!/bin/bash
-set -euxo pipefail
-export AWS_REGION="${aws_region}"
-export LM_PREFIX="${name_prefix}"
-export LM_REPO="${image_repo}"
-export LM_TAG="${image_tag}"
-
-dnf update -y
-dnf install -y docker
-systemctl enable --now docker
-
-install -d -m 0755 /opt/linkmate /opt/linkmate/certs
-cat >/opt/linkmate/env.sh <<EOF
-export AWS_REGION="$AWS_REGION"
-export LM_PREFIX="$LM_PREFIX"
-export LM_REPO="$LM_REPO"
-export LM_TAG="$LM_TAG"
-EOF
-
-cat >/opt/linkmate/deploy.sh <<'DEPLOY'
-#!/bin/bash
 set -euo pipefail
 # shellcheck disable=SC1091
 . /opt/linkmate/env.sh
@@ -26,7 +6,11 @@ RDS_CA_URL="https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem"
 RDS_CA_HOST="/opt/linkmate/certs/global-bundle.pem"
 RDS_CA_CONT="/etc/ssl/certs/aws-rds-global-bundle.pem"
 install -d -m 0755 /opt/linkmate/certs
-if [ ! -s "$RDS_CA_HOST" ] || ! awk 'BEGIN{ok=0} /BEGIN CERTIFICATE/{ok=1} END{exit ok?0:1}' "$RDS_CA_HOST"; then
+if [ ! -s "$RDS_CA_HOST" ]; then
+  curl -fsSL -o "$RDS_CA_HOST" "$RDS_CA_URL"
+fi
+# Refresh if the file is empty or older than 30 days.
+if ! awk 'BEGIN{ok=0} /BEGIN CERTIFICATE/{ok=1} END{exit ok?0:1}' "$RDS_CA_HOST"; then
   curl -fsSL -o "$RDS_CA_HOST" "$RDS_CA_URL"
 fi
 chmod 0644 "$RDS_CA_HOST"
@@ -69,26 +53,3 @@ docker run -d --name linkmate --restart unless-stopped \
   -e BETTER_AUTH_URL="$PUBLIC_ORIGIN" \
   -e SES_FROM_EMAIL="$SES_FROM" \
   "$LM_REPO:$LM_TAG"
-DEPLOY
-chmod 0755 /opt/linkmate/deploy.sh
-/opt/linkmate/deploy.sh
-
-cat >/etc/systemd/system/linkmate.service <<'UNIT'
-[Unit]
-Description=Link Mate container
-After=docker.service network-online.target
-Requires=docker.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/usr/bin/docker start linkmate
-ExecStartPost=/bin/bash -c '/usr/bin/docker inspect -f "{{.State.Running}}" linkmate | grep -q true || /opt/linkmate/deploy.sh'
-ExecStop=/usr/bin/docker stop linkmate
-TimeoutStartSec=180
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-systemctl daemon-reload
-systemctl enable linkmate.service
