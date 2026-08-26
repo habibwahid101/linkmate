@@ -6,16 +6,19 @@ export function CopyButton({
   value,
   label = "Copy",
   variant = "outline",
+  size = "sm",
 }: {
   value: string;
   label?: string;
   variant?: "outline" | "primary" | "secondary" | "ghost";
+  size?: "sm" | "md";
 }) {
   const [done, setDone] = useState(false);
   return (
     <Button
       type="button"
       variant={variant}
+      size={size}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(value);

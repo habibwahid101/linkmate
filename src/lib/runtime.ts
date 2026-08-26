@@ -11,6 +11,7 @@ export type RuntimeFlags = {
   appEnv: string;
   isProduction: boolean;
   paymentsMode: PaymentsMode;
+  manualPayments: boolean;
   demoNetwork: boolean;
   simulateJoins: boolean;
   bootstrapAdmin: boolean;
@@ -49,6 +50,7 @@ export function flagsFromEnv(get: (key: string) => string | undefined): RuntimeF
     appEnv,
     isProduction,
     paymentsMode: isProduction ? "disabled" : paymentsMode,
+    manualPayments: get("MANUAL_PAYMENTS_ENABLED") !== "false",
     demoNetwork: !demoOff,
     simulateJoins: !isProduction && get("ENABLE_SIMULATE_JOINS") !== "false",
     bootstrapAdmin: get("ALLOW_BOOTSTRAP_ADMIN") === "true" && !isProduction,

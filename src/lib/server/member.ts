@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getSql, advisoryLock } from "@/lib/db";
-import { runtimeFlags } from "@/lib/runtime";
+import { getSql, advisoryLock, dbSource } from "@/lib/db";
+import { runtimeFlags, PAYMENTS_DISABLED_MESSAGE, assertDurableMutations } from "@/lib/runtime";
 import { assertRateLimit } from "@/lib/server/rate-limit";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { PACKAGES, PACKAGE_IDS, type PackageId } from "@/lib/rules";
@@ -239,6 +239,8 @@ export const listMyIds = createServerFn({ method: "GET" })
     const heldBy = new Map(heldRows.map((h) => [h.member_id, toInt(h.held)]));
     const inPlay = new Map<string, number>();
     const lastReleased = new Map<string, number>();
+    const completedBy = new Map<string, number>();
+    const l9 = new Set<string>();
     for (const row of progress) {
       if (row.status === "IN_PROGRESS" || row.status === "ELIGIBLE") {
         const prev = inPlay.get(row.member_id);
@@ -247,8 +249,18 @@ export const listMyIds = createServerFn({ method: "GET" })
       if (row.status === "RELEASED") {
         const prev = lastReleased.get(row.member_id) ?? 0;
         if (row.level > prev) lastReleased.set(row.member_id, row.level);
+        completedBy.set(row.member_id, (completedBy.get(row.member_id) ?? 0) + 1);
+        if (row.level === 9) l9.add(row.member_id);
       }
     }
+
+    const directs = await sql<{ sponsor_id: string; n: number }>`
+      select sponsor_id, count(*)::int as n
+      from sponsor_relationships
+      where sponsor_id in (select id from member_ids where owner_user_id = ${context.userId})
+      group by sponsor_id
+    `;
+    const directBy = new Map(directs.map((d) => [d.sponsor_id, d.n]));
 
     return rows.map((row) => ({
       ...row,
@@ -256,6 +268,9 @@ export const listMyIds = createServerFn({ method: "GET" })
       available: toInt(walletBy.get(row.id)?.available_balance),
       released: toInt(walletBy.get(row.id)?.total_released),
       currentLevel: inPlay.get(row.id) ?? lastReleased.get(row.id) ?? 1,
+      directSponsors: directBy.get(row.id) ?? 0,
+      completedLevels: completedBy.get(row.id) ?? 0,
+      level9Released: l9.has(row.id),
     }));
   });
 
@@ -296,6 +311,7 @@ export const getTeam = createServerFn({ method: "GET" })
       join app_users u on u.user_id = m.owner_user_id
       where gm.beneficiary_id = ${activeId}
       order by gm.generation, m.created_at
+      limit 1500
     `;
     return { activeId, levels: progress, members, flags: runtimeFlags() };
   });
@@ -417,9 +433,10 @@ export const purchasePackage = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ context, data }) => {
+    assertDurableMutations((key) => process.env[key], dbSource);
     const flags = runtimeFlags();
     if (flags.paymentsMode === "disabled") {
-      throw new Error("Purchasing is not open yet. A payment provider is not connected.");
+      throw new Error(PAYMENTS_DISABLED_MESSAGE);
     }
     const rootSql = await getSql();
     return rootSql.withTransaction(async (sql) => {

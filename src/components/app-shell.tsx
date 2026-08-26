@@ -1,14 +1,20 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  Banknote,
+  BarChart3,
   Bell,
   Home,
+  IdCard,
+  Landmark,
   Layers,
   LogOut,
-  Users,
-  Wallet,
-  UserRound,
+  Receipt,
+  Settings,
   Share2,
   Shield,
+  UserRound,
+  Users,
+  Wallet,
 } from "lucide-react";
 import { Wordmark } from "@/components/logo";
 import { cn, initials } from "@/lib/utils";
@@ -16,7 +22,23 @@ import { signOut } from "@/lib/auth/client";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { useState, type ReactNode } from "react";
 
-const nav = [
+const desktopNav = [
+  { to: "/app", label: "Dashboard", icon: Home },
+  { to: "/app/ids", label: "My IDs", icon: IdCard },
+  { to: "/app/team", label: "Team", icon: Users },
+  { to: "/app/levels", label: "Level Progress", icon: BarChart3 },
+  { to: "/app/packages", label: "Packages", icon: Layers },
+  { to: "/app/payments", label: "Payments", icon: Receipt },
+  { to: "/app/wallet", label: "Wallet", icon: Wallet },
+  { to: "/app/earnings", label: "Earnings", icon: Banknote },
+  { to: "/app/invite", label: "Invite", icon: Share2 },
+  { to: "/app/notifications", label: "Notifications", icon: Bell },
+  { to: "/app/qualification", label: "Land Qualification", icon: Landmark },
+  { to: "/app/profile", label: "Profile", icon: UserRound },
+  { to: "/app/settings", label: "Settings", icon: Settings },
+];
+
+const mobileNav = [
   { to: "/app", label: "Home", icon: Home },
   { to: "/app/team", label: "Team", icon: Users },
   { to: "/app/packages", label: "Packages", icon: Layers },
@@ -45,13 +67,13 @@ export function AppShell({
   return (
     <div className="min-h-dvh bg-bg text-ink">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[240px] flex-col bg-sidebar text-sidebar-fg lg:flex">
-        <div className="flex h-16 items-center px-5">
+        <div className="flex h-16 shrink-0 items-center px-5">
           <Link to="/app" aria-label="Link Mate home">
             <Wordmark invert />
           </Link>
         </div>
-        <nav className="flex flex-1 flex-col gap-0.5 px-3 py-2">
-          {nav.map((item) => {
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-2">
+          {desktopNav.map((item) => {
             const Icon = item.icon;
             const active = isActive(pathname, item.to);
             return (
@@ -65,29 +87,22 @@ export function AppShell({
                     : "text-sidebar-muted hover:bg-white/5 hover:text-sidebar-fg",
                 )}
               >
-                <Icon className="size-5" strokeWidth={1.75} />
+                <Icon className="size-5 shrink-0" strokeWidth={1.75} />
                 {item.label}
               </Link>
             );
           })}
-          <Link
-            to="/app/invite"
-            className="mt-3 flex h-11 items-center gap-3 rounded-[12px] bg-white/8 px-3 text-sm font-medium text-sidebar-fg hover:bg-white/12"
-          >
-            <Share2 className="size-5" strokeWidth={1.75} />
-            Invite
-          </Link>
           {isAdmin ? (
             <Link
               to="/admin"
-              className="mt-1 flex h-11 items-center gap-3 rounded-[12px] px-3 text-sm font-medium text-sidebar-muted hover:bg-white/5 hover:text-sidebar-fg"
+              className="mt-2 flex h-11 items-center gap-3 rounded-[12px] px-3 text-sm font-medium text-sidebar-muted hover:bg-white/5 hover:text-sidebar-fg"
             >
               <Shield className="size-5" strokeWidth={1.75} />
               Admin
             </Link>
           ) : null}
         </nav>
-        <div className="border-t border-white/8 p-4">
+        <div className="shrink-0 border-t border-white/8 p-4">
           <div className="flex items-center gap-3">
             <div className="grid size-9 place-items-center rounded-full bg-white/10 text-xs font-semibold">
               {initials(user?.displayName)}
@@ -104,7 +119,7 @@ export function AppShell({
                 setSigningOut(true);
                 void signOut("/login").catch(() => setSigningOut(false));
               }}
-              className="grid size-9 place-items-center rounded-[10px] text-sidebar-muted hover:bg-white/8 hover:text-sidebar-fg"
+              className="grid size-11 place-items-center rounded-[10px] text-sidebar-muted hover:bg-white/8 hover:text-sidebar-fg"
             >
               <LogOut className="size-4" />
             </button>
@@ -117,7 +132,7 @@ export function AppShell({
           <div className="lg:hidden">
             <Wordmark compact />
           </div>
-          <div className="hidden text-sm text-muted lg:block">Membership · Generation commission</div>
+          <div className="hidden text-sm text-muted lg:block">Operational view · Active ID data only</div>
           <div className="flex items-center gap-1">
             <Link
               to="/app/notifications"
@@ -131,7 +146,7 @@ export function AppShell({
             </Link>
             <Link
               to="/app/invite"
-              className="hidden h-9 items-center rounded-full bg-accent px-3.5 text-sm font-medium text-accent-fg sm:inline-flex"
+              className="hidden h-11 items-center rounded-full bg-accent px-3.5 text-sm font-medium text-accent-fg sm:inline-flex"
             >
               Invite
             </Link>
@@ -148,7 +163,7 @@ export function AppShell({
         aria-label="Primary"
       >
         <ul className="grid grid-cols-5">
-          {nav.map((item) => {
+          {mobileNav.map((item) => {
             const Icon = item.icon;
             const active = isActive(pathname, item.to);
             return (

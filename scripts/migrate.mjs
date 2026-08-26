@@ -18,9 +18,11 @@ import { dirname, join } from "node:path";
 import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL?.trim();
+const durableRequired =
+  process.env.APP_ENV === "production" || process.env.VERCEL_ENV === "production";
 if (!databaseUrl) {
-  if (process.env.APP_ENV === "production") {
+  if (durableRequired) {
     console.error("[migrate] DATABASE_URL is required when APP_ENV=production.");
     process.exit(1);
   }
@@ -28,6 +30,10 @@ if (!databaseUrl) {
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
   );
   process.exit(0);
+}
+if (durableRequired && !/^postgres(ql)?:\/\//i.test(databaseUrl)) {
+  console.error("[migrate] DATABASE_URL must be a PostgreSQL connection string in production.");
+  process.exit(1);
 }
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");

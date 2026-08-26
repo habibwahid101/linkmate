@@ -37,7 +37,7 @@ export function AdminList<T extends { id?: string }>({
             onClick={() => onRow?.(row)}
             className="block w-full rounded-2xl bg-surface p-4 text-left shadow-[var(--shadow-card)]"
           >
-            {columns.slice(0, 4).map((col) => (
+            {columns.filter((col) => !col.hideOnMobile).map((col) => (
               <div key={col.key} className="flex items-baseline justify-between gap-3 py-0.5">
                 <span className="text-[11px] uppercase tracking-wider text-muted">{col.label}</span>
                 <span className="min-w-0 truncate text-sm">{col.render(row)}</span>

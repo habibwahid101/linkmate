@@ -17,7 +17,7 @@ export const Route = createRootRoute({
       { name: "theme-color", content: "#161513" },
       {
         name: "description",
-        content: "Link Mate — package membership and generation commission, held until a level completes.",
+        content: "Link Mate membership from ৳11,000. Sponsor 3 and complete Level 9 to qualify for 1 Katha land, subject to allocation terms.",
       },
     ],
     links: [

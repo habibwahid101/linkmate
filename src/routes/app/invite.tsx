@@ -31,7 +31,7 @@ function Invite() {
 
   return (
     <div>
-      <PageHeader title="Invite" hint="Your referral attaches the new member’s first ID to you — not every ID in a multi-ID package." />
+      <PageHeader title="Invite" hint="Your referral link preserves sponsor attribution. The new member’s first ID attaches to you — not every ID in a multi-ID package." />
       <Card className="flex flex-col items-center">
         <p className="text-xs font-medium uppercase tracking-wider text-muted">Referral code</p>
         <p className="mt-2 font-mono text-3xl font-semibold tracking-tight">{q.data.referralCode}</p>
@@ -55,7 +55,7 @@ function Invite() {
           </a>
           <a
             className="inline-flex h-11 items-center justify-center rounded-[12px] bg-surface-2 text-sm font-medium"
-            href={`https://www.facebook.com/dialog/send?link=${encodeURIComponent(link)}&redirect_uri=${encodeURIComponent(origin || "https://linkmate.app")}`}
+            href={`https://www.facebook.com/dialog/send?link=${encodeURIComponent(link)}&redirect_uri=${encodeURIComponent(origin)}`}
             target="_blank"
             rel="noreferrer"
           >

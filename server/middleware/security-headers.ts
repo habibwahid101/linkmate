@@ -29,7 +29,11 @@ export default async function securityHeadersMiddleware(
       ].join("; "),
     );
   }
-  if (process.env.APP_ENV === "production") {
+  const publicUrl = process.env.APP_URL || process.env.BETTER_AUTH_URL || process.env.PUBLIC_URL || "";
+  const httpsGuaranteed =
+    publicUrl.startsWith("https://") ||
+    (process.env.APP_ENV === "production" && !publicUrl.startsWith("http://"));
+  if (httpsGuaranteed) {
     headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }
   return new Response(response.body, {

@@ -28,7 +28,7 @@ function Levels() {
   }
   return (
     <div>
-      <PageHeader title="Level progress" hint={`Tracked on ${q.data.activeId}. Held until the full member count is met.`} />
+      <PageHeader title="Level progress" hint={`Tracked on ${q.data.activeId}. Held until the full member count is met, then released in full.`} />
       <div className="grid gap-3 lg:grid-cols-2">
         {q.data.levels.map((row) => (
           <LevelCard key={row.level} row={row} />

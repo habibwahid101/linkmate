@@ -28,6 +28,19 @@ describe("flagsFromEnv", () => {
     assert.equal(flags.bootstrapAdmin, false);
   });
 
+  it("keeps manual payments available in production while gateway stays disabled", () => {
+    const flags = flagsFromEnv(
+      bag({ APP_ENV: "production", DATABASE_URL: "postgres://x" }),
+    );
+    assert.equal(flags.paymentsMode, "disabled");
+    assert.equal(flags.manualPayments, true);
+  });
+
+  it("can disable manual payments with MANUAL_PAYMENTS_ENABLED=false", () => {
+    const flags = flagsFromEnv(bag({ MANUAL_PAYMENTS_ENABLED: "false" }));
+    assert.equal(flags.manualPayments, false);
+  });
+
   it("never bootstraps admin in production even if ALLOW_BOOTSTRAP_ADMIN=true", () => {
     const flags = flagsFromEnv(
       bag({

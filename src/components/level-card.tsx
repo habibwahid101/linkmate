@@ -21,7 +21,7 @@ export function LevelCard({ row, compact = false }: { row: LevelRow; compact?: b
   const rule = getLevel(row.level);
   const release =
     row.status === "RELEASED"
-      ? `${formatBdt(row.expected_full_commission)} Released`
+      ? "Completed — Released"
       : row.status === "COMPLETED"
         ? "Ready to release"
         : "Pending";

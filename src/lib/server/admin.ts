@@ -7,12 +7,14 @@ import { toInt } from "@/lib/money";
 import { uid } from "@/lib/engine/ids";
 import { LEVELS } from "@/lib/rules";
 import { reverseJoin, reconcileWallet } from "@/lib/engine/process";
+import { assertRateLimit } from "@/lib/server/rate-limit";
+import { assertAdminRole } from "@/lib/auth/roles";
 
-async function requireAdmin(userId: string) {
+export { assertAdminRole };
+
+export async function requireAdmin(userId: string) {
   const profile = await ensureProfileRow(userId, "Member", null);
-  if (profile.role !== "admin") {
-    throw new Error("Forbidden");
-  }
+  assertAdminRole(profile.role);
   return profile;
 }
 
@@ -58,6 +60,11 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       byPkg[row.package_id] = { count: row.n, value: toInt(row.value) };
     }
 
+    const pendingPayments = await sql<{ n: number }>`
+      select count(*)::int as n from payment_requests
+      where status in ('PENDING', 'NEEDS_REVIEW')
+    `;
+
     return {
       totalUsers: users[0]?.n ?? 0,
       totalAccounts: allUsers[0]?.n ?? 0,
@@ -67,6 +74,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       held: toInt(held[0]?.v),
       released: toInt(released[0]?.v),
       walletLiabilities: toInt(available[0]?.v),
+      pendingPayments: pendingPayments[0]?.n ?? 0,
       completions,
       recentPurchases,
       levels: LEVELS,
@@ -277,18 +285,26 @@ export const adminGetSettings = createServerFn({ method: "GET" })
 
 export const adminUpdateSetting = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator(z.object({ key: z.string(), value: z.string(), confirm: z.literal(true) }))
+  .validator(z.object({ key: z.string().min(1).max(80), value: z.string().max(200), confirm: z.literal(true) }))
   .handler(async ({ context, data }) => {
     await requireAdmin(context.userId);
     const sql = await getSql();
-    const lockedKeys = ["standard_id_value_bdt", "rule_version", "bootstrap_admin"];
+    await assertRateLimit(sql, `admin:settings:${context.userId}`, 20, 3600);
+    const lockedKeys = [
+      "standard_id_value_bdt",
+      "rule_version",
+      "bootstrap_admin",
+      "hyper_turbo_placement_version",
+    ];
     if (lockedKeys.includes(data.key)) {
       throw new Error("This setting is locked");
     }
+    const existing = await sql<{ key: string }>`select key from app_settings where key = ${data.key}`;
+    if (!existing[0]) throw new Error("Unknown setting");
     await sql`
-      insert into app_settings (key, value, updated_by, updated_at)
-      values (${data.key}, ${data.value}, ${context.userId}, now())
-      on conflict (key) do update set value = excluded.value, updated_by = excluded.updated_by, updated_at = now()
+      update app_settings
+      set value = ${data.value}, updated_by = ${context.userId}, updated_at = now()
+      where key = ${data.key}
     `;
     await sql`
       insert into audit_logs (id, actor_user_id, action, entity_type, entity_id, detail)
@@ -299,10 +315,26 @@ export const adminUpdateSetting = createServerFn({ method: "POST" })
 
 export const adminSetRole = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator(z.object({ userId: z.string(), role: z.enum(["member", "admin"]) }))
+  .validator(
+    z.object({
+      userId: z.string().min(1).max(80),
+      role: z.enum(["member", "admin"]),
+      confirm: z.literal(true),
+    }),
+  )
   .handler(async ({ context, data }) => {
     await requireAdmin(context.userId);
     const sql = await getSql();
+    await assertRateLimit(sql, `admin:role:${context.userId}`, 20, 3600);
+    if (data.role === "member") {
+      const remaining = await sql<{ n: number }>`
+        select count(*)::int as n from app_users
+        where role = 'admin' and is_synthetic = false and user_id <> ${data.userId}
+      `;
+      if ((remaining[0]?.n ?? 0) === 0) {
+        throw new Error("Cannot remove the last administrator");
+      }
+    }
     await sql`update app_users set role = ${data.role} where user_id = ${data.userId}`;
     await sql`
       insert into audit_logs (id, actor_user_id, action, entity_type, entity_id, detail)
@@ -324,6 +356,10 @@ export const adminLedgerAdjustment = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await requireAdmin(context.userId);
     const sql = await getSql();
+    await assertRateLimit(sql, `admin:ledger:${context.userId}`, 20, 3600);
+    if (Math.abs(data.amount) > 1_000_000) {
+      throw new Error("Adjustment exceeds the allowed amount");
+    }
     const wallet = await sql<{ owner_user_id: string; available_balance: number }>`
       select owner_user_id, available_balance from wallets where member_id = ${data.memberId}
     `;
@@ -356,6 +392,7 @@ export const adminReverseJoin = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await requireAdmin(context.userId);
     const sql = await getSql();
+    await assertRateLimit(sql, `admin:reverse:${context.userId}`, 20, 3600);
     return reverseJoin(sql, {
       sourceId: data.sourceId,
       actorUserId: context.userId,

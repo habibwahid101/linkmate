@@ -12,8 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { ProgressBar } from "@/components/progress-bar";
+import { LandModule } from "@/components/land-module";
 import { formatBdt } from "@/lib/money";
-import { PACKAGES } from "@/lib/rules";
+import { PACKAGES, LEVELS } from "@/lib/rules";
+import { evaluateLandQualification, nextActionCopy, REQUIRED_DIRECT_SPONSORS } from "@/lib/qualification";
 import { formatDate, packageLabel } from "@/lib/format";
 import { toast } from "sonner";
 import type { PackageId } from "@/lib/rules";
@@ -42,32 +44,43 @@ function Home() {
   const d = dash.data;
   const pkg = d.latestPackage ? PACKAGES[d.latestPackage as PackageId] : null;
   const next = d.nextMilestone;
+  const completedLevels = d.levelProgress.filter((l) => l.status === "RELEASED").length;
+  const level9Released = d.levelProgress.some((l) => l.level === 9 && l.status === "RELEASED");
+  const land = evaluateLandQualification({
+    hasMembership: Boolean(d.activeId),
+    directSponsors: d.directSponsors,
+    completedLevels,
+    level9Released,
+  });
+  const currentGen = LEVELS.find((l) => l.level === d.currentLevel);
 
   if (!d.activeId) {
     return (
       <div>
-        <PageHeader title={`Hello, ${d.profile.displayName.split(" ")[0]}`} hint="Choose a package to receive your first ID." />
+        <PageHeader title={`Hello, ${d.profile.displayName.split(" ")[0]}`} hint="Activate a membership ID to track progress." />
         <EmptyState
           title="No membership yet"
           body={
             d.flags.demoNetwork
-              ? "Buy a package to create IDs, or load a Turbo sample to see Level 1 released and Level 2 in progress."
-              : d.flags.paymentsMode === "disabled"
-                ? "Purchasing is not open yet. A payment provider has not been connected."
-                : "Buy a package to create IDs and start your generation network."
+              ? "Choose a package to issue IDs, or load a Turbo sample to inspect hold and release."
+              : d.flags.manualPayments
+                ? "Choose a package and submit a manual payment. IDs are issued only after admin verification."
+                : d.flags.paymentsMode === "disabled"
+                ? "Online payment is not available yet. Package details can still be reviewed."
+                : "Choose a package to issue IDs and start tracking qualification."
           }
           action="View packages"
           actionTo="/app/packages"
         />
         {d.flags.demoNetwork ? (
-        <Button
-          className="mt-4 w-full sm:w-auto"
-          variant="outline"
-          disabled={sample.isPending}
-          onClick={() => sample.mutate()}
-        >
-          {sample.isPending ? "Loading sample…" : "Load Turbo sample network"}
-        </Button>
+          <Button
+            className="mt-4 w-full sm:w-auto"
+            variant="outline"
+            disabled={sample.isPending}
+            onClick={() => sample.mutate()}
+          >
+            {sample.isPending ? "Loading sample…" : "Load Turbo sample network"}
+          </Button>
         ) : null}
       </div>
     );
@@ -76,13 +89,13 @@ function Home() {
   return (
     <div>
       <PageHeader
-        title={d.profile.displayName}
+        title="Dashboard"
         hint={
           d.ids.length > 1 ? (
             <label className="mt-1 flex items-center gap-2 text-sm">
               <span className="text-muted">Active ID</span>
               <select
-                className="h-9 min-w-0 max-w-[12rem] rounded-[10px] bg-surface px-2 font-mono text-xs shadow-[0_0_0_1px_var(--color-border)]"
+                className="h-11 min-w-0 max-w-[14rem] rounded-[12px] bg-surface px-3 font-mono text-xs shadow-[0_0_0_1px_var(--color-border)]"
                 value={d.activeId ?? ""}
                 onChange={(e) => activate.mutate(e.target.value)}
                 aria-label="Switch active ID"
@@ -95,33 +108,49 @@ function Home() {
               </select>
             </label>
           ) : (
-            <span>
-              {d.activeId} · {pkg?.name ?? "Member"}
-            </span>
+            <span className="font-mono text-xs">{d.activeId}</span>
           )
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <LevelKpi
           label="My package"
-          value={<span className="text-xl font-semibold tracking-tight sm:text-2xl">{pkg?.name ?? "—"}</span>}
-          hint={pkg ? `${pkg.idCount} IDs` : undefined}
+          value={<span className="text-xl font-semibold tracking-tight">{pkg?.name ?? "—"}</span>}
+          hint={pkg ? `${formatBdt(pkg.amountBdt)} · ${pkg.idCount} ID${pkg.idCount === 1 ? "" : "s"}` : undefined}
         />
         <LevelKpi
-          label="My IDs"
-          value={<span className="tabular text-xl font-semibold tracking-tight sm:text-2xl">{d.ids.length}</span>}
-          hint={d.activeId}
+          label="Active ID"
+          value={<span className="block break-all font-mono text-sm font-semibold">{d.activeId}</span>}
+          hint={d.ids.length > 1 ? `${d.ids.length} IDs · switch above` : "Single ID"}
         />
         <LevelKpi
           label="Current level"
-          value={<span className="text-xl font-semibold tracking-tight sm:text-2xl">Level {d.currentLevel}</span>}
-          hint={`${d.directSponsors} / 3 direct`}
+          value={<span className="text-xl font-semibold tracking-tight">Level {d.currentLevel}</span>}
+          hint={currentGen ? `${currentGen.generationLabel} generation` : undefined}
+        />
+        <LevelKpi
+          label="Direct sponsor"
+          value={
+            <span className="tabular text-xl font-semibold tracking-tight">
+              {d.directSponsors} / {REQUIRED_DIRECT_SPONSORS}
+            </span>
+          }
+          hint="Mandatory"
+        />
+        <LevelKpi
+          label="Overall level progress"
+          value={
+            <span className="tabular text-xl font-semibold tracking-tight">
+              {completedLevels} / 9
+            </span>
+          }
+          hint="Completed levels on this ID"
         />
         <LevelKpi label="Held commission" value={d.idWallet.held} hint="This ID · not withdrawable" />
         <LevelKpi label="Available wallet" value={d.idWallet.available} hint="This ID · released" />
         <LevelKpi
-          label="Total earnings"
+          label="Total released"
           value={d.idWallet.released}
           hint={d.wallet.released !== d.idWallet.released ? `Account ${formatBdt(d.wallet.released)}` : "Lifetime released"}
         />
@@ -132,9 +161,7 @@ function Home() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wider text-muted">Next milestone</p>
-              <p className="mt-1 text-[15px] font-semibold leading-snug sm:text-base">
-                Level {next.level} · {next.completed}/{next.required} members
-              </p>
+              <p className="mt-1 text-[15px] font-semibold leading-snug sm:text-base">{nextActionCopy(next)}</p>
             </div>
             <StatusBadge status={next.status} />
           </div>
@@ -142,10 +169,15 @@ function Home() {
             <ProgressBar value={next.completed} max={next.required} />
           </div>
           <p className="mt-3 text-sm text-muted">
-            {next.remaining} remaining · next release {formatBdt(next.nextRelease)}
+            Level {next.level} · {next.completed}/{next.required} members · {next.remaining} remaining · next
+            release {formatBdt(next.nextRelease)}
           </p>
         </Card>
       ) : null}
+
+      <div className="mt-4">
+        <LandModule q={land} documents={false} />
+      </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <div>
@@ -166,7 +198,7 @@ function Home() {
         </div>
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <CardTitle>Network snapshot</CardTitle>
+            <CardTitle>Recent team</CardTitle>
             <Link to="/app/team" className="text-sm font-medium text-accent">
               Team
             </Link>
@@ -177,7 +209,7 @@ function Home() {
             </p>
             <div className="mt-4 space-y-3">
               {d.recentMembers.length === 0 ? (
-                <p className="text-sm text-muted">Your team will appear here as members join.</p>
+                <p className="text-sm text-muted">Members appear here as they join this ID.</p>
               ) : (
                 d.recentMembers.map((m) => (
                   <div key={m.member_id} className="flex items-center justify-between gap-3">
@@ -195,14 +227,14 @@ function Home() {
           </Card>
           <div className="mt-4">
             <div className="mb-3 flex items-center justify-between">
-              <CardTitle>Recent earnings</CardTitle>
+              <CardTitle>Recent releases</CardTitle>
               <Link to="/app/wallet" className="text-sm font-medium text-accent">
                 Wallet
               </Link>
             </div>
             <Card>
               {d.recentTx.length === 0 ? (
-                <p className="text-sm text-muted">Released earnings will show here after a level completes.</p>
+                <p className="text-sm text-muted">Released earnings appear after a level completes.</p>
               ) : (
                 <ul className="space-y-3">
                   {d.recentTx.map((tx) => (

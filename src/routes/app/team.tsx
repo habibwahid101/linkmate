@@ -125,8 +125,9 @@ function Team() {
                             <p className="truncate text-sm font-medium">{m.display_name}</p>
                             <p className="font-mono text-xs text-muted">{m.member_id}</p>
                             <p className="mt-0.5 text-xs text-muted">
-                              {packageLabel(m.package_id)} · {formatDate(m.created_at)} · Sponsor {m.sponsor_id ?? "—"}
+                              {packageLabel(m.package_id)} · {ordinalGeneration(m.generation)} generation · {formatDate(m.created_at)}
                             </p>
+                            <p className="font-mono text-xs text-muted">Sponsor {m.sponsor_id ?? "—"}</p>
                           </div>
                           <StatusBadge status={m.status} />
                         </li>

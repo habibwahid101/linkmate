@@ -11,12 +11,14 @@ export function PackageCard({
   onSelect,
   cta = "Choose",
   busy = false,
+  compact = false,
 }: {
   pkg: PackageRule;
   current?: boolean;
   onSelect?: () => void;
   cta?: string;
   busy?: boolean;
+  compact?: boolean;
 }) {
   return (
     <Card
@@ -27,15 +29,15 @@ export function PackageCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Package</p>
-          <h3 className="mt-0.5 text-lg font-semibold tracking-tight">{pkg.name}</h3>
+          {compact ? null : <p className="text-xs font-medium uppercase tracking-wider text-muted">Package</p>}
+          <h3 className={cn("font-semibold tracking-tight", compact ? "text-base" : "mt-0.5 text-lg")}>{pkg.name}</h3>
         </div>
         {current ? <Badge tone="accent">Current</Badge> : null}
       </div>
       <p className="tabular text-2xl font-semibold tracking-tight">{formatBdt(pkg.amountBdt)}</p>
       <p className="text-sm text-muted">{pkg.idCount} ID{pkg.idCount === 1 ? "" : "s"}</p>
       <p className="text-sm leading-relaxed text-ink">{pkg.structureSummary}</p>
-      <p className="text-sm text-muted">{pkg.receives}</p>
+      {compact ? null : <p className="text-sm text-muted">{pkg.receives}</p>}
       {onSelect ? (
         <Button className="mt-auto w-full" onClick={onSelect} disabled={busy}>
           {busy ? "Working…" : cta}

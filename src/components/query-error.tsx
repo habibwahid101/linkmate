@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { WifiOff } from "lucide-react";
+import { publicErrorMessage } from "@/lib/public-error";
 
 export function QueryError({
   error,
@@ -9,12 +10,14 @@ export function QueryError({
   error: unknown;
   retry?: () => void;
 }) {
-  const message = error instanceof Error ? error.message : "Something went wrong";
   const offline = typeof navigator !== "undefined" && !navigator.onLine;
+  const message = publicErrorMessage(error);
+  const unavailable = /temporarily unavailable/i.test(message);
+  const title = offline ? "You’re offline" : unavailable ? "Service unavailable" : "Couldn’t load this";
   return (
     <Card className="flex flex-col items-center py-10 text-center">
       {offline ? <WifiOff className="mb-3 size-6 text-muted" /> : null}
-      <p className="font-semibold">{offline ? "You’re offline" : "Couldn’t load this"}</p>
+      <p className="font-semibold">{title}</p>
       <p className="mt-1 max-w-sm text-sm text-muted">
         {offline ? "Reconnect to refresh live balances and progress." : message}
       </p>

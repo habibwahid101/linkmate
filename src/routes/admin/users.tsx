@@ -15,7 +15,8 @@ function Users() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["admin", "users"], queryFn: () => adminListUsers() });
   const role = useMutation({
-    mutationFn: (p: { userId: string; role: "member" | "admin" }) => adminSetRole({ data: p }),
+    mutationFn: (p: { userId: string; role: "member" | "admin"; confirm: true }) =>
+      adminSetRole({ data: p }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["admin", "users"] });
       toast.success("Role updated");
@@ -26,7 +27,7 @@ function Users() {
   if (q.isError) return <QueryError error={q.error} retry={() => q.refetch()} />;
   return (
     <div>
-      <PageHeader title="Users" hint="First real account is granted admin. Role changes are audited." />
+      <PageHeader title="Users" hint="Production never auto-promotes the first signup. Promote admins only through this screen or provision-admin. Role changes are audited." />
       <AdminList
         rows={q.data.map((u) => ({ ...u, id: u.user_id }))}
         columns={[
@@ -39,9 +40,16 @@ function Users() {
               <button
                 type="button"
                 className="underline-offset-2 hover:underline"
-                onClick={() =>
-                  role.mutate({ userId: r.user_id, role: r.role === "admin" ? "member" : "admin" })
-                }
+                onClick={() => {
+                  const next = r.role === "admin" ? "member" : "admin";
+                  if (
+                    typeof window !== "undefined" &&
+                    !window.confirm(`Change ${r.display_name} to ${next}?`)
+                  ) {
+                    return;
+                  }
+                  role.mutate({ userId: r.user_id, role: next, confirm: true });
+                }}
               >
                 {r.role}
               </button>

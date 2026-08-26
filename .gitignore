@@ -6,3 +6,7 @@ node_modules/
 !.env.example
 .output
 .vercel/output
+.local/
+.grok/preview.log
+.grok/preview.pid
+.grok/status

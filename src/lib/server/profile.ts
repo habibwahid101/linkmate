@@ -4,6 +4,7 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { makeReferralCode, uid } from "@/lib/engine/ids";
 import { runtimeFlags } from "@/lib/runtime";
+import { assertRateLimit } from "@/lib/server/rate-limit";
 
 export type AppProfile = {
   userId: string;
@@ -129,7 +130,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
 
 export const setActiveId = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator(z.object({ memberId: z.string() }))
+  .validator(z.object({ memberId: z.string().min(3).max(40) }))
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     const owned = await sql<{ id: string }>`
@@ -141,10 +142,11 @@ export const setActiveId = createServerFn({ method: "POST" })
   });
 
 export const lookupReferral = createServerFn({ method: "GET" })
-  .validator(z.object({ code: z.string() }))
+  .validator(z.object({ code: z.string().min(1).max(40) }))
   .handler(async ({ data }) => {
     const sql = await getSql();
     const code = data.code.trim().toUpperCase();
+    await assertRateLimit(sql, `referral:${code.slice(0, 16)}`, 40, 60);
     const byUser = await sql<{
       user_id: string;
       display_name: string;

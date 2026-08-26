@@ -26,6 +26,7 @@ const items = [
   { to: "/admin/ids", label: "IDs", icon: IdCard },
   { to: "/admin/packages", label: "Packages", icon: Layers },
   { to: "/admin/purchases", label: "Purchases", icon: Receipt },
+  { to: "/admin/payments", label: "Payments", icon: CircleDollarSign },
   { to: "/admin/network", label: "Network", icon: GitFork },
   { to: "/admin/levels", label: "Levels", icon: Shield },
   { to: "/admin/commissions", label: "Commissions", icon: CircleDollarSign },

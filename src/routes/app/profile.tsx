@@ -10,7 +10,7 @@ import { Input, Label } from "@/components/ui/input";
 import { signOut } from "@/lib/auth/client";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Bell, IdCard, Layers, Settings, Share2, Shield } from "lucide-react";
+import { Bell, IdCard, Landmark, Layers, Settings, Share2, Shield } from "lucide-react";
 
 export const Route = createFileRoute("/app/profile")({ component: Profile });
 
@@ -41,7 +41,8 @@ function Profile() {
 
   const links = [
     { to: "/app/ids" as const, label: "My IDs", icon: IdCard },
-    { to: "/app/packages" as const, label: "My package", icon: Layers },
+    { to: "/app/qualification" as const, label: "Land Qualification", icon: Landmark },
+    { to: "/app/packages" as const, label: "Packages", icon: Layers },
     { to: "/app/invite" as const, label: "Invite", icon: Share2 },
     { to: "/app/notifications" as const, label: "Notifications", icon: Bell },
     { to: "/app/settings" as const, label: "Settings", icon: Settings },

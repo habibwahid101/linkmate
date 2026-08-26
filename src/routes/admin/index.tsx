@@ -46,6 +46,11 @@ function Overview() {
         <Kpi label="Wallet liabilities">
           <Money amount={d.walletLiabilities} size="lg" />
         </Kpi>
+        <Kpi label="Pending payments" hint="Awaiting verification">
+          <Link to="/admin/payments" className="tabular text-xl font-semibold text-ink">
+            {d.pendingPayments}
+          </Link>
+        </Kpi>
         <Kpi label="Accounts" hint="Includes simulated members">
           {d.totalAccounts}
         </Kpi>

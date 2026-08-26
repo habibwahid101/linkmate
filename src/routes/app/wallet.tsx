@@ -7,9 +7,8 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Money } from "@/components/money";
 import { StatusBadge } from "@/components/status-badge";
-import { formatBdt } from "@/lib/money";
+import { formatBdt, toInt } from "@/lib/money";
 import { formatDateTime } from "@/lib/format";
-import { toInt } from "@/lib/money";
 
 export const Route = createFileRoute("/app/wallet")({ component: Wallet });
 
@@ -20,28 +19,41 @@ function Wallet() {
   const held = q.data.held.reduce((s, h) => s + h.amount, 0);
   const available = q.data.wallets.reduce((s, w) => s + w.available, 0);
   const released = q.data.wallets.reduce((s, w) => s + w.released, 0);
+  const reversed = q.data.transactions
+    .filter((tx) => tx.status === "REVERSED")
+    .reduce((s, tx) => s + Math.abs(toInt(tx.amount)), 0);
 
   return (
     <div>
       <PageHeader title="Wallet" hint="Held commission is not withdrawable. Only released amounts sit in available balance." />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Held commission</p>
-          <div className="mt-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-held-soft">
+          <p className="text-xs font-medium uppercase tracking-wider text-held">Held commission</p>
+          <div className="mt-2 text-held">
             <Money amount={held} size="lg" />
           </div>
+          <p className="mt-2 text-xs text-held">Pending until the level’s member count is complete.</p>
         </Card>
         <Card>
           <p className="text-xs font-medium uppercase tracking-wider text-muted">Available balance</p>
           <div className="mt-2">
             <Money amount={available} size="lg" />
           </div>
+          <p className="mt-2 text-xs text-muted">Released to this account and currently available.</p>
         </Card>
         <Card>
           <p className="text-xs font-medium uppercase tracking-wider text-muted">Released earnings</p>
           <div className="mt-2">
             <Money amount={released} size="lg" />
           </div>
+          <p className="mt-2 text-xs text-muted">Lifetime full-level releases posted to the ledger.</p>
+        </Card>
+        <Card>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted">Reversed adjustments</p>
+          <div className="mt-2">
+            <Money amount={reversed} size="lg" />
+          </div>
+          <p className="mt-2 text-xs text-muted">Clawbacks from reversed joins. Ledger rows are kept.</p>
         </Card>
       </div>
 
@@ -55,7 +67,7 @@ function Wallet() {
                   <p className="text-sm font-medium">Level {h.level}</p>
                   <p className="font-mono text-xs text-muted">{h.memberId}</p>
                 </div>
-                <span className="tabular text-sm font-semibold">{formatBdt(h.amount)}</span>
+                <span className="tabular text-sm font-semibold text-held">{formatBdt(h.amount)}</span>
               </Card>
             ))}
           </div>
