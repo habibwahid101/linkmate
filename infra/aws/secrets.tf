@@ -55,22 +55,26 @@ resource "aws_secretsmanager_secret_version" "better_auth_secret" {
 }
 
 resource "aws_secretsmanager_secret" "app_url" {
+  count                   = var.domain_name != "" ? 1 : 0
   name                    = "${var.name_prefix}/app-url"
   recovery_window_in_days = 7
 }
 
 resource "aws_secretsmanager_secret_version" "app_url" {
-  secret_id     = aws_secretsmanager_secret.app_url.id
+  count         = var.domain_name != "" ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.app_url[0].id
   secret_string = local.canonical_url
 }
 
 resource "aws_secretsmanager_secret" "better_auth_url" {
+  count                   = var.domain_name != "" ? 1 : 0
   name                    = "${var.name_prefix}/better-auth-url"
   recovery_window_in_days = 7
 }
 
 resource "aws_secretsmanager_secret_version" "better_auth_url" {
-  secret_id     = aws_secretsmanager_secret.better_auth_url.id
+  count         = var.domain_name != "" ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.better_auth_url[0].id
   secret_string = local.canonical_url
 }
 
