@@ -1,0 +1,12 @@
+{
+	email admin@linkmateglobal.com
+}
+
+linkmateglobal.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:8080
+}
+
+www.linkmateglobal.com {
+	redir https://linkmateglobal.com{uri} permanent
+}

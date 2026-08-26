@@ -5,12 +5,9 @@ set -euo pipefail
 RDS_CA_URL="https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem"
 RDS_CA_HOST="/opt/linkmate/certs/global-bundle.pem"
 RDS_CA_CONT="/etc/ssl/certs/aws-rds-global-bundle.pem"
+CANONICAL_ORIGIN="https://linkmateglobal.com"
 install -d -m 0755 /opt/linkmate/certs
-if [ ! -s "$RDS_CA_HOST" ]; then
-  curl -fsSL -o "$RDS_CA_HOST" "$RDS_CA_URL"
-fi
-# Refresh if the file is empty or older than 30 days.
-if ! awk 'BEGIN{ok=0} /BEGIN CERTIFICATE/{ok=1} END{exit ok?0:1}' "$RDS_CA_HOST"; then
+if [ ! -s "$RDS_CA_HOST" ] || ! awk 'BEGIN{ok=0} /BEGIN CERTIFICATE/{ok=1} END{exit ok?0:1}' "$RDS_CA_HOST"; then
   curl -fsSL -o "$RDS_CA_HOST" "$RDS_CA_URL"
 fi
 chmod 0644 "$RDS_CA_HOST"
@@ -25,14 +22,23 @@ get_secret() {
 }
 DATABASE_URL=$(get_secret "$LM_PREFIX/database-url")
 BETTER_AUTH_SECRET=$(get_secret "$LM_PREFIX/better-auth-secret")
-PUBLIC_ORIGIN="http://$PUBLIC_IP"
 SES_FROM=""
 if aws secretsmanager describe-secret --region "$AWS_REGION" --secret-id "$LM_PREFIX/ses-from-email" >/dev/null 2>&1; then
   SES_FROM=$(get_secret "$LM_PREFIX/ses-from-email")
 fi
+CADDY_ON=0
+if systemctl is-active --quiet caddy 2>/dev/null; then
+  CADDY_ON=1
+fi
+PUBLIC_ORIGIN="$CANONICAL_ORIGIN"
+PUBLISH=(-p 127.0.0.1:8080:8080)
+if [ "$CADDY_ON" -ne 1 ]; then
+  PUBLIC_ORIGIN="http://$PUBLIC_IP"
+  PUBLISH=(-p 80:8080)
+fi
 docker rm -f linkmate || true
 docker run -d --name linkmate --restart unless-stopped \
-  -p 80:8080 \
+  "${PUBLISH[@]}" \
   -v "$RDS_CA_HOST:$RDS_CA_CONT:ro" \
   -e NODE_ENV=production \
   -e APP_ENV=production \
