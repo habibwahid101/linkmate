@@ -27,6 +27,7 @@ describe("AWS node-server artifact", () => {
         APP_ENV: "production",
         AUTH_BROKER: "off",
         PAYMENTS_MODE: "disabled",
+        MANUAL_PAYMENTS_ENABLED: "true",
         HOST: "127.0.0.1",
         PORT: String(port),
         DATABASE_URL: "",

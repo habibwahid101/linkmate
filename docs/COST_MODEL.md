@@ -13,7 +13,7 @@ Cost-first production. No NAT Gateway, no ALB, no CloudFront, no EKS, no Multi-A
 | ECR (≤10 images) | Deploy artifact | < $1 |
 | Secrets Manager (1 secret) | DB + auth secret | $0.40 |
 | VPC interface endpoint (SES) | Email without NAT | $7 if billed hourly; may be the largest non-compute line |
-| CloudWatch logs 30-day retention | Bounded | < $1 |
+| CloudWatch logs 14-day retention | Bounded | < $1 |
 | Budget | Free | $0 |
 
 If the SES VPC endpoint is unused before email is enabled, it can stay; NAT Gateway (~$32) is still more expensive.
@@ -44,3 +44,9 @@ Drivers: App Runner request-hours, RDS storage growth, VPC endpoint hours.
 ## Explicitly not provisioned
 
 NAT Gateway, ALB, CloudFront, EKS/ECS cluster, Multi-AZ, Performance Insights, enhanced RDS monitoring, Elastic IPs.
+
+## Payment module cost
+
+Manual bKash / Nagad / Bank / Cash uses existing RDS tables (`payment_requests`, `payment_method_settings`).
+No extra AWS service, no object storage, no payment gateway fees.
+Screenshot upload remains deferred (no S3 required).

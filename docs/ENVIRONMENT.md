@@ -15,8 +15,8 @@ Never commit real values. Never print secrets. Never put secrets in `VITE_*`.
 | `BETTER_AUTH_URL` | public https origin | App Runner URL first, then custom domain |
 | `APP_URL` | public https origin | Same as `BETTER_AUTH_URL` |
 | `AUTH_BROKER` | `off` | No Grok auth broker |
-| `PAYMENTS_MODE` | `disabled` | Automated gateway. Forced off in production |
-| `MANUAL_PAYMENTS_ENABLED` | `true` (default) | Manual bKash/Nagad/Bank/Cash submissions |
+| `PAYMENTS_MODE` | `disabled` | Automated payment gateway. Forced off in production (never enable) |
+| `MANUAL_PAYMENTS_ENABLED` | `true` | Manual bKash/Nagad/Bank/Cash. Must stay true in production |
 | `ENABLE_DEMO_NETWORK` | `false` | Forced off |
 | `ENABLE_SAMPLE_DATA` | `false` | Forced off |
 | `ENABLE_SIMULATE_JOINS` | `false` | Forced off |
