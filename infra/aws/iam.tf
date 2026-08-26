@@ -59,7 +59,7 @@ resource "aws_iam_role_policy" "apprunner_instance" {
   policy = data.aws_iam_policy_document.apprunner_instance_inline.json
 }
 
-# GitHub Actions OIDC — push to ECR and update App Runner without long-lived keys.
+# GitHub Actions OIDC — push to ECR and deploy EC2 without long-lived keys.
 data "aws_iam_policy_document" "github_oidc_assume" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -75,8 +75,6 @@ data "aws_iam_policy_document" "github_oidc_assume" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      # GitHub immutable OIDC subject (owner@id/repo@id). Classic name-only
-      # subjects no longer match for this repository.
       values = [
         "repo:${var.github_org}@${var.github_owner_id}/${var.github_repo}@${var.github_repository_id}:*",
       ]
@@ -122,13 +120,40 @@ data "aws_iam_policy_document" "github_deploy" {
     resources = ["*"]
   }
   statement {
-    sid = "AppRunnerDeploy"
+    sid = "AppRunnerCleanup"
     actions = [
       "apprunner:DescribeService",
       "apprunner:ListServices",
-      "apprunner:CreateService",
-      "apprunner:UpdateService",
-      "apprunner:StartDeployment",
+      "apprunner:DeleteService",
+      "apprunner:ListOperations",
+    ]
+    resources = ["*"]
+  }
+  statement {
+    sid = "Ec2Deploy"
+    actions = [
+      "ec2:DescribeInstances",
+      "ec2:DescribeInstanceStatus",
+      "ec2:DescribeImages",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeVpcs",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeInternetGateways",
+      "ec2:DescribeRouteTables",
+      "ec2:CreateTags",
+      "ec2:RunInstances",
+      "ec2:TerminateInstances",
+      "iam:PassRole",
+    ]
+    resources = ["*"]
+  }
+  statement {
+    sid = "SsmDeploy"
+    actions = [
+      "ssm:SendCommand",
+      "ssm:GetCommandInvocation",
+      "ssm:ListCommandInvocations",
+      "ssm:DescribeInstanceInformation",
     ]
     resources = ["*"]
   }
