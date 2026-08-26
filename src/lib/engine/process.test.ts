@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { createIdsForPurchase, attachExternalMember, reverseJoin, processNewId } from "./process.ts";
 import { uid } from "./ids.ts";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+
+let lastPg: PGlite | undefined;
 
 type Sql = {
   <T = Record<string, unknown>>(
@@ -22,10 +28,15 @@ function wrap(pg: PGlite): Sql {
 }
 
 async function makeSql(): Promise<Sql> {
+  if (lastPg) {
+    try { await lastPg.close(); } catch { /* ignore */ }
+    lastPg = undefined;
+  }
   const pg = new PGlite();
+  lastPg = pg;
   await pg.waitReady;
-  await pg.exec(readFileSync("/workspace/migrations/0002_schema.sql", "utf8"));
-  await pg.exec(readFileSync("/workspace/migrations/0003_hardening.sql", "utf8"));
+  await pg.exec(readFileSync(join(ROOT, "migrations/0002_schema.sql"), "utf8"));
+  await pg.exec(readFileSync(join(ROOT, "migrations/0003_hardening.sql"), "utf8"));
   return wrap(pg);
 }
 
