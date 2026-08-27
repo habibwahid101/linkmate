@@ -46,12 +46,14 @@ test("super turbo: 1 + 3 + 9", () => {
   assert.equal(plan.every((p) => p.placementStatus === "placed"), true);
 });
 
-test("hyper turbo: first 13 placed, remaining 9 pending_config", () => {
+test("hyper turbo: all 22 placed; A2/B2/C2 sponsor the final 9", () => {
   const plan = planPackagePlacement("hyper_turbo");
   assert.equal(plan.length, 22);
-  const placed = plan.filter((p) => p.placementStatus === "placed");
-  const pending = plan.filter((p) => p.placementStatus === "pending_config");
-  assert.equal(placed.length, 13);
-  assert.equal(pending.length, 9);
-  assert.equal(pending.every((p) => p.parentIndex == null && p.sponsorIndex == null), true);
+  assert.equal(plan.every((p) => p.placementStatus === "placed"), true);
+  assert.deepEqual(plan.filter((p) => p.parentIndex === 5).map((p) => p.index), [13, 14, 15]);
+  assert.deepEqual(plan.filter((p) => p.parentIndex === 8).map((p) => p.index), [16, 17, 18]);
+  assert.deepEqual(plan.filter((p) => p.parentIndex === 11).map((p) => p.index), [19, 20, 21]);
+  assert.equal(plan[13]!.sponsorIndex, 5);
+  assert.equal(plan[16]!.sponsorIndex, 8);
+  assert.equal(plan[19]!.sponsorIndex, 11);
 });
