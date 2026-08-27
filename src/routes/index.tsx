@@ -425,6 +425,8 @@ function LandPlotSchematic() {
   return (
     <svg
       viewBox="0 0 560 220"
+      width={560}
+      height={220}
       className="block h-auto w-full"
       role="img"
       aria-label="Schematic of a 1 Katha land parcel after qualification"

@@ -4,7 +4,10 @@ export function LogoMark({ className, invert = false }: { className?: string; in
   return (
     <svg
       viewBox="0 0 32 32"
+      width={32}
+      height={32}
       className={cn("size-8", className)}
+      style={{ width: 32, height: 32, flexShrink: 0 }}
       aria-hidden="true"
     >
       <rect
