@@ -241,9 +241,9 @@ values
   ('super_turbo', 'Super Turbo', 143000, 13, 'v1',
    '13 IDs — 1 root + 3 first generation + 9 second generation.',
    'Thirteen IDs placed as 1 root, 3 under the root, and 9 under those positions.', true),
-  ('hyper_turbo', 'Hyper Turbo', 242000, 22, 'v1-partial',
-   '22 IDs. Confirmed: first 13 follow Super Turbo (1 + 3 + 9). Remaining 9 internal placements are configurable.',
-   'Twenty-two IDs. The first 13 are placed now. The remaining 9 stay unplaced until placement rules are finalized.', true)
+  ('hyper_turbo', 'Hyper Turbo', 242000, 22, 'v2-middle-sponsors-final-9',
+   '22 IDs — 1 root + 3 + 9, then the middle ID of each gen-2 group sponsors 3 of the final 9.',
+   'Twenty-two IDs. All are placed: 1 root, 3 under the root, 9 under those, and 9 under the middle ID of each trio.', true)
 on conflict (id) do nothing;
 
 insert into commission_rules (level, generation, generation_label, required_member_count, rate, version)
@@ -261,7 +261,7 @@ on conflict (level) do nothing;
 
 insert into app_settings (key, value)
 values
-  ('hyper_turbo_placement_version', 'super_turbo_13_plus_unplaced_9'),
+  ('hyper_turbo_placement_version', 'v2-middle-sponsors-final-9'),
   ('standard_id_value_bdt', '11000'),
   ('rule_version', '1')
 on conflict (key) do nothing;
