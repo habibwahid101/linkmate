@@ -236,8 +236,8 @@ try {
   await page.waitForTimeout(1500);
   const hyper = await page.locator("body").innerText();
   const unplaced = (hyper.match(/Unplaced/g) || []).length;
-  if (unplaced >= 9) pass(`hyper turbo unplaced ${unplaced}`);
-  else fail("hyper turbo remaining 9 not unplaced", `unplaced=${unplaced}`);
+  if (unplaced === 0) pass("hyper turbo all 22 placed");
+  else fail("hyper turbo still shows unplaced IDs", `unplaced=${unplaced}`);
 
   await page.goto(`${BASE}/admin`, { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
@@ -266,4 +266,4 @@ try {
 }
 
 console.log("\nFINDINGS", JSON.stringify(findings, null, 2));
-if (findings.length) process.exit(1);
+ if (findings.length) process.exit(1);
