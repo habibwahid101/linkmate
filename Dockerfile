@@ -41,6 +41,7 @@ COPY --from=build /app/scripts/migrate.mjs ./scripts/migrate.mjs
 COPY --from=build /app/scripts/migration-plan.mjs ./scripts/migration-plan.mjs
 COPY --from=build /app/scripts/docker-entrypoint.mjs ./scripts/docker-entrypoint.mjs
 COPY --from=build /app/scripts/provision-admin.mjs ./scripts/provision-admin.mjs
+COPY --from=build /app/scripts/inspect-owner.mjs ./scripts/inspect-owner.mjs
 USER linkmate
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \

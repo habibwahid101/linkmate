@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin-shell";
 import { RequireAuth } from "@/components/guards";
-import { NoAccess } from "@/components/query-error";
+import { NoAccess, QueryError } from "@/components/query-error";
 import { getShell } from "@/lib/server/profile";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
@@ -24,6 +24,13 @@ function AdminFrame() {
     return (
       <div className="min-h-dvh bg-bg p-6">
         <DashboardSkeleton />
+      </div>
+    );
+  }
+  if (shell.isError) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16">
+        <QueryError error={shell.error} retry={() => shell.refetch()} />
       </div>
     );
   }
