@@ -8,6 +8,7 @@ import { AdminList } from "@/components/admin-list";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { AdminWithdrawalPanel } from "@/components/withdrawal-panel";
 import { formatBdt } from "@/lib/money";
 import { toInt } from "@/lib/money";
 import { useState } from "react";
@@ -38,7 +39,8 @@ function Wallets() {
   if (q.isError) return <QueryError error={q.error} retry={() => q.refetch()} />;
   return (
     <div>
-      <PageHeader title="Wallets" hint="Do not edit balances silently. Use a ledger adjustment with a reason." />
+      <PageHeader title="Wallets" hint="Do not edit balances silently. Use a ledger adjustment with a reason. Withdrawals reserve available funds only." />
+      <AdminWithdrawalPanel />
       <AdminList
         rows={q.data.map((w) => ({ ...w, id: w.member_id }))}
         onRow={(r) => setTarget(r.member_id)}
