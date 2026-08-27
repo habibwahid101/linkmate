@@ -182,8 +182,8 @@ function Landing() {
             Land allocation and transfer are subject to the applicable terms and documentation. Buying an ID
             does not immediately transfer ownership.
           </p>
-          <div className="mt-6 grid items-start gap-3 lg:grid-cols-2">
-            <ul className="space-y-4 rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
+          <div className="mt-6 grid items-stretch gap-3 lg:grid-cols-2">
+            <ul className="h-full space-y-4 rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
               {LAND_BENEFIT_POINTS.map((line) => (
                 <li key={line} className="flex items-start gap-3">
                   <span
@@ -196,9 +196,11 @@ function Landing() {
                 </li>
               ))}
             </ul>
-            <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
-              <Landmark className="size-6 text-accent" strokeWidth={1.75} />
-              <p className="mt-4 text-base font-semibold">View Land Terms & Documents</p>
+            <div className="flex h-full flex-col rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
+              <div className="flex items-center gap-3">
+                <Landmark className="size-6 shrink-0 text-accent" strokeWidth={1.75} />
+                <p className="min-w-0 text-base font-semibold">View Land Terms & Documents</p>
+              </div>
               <p className="mt-2 text-sm leading-relaxed text-muted">
                 Land documents will be available here before final allocation/transfer. We do not publish
                 placeholder legal files.
