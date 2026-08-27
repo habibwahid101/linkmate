@@ -20,7 +20,11 @@ try {
      values
        ('withdrawal_min_bdt', '500', now()),
        ('withdrawal_fee_bps', '500', now()),
-       ('withdrawal_fee_bdt', '0', now())
+       ('withdrawal_fee_bdt', '0', now()),
+       ('withdrawal_payout_schedule', 'Manual payout within 1–3 business days after admin approval.', now()),
+       ('withdrawal_tax_policy', 'No fixed platform tax deduction. Statutory tax follows prevailing law and accounting policy.', now()),
+       ('land_operational_status', 'Qualification Track Active — Transfer subject to final documentation/allocation terms.', now()),
+       ('hyper_turbo_placement_version', 'v2-middle-sponsors-final-9', now())
      on conflict (key) do update
        set value = excluded.value, updated_at = now()`,
   );
@@ -63,13 +67,17 @@ try {
   await pool.query(
     `update payment_method_settings
      set enabled = true,
-         instructions = 'Cash is accepted. Pay the exact package amount as instructed. An administrator must verify the payment before activation.',
+         instructions = 'Cash is accepted. Record collector name and payment date. Submission does not activate membership; only admin approval does.',
          updated_at = now()
      where method = 'CASH'`,
   );
 
   const settings = await pool.query(
-    `select key, value from app_settings where key in ('withdrawal_min_bdt','withdrawal_fee_bps','withdrawal_fee_bdt') order by key`,
+    `select key, value from app_settings where key in (
+        'withdrawal_min_bdt','withdrawal_fee_bps','withdrawal_fee_bdt',
+        'withdrawal_payout_schedule','withdrawal_tax_policy','land_operational_status',
+        'hyper_turbo_placement_version'
+      ) order by key`,
   );
   const methods = await pool.query(
     `select method, enabled, number, account_type from payment_method_settings order by method`,
