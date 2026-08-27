@@ -26,7 +26,8 @@ function AppFrame() {
     queryFn: () => getShell(),
     placeholderData: keepPreviousData,
   });
-  const hold = useMinPending(shell.isPending || !shell.data);
+  const waiting = shell.isPending || (!shell.data && !shell.isError);
+  const hold = useMinPending(waiting);
   if (hold) {
     return (
       <AppShellPending
@@ -35,7 +36,7 @@ function AppFrame() {
       />
     );
   }
-  if (shouldShowQueryError(shell)) {
+  if (shouldShowQueryError(shell) || !shell.data) {
     return (
       <AppShell unread={0} isAdmin={false}>
         <QueryError error={shell.error} retry={() => shell.refetch()} />
@@ -43,7 +44,7 @@ function AppFrame() {
     );
   }
   return (
-    <AppShell unread={shell.data?.unread ?? 0} isAdmin={shell.data?.profile.role === "admin"}>
+    <AppShell unread={shell.data.unread} isAdmin={shell.data.profile.role === "admin"}>
       <Outlet />
     </AppShell>
   );

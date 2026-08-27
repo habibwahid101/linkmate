@@ -26,16 +26,17 @@ function AdminFrame() {
     queryFn: () => getShell(),
     placeholderData: keepPreviousData,
   });
-  const hold = useMinPending(shell.isPending || !shell.data);
+  const waiting = shell.isPending || (!shell.data && !shell.isError);
+  const hold = useMinPending(waiting);
   if (hold) return <AdminShellPending />;
-  if (shouldShowQueryError(shell)) {
+  if (shouldShowQueryError(shell) || !shell.data) {
     return (
       <AdminShell>
         <QueryError error={shell.error} retry={() => shell.refetch()} />
       </AdminShell>
     );
   }
-  if (shell.data?.profile.role !== "admin") {
+  if (shell.data.profile.role !== "admin") {
     return (
       <div className="mx-auto max-w-md px-4 py-16">
         <NoAccess />
