@@ -3,6 +3,13 @@ import { toInt } from "../money.ts";
 /** Basis points: 500 = 5.00%. */
 export const WITHDRAWAL_MIN_KEY = "withdrawal_min_bdt";
 export const WITHDRAWAL_FEE_BPS_KEY = "withdrawal_fee_bps";
+export const WITHDRAWAL_PAYOUT_SCHEDULE_KEY = "withdrawal_payout_schedule";
+export const WITHDRAWAL_TAX_POLICY_KEY = "withdrawal_tax_policy";
+
+export const WITHDRAWAL_PAYOUT_SCHEDULE =
+  "Manual payout within 1–3 business days after admin approval.";
+export const WITHDRAWAL_TAX_POLICY =
+  "No fixed platform tax deduction. Statutory tax follows prevailing law and accounting policy.";
 
 export type WithdrawalQuote = {
   amountBdt: number;

@@ -2,6 +2,8 @@ import { LEVELS } from "./rules.ts";
 
 /** Presentation copy for the land benefit — not a commission-engine value. */
 export const LAND_BENEFIT_KATHA = 1;
+export const LAND_OPERATIONAL_STATUS =
+  "Qualification Track Active — Transfer subject to final documentation/allocation terms.";
 
 /** Level 1 required members (locked table). */
 export const REQUIRED_DIRECT_SPONSORS = LEVELS[0]!.requiredMembers;
