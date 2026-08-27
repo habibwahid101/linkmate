@@ -50,8 +50,8 @@ function Landing() {
         Skip to content
       </a>
       <header className="sticky top-0 z-40 border-b border-border/70 bg-bg/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-          <Link to="/" aria-label="Link Mate home">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-3 min-[375px]:px-4 sm:gap-3 sm:px-6">
+          <Link to="/" aria-label="Link Mate home" className="min-w-0 shrink-0">
             <Wordmark compact={false} />
           </Link>
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Page">
@@ -65,32 +65,38 @@ function Landing() {
               </a>
             ))}
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 min-[375px]:gap-1.5 sm:gap-2">
             <SignedOut>
               <Link
                 to="/login"
-                className="inline-flex h-11 items-center px-3 text-sm font-medium text-muted hover:text-ink"
+                className="inline-flex h-11 shrink-0 items-center whitespace-nowrap px-2 text-sm font-medium text-ink/70 hover:text-ink min-[375px]:px-2.5 sm:px-3"
               >
                 Login
               </Link>
-              <Button size="sm" onClick={() => setBook(true)}>
+              <Button size="sm" className="shrink-0" onClick={() => setBook(true)}>
                 Book Now
               </Button>
             </SignedOut>
             <SignedIn>
-              <Link to="/app">
+              <Link
+                to="/app"
+                className="inline-flex h-11 shrink-0 items-center whitespace-nowrap px-2 text-sm font-medium text-ink/70 hover:text-ink min-[375px]:px-2.5 lg:hidden"
+              >
+                Dashboard
+              </Link>
+              <Link to="/app" className="hidden lg:inline-flex">
                 <Button size="sm" variant="outline">
                   Open dashboard
                 </Button>
               </Link>
-              <Button size="sm" onClick={() => setBook(true)}>
+              <Button size="sm" className="shrink-0" onClick={() => setBook(true)}>
                 Book Now
               </Button>
             </SignedIn>
-            {isPending ? <div className="h-9 w-20 animate-pulse rounded-[10px] bg-surface-2" /> : null}
+            {isPending ? <div className="h-9 w-16 animate-pulse rounded-[10px] bg-surface-2 min-[375px]:w-20" /> : null}
             <button
               type="button"
-              className="grid size-11 place-items-center rounded-[12px] hover:bg-surface-2 lg:hidden"
+              className="grid size-10 shrink-0 place-items-center rounded-[12px] hover:bg-surface-2 min-[375px]:size-11 lg:hidden"
               aria-label={menu ? "Close menu" : "Open menu"}
               aria-expanded={menu}
               onClick={() => setMenu((v) => !v)}
@@ -350,21 +356,17 @@ function Landing() {
 
 function MenuToggleIcon({ open }: { open: boolean }) {
   return (
-    <span className="relative block size-5" aria-hidden="true">
+    <span className="relative block size-[18px]" aria-hidden="true">
       <span
         className={cn(
-          "absolute top-1/2 h-[1.5px] origin-center rounded-full bg-ink transition-[transform,width,left] duration-200 ease-out motion-reduce:transition-none",
-          open
-            ? "left-1/2 w-[18px] -translate-x-1/2 -translate-y-1/2 rotate-45"
-            : "left-[1px] w-[18px] -translate-y-[4px]",
+          "absolute left-0 top-1/2 h-[1.75px] origin-center rounded-full bg-ink transition-[transform,width] duration-200 ease-out motion-reduce:transition-none",
+          open ? "w-[18px] -translate-y-1/2 rotate-45" : "w-[13px] -translate-y-[4.25px]",
         )}
       />
       <span
         className={cn(
-          "absolute top-1/2 h-[1.5px] origin-center rounded-full bg-ink transition-[transform,width,left] duration-200 ease-out motion-reduce:transition-none",
-          open
-            ? "left-1/2 w-[18px] -translate-x-1/2 -translate-y-1/2 -rotate-45"
-            : "left-[1px] w-[12px] translate-y-[3.5px]",
+          "absolute left-0 top-1/2 h-[1.75px] origin-center rounded-full bg-ink transition-[transform,width] duration-200 ease-out motion-reduce:transition-none",
+          open ? "w-[18px] -translate-y-1/2 -rotate-45" : "w-[18px] translate-y-[2.5px]",
         )}
       />
     </span>
