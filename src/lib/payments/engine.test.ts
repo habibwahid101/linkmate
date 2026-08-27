@@ -356,24 +356,66 @@ describe("manual payment engine", () => {
     assert.ok(notes.some((n) => n.title === "Package activated"));
   });
 
-  it("hyper turbo approval issues 22 IDs with last 9 unplaced", async () => {
+  it("hyper turbo approval places all 22 IDs; A2/B2/C2 sponsor the final 9", async () => {
     const { sql } = await makeSql();
     await configureMethods(sql);
-    await insertUser(sql, "u1", "Buyer");
+    await insertUser(sql, "sponsor", "Sponsor");
+    await insertUser(sql, "buyer", "Buyer");
+    const sponsorPay = await submitPaymentRequest(sql, {
+      userId: "sponsor",
+      packageId: "builder",
+      method: "BKASH",
+      submittedAmountBdt: 11000,
+      transactionReference: "SP-HT",
+    });
+    const sponsor = await approvePayment(sql, { requestId: sponsorPay.id, adminUserId: "admin1" });
+    const sponsorUser = await sql<{ referral_code: string }>`
+      select referral_code from app_users where user_id = ${"sponsor"}
+    `;
     const req = await submitPaymentRequest(sql, {
-      userId: "u1",
+      userId: "buyer",
       packageId: "hyper_turbo",
       method: "BANK",
       submittedAmountBdt: 242000,
       transactionReference: "HT-1",
+      referralCode: sponsorUser[0]!.referral_code,
     });
     const result = await approvePayment(sql, { requestId: req.id, adminUserId: "admin1" });
+    const replay = await approvePayment(sql, { requestId: req.id, adminUserId: "admin1" });
     assert.equal(result.ids.length, 22);
+    assert.equal(replay.replayed, true);
+    assert.equal(replay.purchaseId, result.purchaseId);
+    assert.equal(replay.ids.length, 22);
     const pending = await sql<{ n: number }>`
       select count(*)::int as n from member_ids
       where purchase_id = ${result.purchaseId} and placement_status = 'pending_config'
     `;
-    assert.equal(pending[0]?.n, 9);
+    assert.equal(pending[0]?.n, 0);
+    const placed = await sql<{ n: number }>`
+      select count(*)::int as n from member_ids
+      where purchase_id = ${result.purchaseId} and placement_status = 'placed'
+    `;
+    assert.equal(placed[0]?.n, 22);
+    const a2 = result.ids[5]!;
+    const b2 = result.ids[8]!;
+    const c2 = result.ids[11]!;
+    const a2Kids = await sql<{ n: number }>`
+      select count(*)::int as n from sponsor_relationships where sponsor_id = ${a2}
+    `;
+    const b2Kids = await sql<{ n: number }>`
+      select count(*)::int as n from sponsor_relationships where sponsor_id = ${b2}
+    `;
+    const c2Kids = await sql<{ n: number }>`
+      select count(*)::int as n from sponsor_relationships where sponsor_id = ${c2}
+    `;
+    assert.equal(a2Kids[0]?.n, 3);
+    assert.equal(b2Kids[0]?.n, 3);
+    assert.equal(c2Kids[0]?.n, 3);
+    const ext = await sql<{ sponsored_id: string }>`
+      select sponsored_id from sponsor_relationships where sponsor_id = ${sponsor.rootId}
+    `;
+    assert.equal(ext.length, 1);
+    assert.equal(ext[0]?.sponsored_id, result.rootId);
   });
 
   it("refuses a disabled or unconfigured method", async () => {
