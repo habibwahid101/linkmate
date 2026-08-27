@@ -17,6 +17,7 @@ test("locked packages", () => {
   assert.equal(PACKAGES.super_turbo.idCount, 13);
   assert.equal(PACKAGES.hyper_turbo.amountBdt, 242000);
   assert.equal(PACKAGES.hyper_turbo.idCount, 22);
+  assert.equal(PACKAGES.hyper_turbo.placementRuleVersion, "v2-middle-sponsors-final-9");
 });
 
 test("locked commissions on standard ID", () => {

@@ -60,11 +60,11 @@ export const PACKAGES: Record<PackageId, PackageRule> = {
     name: "Hyper Turbo",
     amountBdt: 242_000,
     idCount: 22,
-    placementRuleVersion: "v1-partial",
+    placementRuleVersion: "v2-middle-sponsors-final-9",
     structureSummary:
-      "22 IDs. Confirmed: first 13 follow Super Turbo (1 + 3 + 9). Remaining 9 internal placements are configurable.",
+      "22 IDs — 1 root + 3 + 9, then the middle ID of each gen-2 group sponsors 3 of the final 9.",
     receives:
-      "Twenty-two IDs. The first 13 are placed now. The remaining 9 stay unplaced until placement rules are finalized.",
+      "Twenty-two IDs. All are placed: 1 root, 3 under the root, 9 under those, and 9 under the middle ID of each trio.",
     locked: true,
   },
 };
