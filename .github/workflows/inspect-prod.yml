@@ -1,0 +1,60 @@
+name: Inspect production shell
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: aws-prod-inspect
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION: ap-south-1
+      EC2_INSTANCE_ID: i-0d5882a956e4d3981
+      ADMIN_EMAIL: hello.habibwahid@gmail.com
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: SSM inspect owner + recent app logs
+        run: |
+          set -euo pipefail
+          INSTANCE="$EC2_INSTANCE_ID"
+          CMD=$(aws ssm send-command \
+            --instance-ids "$INSTANCE" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Link Mate inspect owner shell" \
+            --parameters "commands=[
+              \"set -euo pipefail\",
+              \"echo VERSION\",
+              \"curl -fsS -m 8 http://127.0.0.1/api/version || true\",
+              \"echo HEALTH\",
+              \"curl -fsS -m 8 http://127.0.0.1/api/health || true\",
+              \"echo READY\",
+              \"curl -fsS -m 8 http://127.0.0.1/api/readiness || true\",
+              \"echo INSPECT\",
+              \"docker exec -e ADMIN_EMAIL=$ADMIN_EMAIL linkmate node scripts/inspect-owner.mjs\",
+              \"echo LOGS\",
+              \"docker logs --tail 250 linkmate 2>&1 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/[email]/g; s/postgres(ql)?:\\/\\/[^ ]+/postgres:\\/\\/[redacted]/g' | tail -n 250\"
+            ]" \
+            --query "Command.CommandId" --output text)
+          echo "Waiting for SSM $CMD"
+          for i in $(seq 1 24); do
+            STATUS=$(aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
+            echo "status=$STATUS"
+            if [ "$STATUS" = "Success" ] || [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+              aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query "[Status,StandardOutputContent,StandardErrorContent]" --output text
+              [ "$STATUS" = "Success" ]
+              exit $?
+            fi
+            sleep 5
+          done
+          echo "SSM timed out"
+          exit 1
