@@ -7,6 +7,7 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Money } from "@/components/money";
 import { StatusBadge } from "@/components/status-badge";
+import { MemberWithdrawalPanel } from "@/components/withdrawal-panel";
 import { formatBdt, toInt } from "@/lib/money";
 import { formatDateTime } from "@/lib/format";
 
@@ -20,8 +21,9 @@ function Wallet() {
   const available = q.data.wallets.reduce((s, w) => s + w.available, 0);
   const released = q.data.wallets.reduce((s, w) => s + w.released, 0);
   const reversed = q.data.transactions
-    .filter((tx) => tx.status === "REVERSED")
+    .filter((tx) => tx.status === "REVERSED" || tx.type === "REVERSAL")
     .reduce((s, tx) => s + Math.abs(toInt(tx.amount)), 0);
+  const primaryId = q.data.wallets[0]?.memberId ?? null;
 
   return (
     <div>
@@ -73,6 +75,8 @@ function Wallet() {
           </div>
         </div>
       ) : null}
+
+      <MemberWithdrawalPanel memberId={primaryId} available={available} />
 
       <div className="mt-6 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Transaction history</h2>
