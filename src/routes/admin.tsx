@@ -1,10 +1,12 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AdminShell } from "@/components/admin-shell";
 import { RequireAuth } from "@/components/guards";
 import { NoAccess, QueryError } from "@/components/query-error";
+import { AdminShellPending } from "@/components/shell-pending";
+import { useMinPending } from "@/hooks/use-min-pending";
+import { shouldShowQueryError } from "@/lib/ui/min-pending";
 import { getShell } from "@/lib/server/profile";
-import { useQuery } from "@tanstack/react-query";
-import { DashboardSkeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -19,19 +21,18 @@ function AdminLayout() {
 }
 
 function AdminFrame() {
-  const shell = useQuery({ queryKey: ["shell"], queryFn: () => getShell() });
-  if (shell.isPending) {
+  const shell = useQuery({
+    queryKey: ["shell"],
+    queryFn: () => getShell(),
+    placeholderData: keepPreviousData,
+  });
+  const hold = useMinPending(shell.isPending || !shell.data);
+  if (hold) return <AdminShellPending />;
+  if (shouldShowQueryError(shell)) {
     return (
-      <div className="min-h-dvh bg-bg p-6">
-        <DashboardSkeleton />
-      </div>
-    );
-  }
-  if (shell.isError) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-16">
+      <AdminShell>
         <QueryError error={shell.error} retry={() => shell.refetch()} />
-      </div>
+      </AdminShell>
     );
   }
   if (shell.data?.profile.role !== "admin") {

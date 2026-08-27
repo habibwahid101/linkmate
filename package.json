@@ -20,7 +20,7 @@
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
     "test": "node --test 'scripts/**/*.test.mjs' && npm run test:app",
-    "test:app": "node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/auth-mode.test.ts src/lib/auth/gate-identity.test.ts src/lib/rules.test.ts src/lib/engine/placement.test.ts src/lib/engine/level-state.test.ts src/lib/engine/process.test.ts src/lib/runtime.test.ts src/lib/qualification.test.ts src/lib/public-error.test.ts src/lib/health.test.ts src/lib/version.test.ts src/lib/email/ses.test.ts src/lib/payments/engine.test.ts src/lib/server/rate-limit.test.ts src/lib/server/app-user.test.ts src/lib/withdrawals/engine.test.ts src/lib/migration-safety.test.ts",
+    "test:app": "node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/auth-mode.test.ts src/lib/auth/gate-identity.test.ts src/lib/rules.test.ts src/lib/engine/placement.test.ts src/lib/engine/level-state.test.ts src/lib/engine/process.test.ts src/lib/runtime.test.ts src/lib/qualification.test.ts src/lib/public-error.test.ts src/lib/health.test.ts src/lib/version.test.ts src/lib/email/ses.test.ts src/lib/payments/engine.test.ts src/lib/server/rate-limit.test.ts src/lib/server/app-user.test.ts src/lib/withdrawals/engine.test.ts src/lib/migration-safety.test.ts src/lib/ui/min-pending.test.ts",
     "test:boot": "node --test scripts/patch-nitro-ssr.test.mjs scripts/production-boot.test.mjs scripts/docker-image.test.mjs",
     "test:boot:aws": "node --test scripts/docker-image.test.mjs scripts/aws-node-boot.test.mjs",
     "db:export": "node scripts/db-export.mjs",
