@@ -4,7 +4,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { queryClient } from "@/lib/query";
 import { Toaster } from "sonner";
-import appCss from "../styles.css?url";
+import "../styles.css";
 
 const APP_NAME = "Link Mate";
 
@@ -44,7 +44,6 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-      { rel: "stylesheet", href: appCss, blocking: "render" },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },

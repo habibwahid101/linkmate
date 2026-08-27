@@ -96,7 +96,25 @@ export default async function grokPwaMiddleware(
     });
   }
 
-  if (!isDocumentPath(path)) return next();
+  if (!isDocumentPath(path)) {
+    const result = await next();
+    // Missing hashed assets used to SPA-fallback as HTML 200 (immutable).
+    // Browsers then refuse the stylesheet (MIME) and first-paint unstyled.
+    if (
+      path.startsWith("/assets/") &&
+      result instanceof Response &&
+      /text\/html/i.test(String(result.headers.get("content-type") ?? ""))
+    ) {
+      return new Response("Not Found", {
+        status: 404,
+        headers: {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-cache",
+        },
+      });
+    }
+    return result;
+  }
 
   const result = await next();
   if (
