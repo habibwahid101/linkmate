@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { makeReferralCode, uid } from "@/lib/engine/ids";
 import { runtimeFlags } from "@/lib/runtime";
 import { assertRateLimit } from "@/lib/server/rate-limit";
 
@@ -47,59 +46,19 @@ export async function ensureProfileRow(
   displayName: string,
   email: string | null,
 ): Promise<AppProfile> {
-  const sql = await getSql();
-  const existing = await sql<{
-    user_id: string;
-    display_name: string;
-    email: string | null;
-    phone: string | null;
-    phone_verified: boolean;
-    role: string;
-    referral_code: string;
-    active_id: string | null;
-    created_at: string;
-  }>`select * from app_users where user_id = ${userId}`;
-  if (existing[0]) return mapProfile(existing[0]);
-
-  const authUser = await sql<{ name: string; email: string | null }>`
-    select name, email from "user" where id = ${userId}
-  `;
-  const name = authUser[0]?.name || displayName || "Member";
-  const mail = authUser[0]?.email || email;
-
-  const admins = await sql<{ n: number }>`select count(*)::int as n from app_users where role = 'admin' and is_synthetic = false`;
-  const isFirst = (admins[0]?.n ?? 0) === 0;
-  // Preview (PGLite) may bootstrap the first member as admin so the demo admin
-  // panel is reachable. Production never auto-promotes — use scripts/provision-admin.mjs.
-  const { dbSource } = await import("@/lib/db");
-  const flags = runtimeFlags();
-  const allowBootstrap =
-    (dbSource === "pglite" && !flags.isProduction) || flags.bootstrapAdmin;
-  const role = isFirst && allowBootstrap ? "admin" : "member";
-  let code = makeReferralCode(userId + Date.now());
-  for (let i = 0; i < 5; i++) {
-    const clash = await sql<{ c: number }>`select count(*)::int as c from app_users where referral_code = ${code}`;
-    if ((clash[0]?.c ?? 0) === 0) break;
-    code = makeReferralCode(userId + i + Math.random());
-  }
-
-  await sql`
-    insert into app_users (user_id, display_name, email, role, referral_code, is_synthetic)
-    values (${userId}, ${name}, ${mail}, ${role}, ${code}, false)
-    on conflict (user_id) do nothing
-  `;
-  const created = await sql<{
-    user_id: string;
-    display_name: string;
-    email: string | null;
-    phone: string | null;
-    phone_verified: boolean;
-    role: string;
-    referral_code: string;
-    active_id: string | null;
-    created_at: string;
-  }>`select * from app_users where user_id = ${userId}`;
-  return mapProfile(created[0]!);
+  const { ensureAppUserForId } = await import("./app-user");
+  const row = await ensureAppUserForId(userId, { name: displayName, email });
+  return mapProfile({
+    user_id: row.userId,
+    display_name: row.displayName,
+    email: row.email,
+    phone: row.phone,
+    phone_verified: row.phoneVerified,
+    role: row.role,
+    referral_code: row.referralCode,
+    active_id: row.activeId,
+    created_at: row.createdAt,
+  });
 }
 
 export const getMyProfile = createServerFn({ method: "GET" })
@@ -231,4 +190,3 @@ export const getShell = createServerFn({ method: "GET" })
     `;
     return { profile, unread: unread[0]?.n ?? 0, idCount: idCount[0]?.n ?? 0, flags: runtimeFlags() };
   });
-
