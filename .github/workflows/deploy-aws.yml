@@ -128,7 +128,8 @@ jobs:
             --comment "Provision Link Mate admin $ADMIN_EMAIL" \
             --parameters "commands=[
               \"set -euo pipefail\",
-              \"docker exec -e ADMIN_EMAIL=$ADMIN_EMAIL linkmate node scripts/provision-admin.mjs\"
+              \"docker exec -e ADMIN_EMAIL=$ADMIN_EMAIL linkmate node scripts/provision-admin.mjs\",
+              \"docker exec linkmate node scripts/provision-owner-settings.mjs\"
             ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for provision SSM $CMD"
