@@ -359,14 +359,14 @@ function MenuToggleIcon({ open }: { open: boolean }) {
     <span className="relative block size-[18px]" aria-hidden="true">
       <span
         className={cn(
-          "absolute left-0 top-1/2 h-[1.75px] origin-center rounded-full bg-ink transition-[transform,width] duration-200 ease-out motion-reduce:transition-none",
-          open ? "w-[18px] -translate-y-1/2 rotate-45" : "w-[13px] -translate-y-[4.25px]",
+          "absolute left-0 top-1/2 h-[1.75px] w-[18px] origin-center rounded-full bg-ink transition-transform duration-200 ease-out motion-reduce:transition-none",
+          open ? "-translate-y-1/2 rotate-45" : "-translate-y-[4.25px]",
         )}
       />
       <span
         className={cn(
-          "absolute left-0 top-1/2 h-[1.75px] origin-center rounded-full bg-ink transition-[transform,width] duration-200 ease-out motion-reduce:transition-none",
-          open ? "w-[18px] -translate-y-1/2 -rotate-45" : "w-[18px] translate-y-[2.5px]",
+          "absolute left-0 top-1/2 h-[1.75px] w-[18px] origin-center rounded-full bg-ink transition-transform duration-200 ease-out motion-reduce:transition-none",
+          open ? "-translate-y-1/2 -rotate-45" : "translate-y-[2.5px]",
         )}
       />
     </span>
