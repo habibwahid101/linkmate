@@ -30,9 +30,9 @@ export function BookingSheet({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Select a membership package" size="xl">
-      <QualificationReminder />
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+    <Modal open={open} onClose={onClose} title="Select a membership package" size="xl" compact>
+      <QualificationReminder compact />
+      <div className="mt-3 grid items-stretch gap-2.5 sm:grid-cols-2">
         {PACKAGE_LIST.map((pkg) => (
           <PackageCard
             key={pkg.id}
@@ -43,7 +43,7 @@ export function BookingSheet({
           />
         ))}
       </div>
-      <p className="mt-4 text-xs leading-relaxed text-muted">
+      <p className="mt-3 text-xs leading-relaxed text-muted">
         Selecting a larger package issues more IDs. It does not replace the sponsor-3 and Level-9 land
         qualification, and it does not transfer land on purchase.
       </p>

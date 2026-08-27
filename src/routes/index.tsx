@@ -6,6 +6,7 @@ import { LEVELS, STANDARD_ID_VALUE_BDT, fullLevelCommission } from "@/lib/rules"
 import { formatBdt } from "@/lib/money";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { SignedIn, SignedOut } from "@/lib/auth/gates";
+import { cn } from "@/lib/utils";
 import { useState, type ReactNode } from "react";
 import {
   BadgeCheck,
@@ -14,11 +15,9 @@ import {
   ChevronDown,
   Landmark,
   Layers,
-  Menu,
   Scale,
   Users,
   Wallet,
-  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({ component: Landing });
@@ -96,12 +95,12 @@ function Landing() {
               aria-expanded={menu}
               onClick={() => setMenu((v) => !v)}
             >
-              {menu ? <X className="size-5" /> : <Menu className="size-5" />}
+              <MenuToggleIcon open={menu} />
             </button>
           </div>
         </div>
         {menu ? (
-          <nav className="border-t border-border bg-surface px-4 py-3 lg:hidden" aria-label="Mobile">
+          <nav className="overflow-x-hidden border-t border-border bg-surface px-4 py-2 lg:hidden" aria-label="Mobile">
             {NAV.map((item) => (
               <a
                 key={item.href}
@@ -307,13 +306,6 @@ function Landing() {
               <Button size="lg" onClick={() => setBook(true)}>
                 Book Now
               </Button>
-              <SignedOut>
-                <Link to="/login">
-                  <Button size="lg" variant="sidebar">
-                    Login
-                  </Button>
-                </Link>
-              </SignedOut>
               <SignedIn>
                 <Link to="/app">
                   <Button size="lg" variant="sidebar">
@@ -353,6 +345,29 @@ function Landing() {
 
       <BookingSheet open={book} onClose={() => setBook(false)} signedIn={Boolean(user)} />
     </div>
+  );
+}
+
+function MenuToggleIcon({ open }: { open: boolean }) {
+  return (
+    <span className="relative block size-5" aria-hidden="true">
+      <span
+        className={cn(
+          "absolute top-1/2 h-[1.5px] origin-center rounded-full bg-ink transition-[transform,width,left] duration-200 ease-out motion-reduce:transition-none",
+          open
+            ? "left-1/2 w-[18px] -translate-x-1/2 -translate-y-1/2 rotate-45"
+            : "left-[1px] w-[18px] -translate-y-[4px]",
+        )}
+      />
+      <span
+        className={cn(
+          "absolute top-1/2 h-[1.5px] origin-center rounded-full bg-ink transition-[transform,width,left] duration-200 ease-out motion-reduce:transition-none",
+          open
+            ? "left-1/2 w-[18px] -translate-x-1/2 -translate-y-1/2 -rotate-45"
+            : "left-[1px] w-[12px] translate-y-[3.5px]",
+        )}
+      />
+    </span>
   );
 }
 

@@ -23,7 +23,8 @@ export function PackageCard({
   return (
     <Card
       className={cn(
-        "flex h-full flex-col gap-4",
+        "flex h-full flex-col",
+        compact ? "gap-2 p-3.5 sm:p-3.5" : "gap-4",
         current && "shadow-[0_0_0_2px_var(--color-accent)]",
       )}
     >
@@ -34,9 +35,22 @@ export function PackageCard({
         </div>
         {current ? <Badge tone="accent">Current</Badge> : null}
       </div>
-      <p className="tabular text-2xl font-semibold tracking-tight">{formatBdt(pkg.amountBdt)}</p>
-      <p className="text-sm text-muted">{pkg.idCount} ID{pkg.idCount === 1 ? "" : "s"}</p>
-      <p className="text-sm leading-relaxed text-ink">{pkg.structureSummary}</p>
+      {compact ? (
+        <p className="tabular text-xl font-semibold tracking-tight">
+          {formatBdt(pkg.amountBdt)}
+          <span className="ml-2 text-sm font-medium text-muted">
+            {pkg.idCount} ID{pkg.idCount === 1 ? "" : "s"}
+          </span>
+        </p>
+      ) : (
+        <>
+          <p className="tabular text-2xl font-semibold tracking-tight">{formatBdt(pkg.amountBdt)}</p>
+          <p className="text-sm text-muted">
+            {pkg.idCount} ID{pkg.idCount === 1 ? "" : "s"}
+          </p>
+        </>
+      )}
+      <p className={cn("text-sm text-ink", compact ? "leading-snug" : "leading-relaxed")}>{pkg.structureSummary}</p>
       {compact ? null : <p className="text-sm text-muted">{pkg.receives}</p>}
       {onSelect ? (
         <Button className="mt-auto w-full" onClick={onSelect} disabled={busy}>
