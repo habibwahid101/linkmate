@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { getInvite } from "@/lib/server/member";
 import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
+import { EmptyState } from "@/components/empty-state";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,21 @@ function Invite() {
   if (q.isPending) return <DashboardSkeleton />;
   if (q.isError) return <QueryError error={q.error} retry={() => q.refetch()} />;
 
-  const text = `Join me on Link Mate. Referral ${q.data.referralCode}${q.data.activeId ? ` · ID ${q.data.activeId}` : ""}. ${link}`;
+  if (!q.data.activeId) {
+    return (
+      <div>
+        <PageHeader title="Invite" hint="Sponsorship starts after a Membership ID is active." />
+        <EmptyState
+          title="Activate a Membership ID to start inviting"
+          body="Your referral code is reserved, but invite links become operational only after admin-approved package activation."
+          action="Choose a package"
+          actionTo="/app/packages"
+        />
+      </div>
+    );
+  }
+
+  const text = `Join me on Link Mate. Referral ${q.data.referralCode} · ID ${q.data.activeId}. ${link}`;
 
   return (
     <div>
@@ -35,7 +50,7 @@ function Invite() {
       <Card className="flex flex-col items-center">
         <p className="text-xs font-medium uppercase tracking-wider text-muted">Referral code</p>
         <p className="mt-2 font-mono text-3xl font-semibold tracking-tight">{q.data.referralCode}</p>
-        {q.data.activeId ? <p className="mt-1 font-mono text-xs text-muted">{q.data.activeId}</p> : null}
+        <p className="mt-1 font-mono text-xs text-muted">{q.data.activeId}</p>
         <div className="mt-6 rounded-2xl bg-surface-2 p-3">
           <QrCode value={link || q.data.referralCode} />
         </div>
@@ -71,6 +86,10 @@ function Invite() {
             Share
           </Button>
         ) : null}
+        <p className="mt-4 text-center text-xs text-muted">
+          Invites do not activate membership or pay commission until the referred member’s payment is approved.{" "}
+          <Link to="/app/packages" className="text-accent">Review packages</Link>
+        </p>
       </Card>
     </div>
   );
