@@ -29,6 +29,7 @@ export const DURABLE_TABLES = [
   "rate_limits",
   "payment_method_settings",
   "payment_requests",
+  "withdrawal_requests",
 ];
 
 /** Insert order respects foreign keys. */
