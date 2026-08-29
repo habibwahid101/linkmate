@@ -16,7 +16,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { Wordmark } from "@/components/logo";
+import { BrandLink } from "@/components/logo";
 import { cn, initials } from "@/lib/utils";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
@@ -68,9 +68,7 @@ export function AppShell({
     <div className="min-h-dvh bg-bg text-ink">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[240px] flex-col bg-sidebar text-sidebar-fg lg:flex">
         <div className="flex h-16 shrink-0 items-center px-5">
-          <Link to="/app" aria-label="Link Mate home">
-            <Wordmark invert />
-          </Link>
+          <BrandLink invert />
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-2">
           {desktopNav.map((item) => {
@@ -130,7 +128,7 @@ export function AppShell({
       <div className="lg:pl-[240px]">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-bg/90 px-4 backdrop-blur-md lg:h-16 lg:px-8">
           <div className="lg:hidden">
-            <Wordmark compact />
+            <BrandLink compact />
           </div>
           <div className="hidden text-sm text-muted lg:block">Operational view · Active ID data only</div>
           <div className="flex items-center gap-1">

@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import type { InputHTMLAttributes, LabelHTMLAttributes } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useState, type InputHTMLAttributes, type LabelHTMLAttributes } from "react";
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -13,6 +14,30 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
       )}
       {...props}
     />
+  );
+}
+
+export function PasswordInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <Input
+        {...props}
+        type={visible ? "text" : "password"}
+        className={cn("pr-11", className)}
+      />
+      <button
+        type="button"
+        className="absolute inset-y-0 right-0 grid size-11 place-items-center text-muted hover:text-ink disabled:pointer-events-none"
+        aria-label={visible ? "Hide password" : "Show password"}
+        aria-pressed={visible}
+        disabled={props.disabled}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setVisible((v) => !v)}
+      >
+        {visible ? <EyeOff className="size-4" strokeWidth={1.75} aria-hidden="true" /> : <Eye className="size-4" strokeWidth={1.75} aria-hidden="true" />}
+      </button>
+    </div>
   );
 }
 

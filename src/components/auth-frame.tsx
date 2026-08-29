@@ -1,4 +1,4 @@
-import { Wordmark } from "@/components/logo";
+import { BrandLink } from "@/components/logo";
 import type { ReactNode } from "react";
 
 export function AuthFrame({
@@ -13,7 +13,7 @@ export function AuthFrame({
   return (
     <div className="min-h-dvh bg-bg lg:grid lg:grid-cols-2">
       <aside className="relative hidden flex-col justify-between bg-sidebar p-10 text-sidebar-fg lg:flex">
-        <Wordmark invert />
+        <BrandLink invert />
         <div className="max-w-sm">
           <p className="text-3xl font-semibold tracking-tight text-balance">
             Membership you can read at a glance.
@@ -26,7 +26,7 @@ export function AuthFrame({
       </aside>
       <main className="flex min-h-dvh flex-col px-5 py-8 sm:px-8">
         <div className="lg:hidden">
-          <Wordmark />
+          <BrandLink />
         </div>
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>

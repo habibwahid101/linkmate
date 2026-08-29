@@ -16,7 +16,7 @@ import {
   CircleDollarSign,
   PauseCircle,
 } from "lucide-react";
-import { Wordmark } from "@/components/logo";
+import { BrandLink } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -45,7 +45,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <div className="min-h-dvh bg-bg text-ink">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col border-r border-border bg-surface lg:flex">
         <div className="flex h-16 items-center px-4">
-          <Wordmark />
+          <BrandLink />
         </div>
         <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
           Administration

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AuthFrame } from "@/components/auth-frame";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/input";
+import { Input, Label, PasswordInput } from "@/components/ui/input";
 import { GROK_PROVIDERS, authClient, grokBrokerEnabled, signIn } from "@/lib/auth/client";
 import { useEffect, useState } from "react";
 
@@ -64,9 +64,8 @@ function Signup() {
         </div>
         <div>
           <Label htmlFor="password">Password</Label>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             required
             minLength={8}
             maxLength={128}

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AuthFrame } from "@/components/auth-frame";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/input";
+import { Input, Label, PasswordInput } from "@/components/ui/input";
 import { GROK_PROVIDERS, authClient, authEnabled, grokBrokerEnabled, signIn } from "@/lib/auth/client";
 import { useState } from "react";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -66,9 +66,8 @@ function Login() {
                   Forgot password
                 </Link>
               </div>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="current-password"
                 required
                 value={password}

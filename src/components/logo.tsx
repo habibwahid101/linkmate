@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
 export function LogoMark({ className, invert = false }: { className?: string; invert?: boolean }) {
@@ -50,5 +51,26 @@ export function Wordmark({
         </span>
       )}
     </div>
+  );
+}
+
+/** Header/footer brand. Always the public home, never nested in another control. */
+export function BrandLink({
+  invert = false,
+  compact = false,
+  className,
+}: {
+  invert?: boolean;
+  compact?: boolean;
+  className?: string;
+}) {
+  return (
+    <Link
+      to="/"
+      aria-label="Link Mate home"
+      className={cn("inline-flex min-w-0 shrink-0 items-center", className)}
+    >
+      <Wordmark invert={invert} compact={compact} />
+    </Link>
   );
 }

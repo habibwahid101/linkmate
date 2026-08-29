@@ -475,9 +475,18 @@ test("escapes host-derived values in the install page", () => {
 
 test("renders the manifest with the per-app name", () => {
   const manifest = JSON.parse(renderWebManifest("wild-race.grok.me"));
-  assert.equal(manifest.name, "Wild Race");
-  assert.equal(manifest.short_name, "Wild Race");
-  assert.equal(manifest.icons[0].src, "/__grok/icon-180.png");
+  assert.equal(manifest.name, "Link Mate");
+  assert.equal(manifest.short_name, "Link Mate");
+  assert.equal(manifest.icons[0].src, "/icon-192.png");
+  assert.equal(manifest.icons[1].src, "/icon-512.png");
+  assert.equal(manifest.icons[2].purpose, "maskable");
+});
+
+test("brand PWA icons are present", () => {
+  readFileSync(join(TEMPLATE_ROOT, "public/favicon.svg"));
+  readFileSync(join(TEMPLATE_ROOT, "public/icon-192.png"));
+  readFileSync(join(TEMPLATE_ROOT, "public/icon-512.png"));
+  readFileSync(join(TEMPLATE_ROOT, "public/icon-512-maskable.png"));
 });
 
 // Tripwires: the deployed-app path only works if Nitro scans server/ — an

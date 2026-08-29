@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AuthFrame } from "@/components/auth-frame";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/input";
+import { Label, PasswordInput } from "@/components/ui/input";
 import { authClient } from "@/lib/auth/client";
 import { useMemo, useState } from "react";
 
@@ -59,9 +59,8 @@ function Reset() {
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <Label htmlFor="password">New password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               required
               minLength={8}
               maxLength={128}

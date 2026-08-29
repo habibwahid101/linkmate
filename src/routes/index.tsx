@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Wordmark } from "@/components/logo";
+import { BrandLink } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { BookingSheet } from "@/components/booking-sheet";
 import { LEVELS, STANDARD_ID_VALUE_BDT, fullLevelCommission } from "@/lib/rules";
@@ -51,9 +51,7 @@ function Landing() {
       </a>
       <header className="sticky top-0 z-40 border-b border-border/70 bg-bg/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-3 min-[375px]:px-4 sm:gap-3 sm:px-6">
-          <Link to="/" aria-label="Link Mate home" className="min-w-0 shrink-0">
-            <Wordmark compact={false} />
-          </Link>
+          <BrandLink />
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Page">
             {NAV.map((item) => (
               <a
@@ -327,7 +325,7 @@ function Landing() {
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-start sm:justify-between sm:px-6">
           <div>
-            <Wordmark />
+            <BrandLink />
             <p className="mt-3 max-w-sm text-sm text-muted">
               Membership IDs, generation commission, and a documented land qualification path.
             </p>
