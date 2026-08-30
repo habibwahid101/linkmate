@@ -8,6 +8,38 @@ const SWIPE_PX = 48;
 
 const SLIDES = [
   {
+    id: "avenue",
+    caption: "Illustrative Development View",
+    alt: "Illustrative street-level view of a landscaped project avenue with plots — conceptual render, not a photograph of a completed site",
+    fit: "cover" as const,
+    width: 1255,
+    height: 941,
+    lightbox: false,
+    badge: "Illustrative",
+    note: "Conceptual render — not a photograph of a completed site.",
+    srcJpg: "/hero/illustrative-avenue.jpg",
+    srcSetJpg:
+      "/hero/illustrative-avenue-640.jpg 640w, /hero/illustrative-avenue-960.jpg 960w, /hero/illustrative-avenue.jpg 1255w",
+    srcSetWebp:
+      "/hero/illustrative-avenue-640.webp 640w, /hero/illustrative-avenue-960.webp 960w, /hero/illustrative-avenue.webp 1255w",
+  },
+  {
+    id: "aerial",
+    caption: "Illustrative Aerial View",
+    alt: "Illustrative aerial view of the land project with roads and plots — conceptual render, not a photograph of a completed site",
+    fit: "cover" as const,
+    width: 1255,
+    height: 941,
+    lightbox: false,
+    badge: "Illustrative",
+    note: "Conceptual render — not a photograph of a completed site.",
+    srcJpg: "/hero/illustrative-aerial.jpg",
+    srcSetJpg:
+      "/hero/illustrative-aerial-640.jpg 640w, /hero/illustrative-aerial-960.jpg 960w, /hero/illustrative-aerial.jpg 1255w",
+    srcSetWebp:
+      "/hero/illustrative-aerial-640.webp 640w, /hero/illustrative-aerial-960.webp 960w, /hero/illustrative-aerial.webp 1255w",
+  },
+  {
     id: "layout",
     caption: "Project Plot Layout",
     alt: "Full project plot layout map showing Blocks A through F and marked plot sizes",
@@ -16,25 +48,8 @@ const SLIDES = [
     height: 1193,
     lightbox: true,
     srcJpg: "/hero/project-plot-layout.jpg",
-    srcWebp: "/hero/project-plot-layout.webp",
     srcSetJpg: "/hero/project-plot-layout-640.jpg 640w, /hero/project-plot-layout.jpg 882w",
     srcSetWebp: "/hero/project-plot-layout-640.webp 640w, /hero/project-plot-layout.webp 882w",
-  },
-  {
-    id: "development",
-    caption: "Illustrative Development View",
-    alt: "Illustrative development view of roads and plots — conceptual render, not a photograph of a completed site",
-    fit: "cover" as const,
-    width: 1080,
-    height: 962,
-    lightbox: false,
-    note: "Conceptual render — not a photograph of a completed site.",
-    srcJpg: "/hero/illustrative-development-view.jpg",
-    srcWebp: "/hero/illustrative-development-view.webp",
-    srcSetJpg:
-      "/hero/illustrative-development-view-640.jpg 640w, /hero/illustrative-development-view.jpg 1080w",
-    srcSetWebp:
-      "/hero/illustrative-development-view-640.webp 640w, /hero/illustrative-development-view.webp 1080w",
   },
 ] as const;
 
@@ -45,7 +60,7 @@ export function HeroProjectVisual() {
   const [paused, setPaused] = useState(false);
   const [hover, setHover] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const [loadSecond, setLoadSecond] = useState(false);
+  const [loadRest, setLoadRest] = useState(false);
   const [lightbox, setLightbox] = useState(false);
   const pointer = useRef<{ x: number; y: number } | null>(null);
 
@@ -60,7 +75,7 @@ export function HeroProjectVisual() {
   }, []);
 
   useEffect(() => {
-    const t = window.setTimeout(() => setLoadSecond(true), 400);
+    const t = window.setTimeout(() => setLoadRest(true), 400);
     return () => window.clearTimeout(t);
   }, []);
 
@@ -121,7 +136,7 @@ export function HeroProjectVisual() {
       >
         <div className="relative aspect-[4/3]">
           {SLIDES.map((item, i) => {
-            if (i > 0 && !loadSecond && index !== i) return null;
+            if (i > 0 && !loadRest && index !== i) return null;
             const active = i === index;
             return (
               <div
@@ -152,9 +167,9 @@ export function HeroProjectVisual() {
                     )}
                   />
                 </picture>
-                {item.id === "development" ? (
+                {"badge" in item && item.badge ? (
                   <span className="absolute left-3 top-3 rounded-full bg-surface/90 px-2.5 py-1 text-xs font-medium text-muted shadow-[var(--shadow-card)]">
-                    Illustrative
+                    {item.badge}
                   </span>
                 ) : null}
               </div>

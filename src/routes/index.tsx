@@ -27,7 +27,7 @@ export const Route = createFileRoute("/")({
     links: [
       {
         rel: "preload",
-        href: "/hero/project-plot-layout.webp",
+        href: "/hero/illustrative-avenue.webp",
         as: "image",
         type: "image/webp",
       },
