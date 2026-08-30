@@ -37,6 +37,8 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: APP_NAME },
       { name: "theme-color", content: "#161513" },
+      { name: "application-name", content: APP_NAME },
+      { name: "apple-mobile-web-app-title", content: APP_NAME },
       {
         name: "description",
         content: "Link Mate membership from ৳11,000. Sponsor 3 and complete Level 9 to qualify for 1 Katha land, subject to allocation terms.",
@@ -44,7 +46,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-      { rel: "manifest", href: "/__grok/manifest.webmanifest" },
+      { rel: "manifest", href: "/__grok/manifest.webmanifest?v=2" },
       { rel: "apple-touch-icon", href: "/icon-192.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {

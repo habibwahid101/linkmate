@@ -74,7 +74,7 @@ export default async function grokPwaMiddleware(
     return new Response(renderWebManifest(requestHost(event), grokOgIdentity.site), {
       headers: {
         "content-type": "application/manifest+json; charset=utf-8",
-        "cache-control": "no-cache",
+        "cache-control": "no-store, no-cache, must-revalidate",
       },
     });
   }
