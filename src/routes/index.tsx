@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrandLink } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { BookingSheet } from "@/components/booking-sheet";
+import { HeroProjectVisual } from "@/components/hero-project-visual";
 import { LEVELS, STANDARD_ID_VALUE_BDT, fullLevelCommission } from "@/lib/rules";
 import { formatBdt } from "@/lib/money";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -20,7 +21,19 @@ import {
   Wallet,
 } from "lucide-react";
 
-export const Route = createFileRoute("/")({ component: Landing });
+export const Route = createFileRoute("/")({
+  component: Landing,
+  head: () => ({
+    links: [
+      {
+        rel: "preload",
+        href: "/hero/project-plot-layout.webp",
+        as: "image",
+        type: "image/webp",
+      },
+    ],
+  }),
+});
 
 const NAV = [
   { href: "#how-it-works", label: "How It Works" },
@@ -121,11 +134,11 @@ function Landing() {
 
       <main id="main">
         <section className="mx-auto grid max-w-6xl items-center gap-8 px-4 pb-10 pt-8 sm:gap-10 sm:px-6 sm:pt-14 lg:grid-cols-2 lg:gap-16">
-          <div>
+          <div className="order-2 min-w-0 lg:order-1">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
               Link Mate membership · Land benefit · Clear qualification
             </p>
-            <h1 className="mt-4 max-w-xl text-4xl font-semibold tracking-tight sm:text-5xl">
+            <h1 className="mt-4 max-w-xl text-pretty text-4xl font-semibold tracking-tight sm:text-5xl">
               A clear membership path toward 1 Katha land.
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
@@ -134,6 +147,11 @@ function Landing() {
               for the 1 Katha land benefit, subject to applicable allocation, documentation, and transfer
               terms.
             </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <HeroChip>{`1 ID = ${formatBdt(STANDARD_ID_VALUE_BDT)}`}</HeroChip>
+              <HeroChip>Sponsor 3</HeroChip>
+              <HeroChip>Complete Level 9</HeroChip>
+            </div>
             <div className="mt-7 flex flex-wrap gap-3">
               <Button size="lg" onClick={() => setBook(true)}>
                 Book Now
@@ -145,7 +163,9 @@ function Landing() {
               </a>
             </div>
           </div>
-          <LandBenefitVisual />
+          <div className="order-1 min-w-0 lg:order-2">
+            <HeroProjectVisual />
+          </div>
         </section>
 
         <section className="mx-auto max-w-6xl px-4 sm:px-6" aria-label="Qualification summary">
@@ -393,133 +413,11 @@ function TrustItem({ icon, t, d }: { icon: ReactNode; t: string; d: string }) {
   );
 }
 
-function LandBenefitVisual() {
-  return (
-    <div className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)] sm:p-5">
-      <div className="overflow-hidden rounded-xl bg-accent-soft">
-        <LandPlotSchematic />
-      </div>
-      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-muted">Land Benefit</p>
-      <p className="mt-1.5 text-2xl font-semibold tracking-tight sm:text-3xl">1 Katha Land</p>
-      <p className="mt-1 text-sm text-muted">After successful qualification</p>
-      <p className="mt-3 text-sm font-medium text-accent">Sponsor 3 · Complete Level 9</p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <HeroChip>{`1 ID = ${formatBdt(STANDARD_ID_VALUE_BDT)}`}</HeroChip>
-        <HeroChip>Sponsor 3</HeroChip>
-        <HeroChip>Level 9</HeroChip>
-      </div>
-    </div>
-  );
-}
-
 function HeroChip({ children }: { children: ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-full bg-accent-soft px-3 py-1.5 text-xs font-medium text-accent">
       {children}
     </span>
-  );
-}
-
-/** Cadastral-style 1 Katha parcel — one focused plot, not a placeholder grid. */
-function LandPlotSchematic() {
-  return (
-    <svg
-      viewBox="0 0 560 220"
-      width={560}
-      height={220}
-      className="block h-auto w-full"
-      role="img"
-      aria-label="Schematic of a 1 Katha land parcel after qualification"
-    >
-      <rect width="560" height="220" fill="var(--color-accent-soft)" />
-      <path
-        d="M0 188 C90 176 170 196 280 184 C390 172 470 198 560 186 L560 220 L0 220 Z"
-        fill="var(--color-accent)"
-        opacity="0.08"
-      />
-      <g fill="var(--color-accent)" opacity="0.16">
-        <ellipse cx="64" cy="52" rx="18" ry="10" />
-        <ellipse cx="88" cy="58" rx="13" ry="8" />
-        <ellipse cx="48" cy="62" rx="10" ry="6" />
-        <ellipse cx="492" cy="48" rx="16" ry="9" />
-        <ellipse cx="516" cy="54" rx="12" ry="7" />
-        <ellipse cx="70" cy="168" rx="14" ry="8" />
-        <ellipse cx="498" cy="170" rx="18" ry="10" />
-        <ellipse cx="522" cy="176" rx="11" ry="6" />
-      </g>
-      <g transform="translate(172 26)">
-        <rect x="5" y="8" width="216" height="148" fill="var(--color-accent)" opacity="0.1" />
-        <rect x="0" y="4" width="216" height="148" fill="var(--color-accent)" opacity="0.22" />
-        <rect
-          x="0"
-          y="4"
-          width="216"
-          height="148"
-          fill="none"
-          stroke="var(--color-accent)"
-          strokeWidth="2.25"
-        />
-        <rect
-          x="8"
-          y="12"
-          width="200"
-          height="132"
-          fill="none"
-          stroke="var(--color-accent)"
-          strokeWidth="0.9"
-          strokeDasharray="5 4"
-          opacity="0.75"
-        />
-        <path
-          d="M0 4 h14 M0 4 v14 M216 4 h-14 M216 4 v14 M0 152 h14 M0 152 v-14 M216 152 h-14 M216 152 v-14"
-          stroke="var(--color-accent)"
-          strokeWidth="2.4"
-          fill="none"
-        />
-        <text
-          x="108"
-          y="78"
-          textAnchor="middle"
-          fill="var(--color-accent)"
-          fontFamily="Manrope, ui-sans-serif, system-ui, sans-serif"
-          fontSize="17"
-          fontWeight="650"
-          letterSpacing="0.04em"
-        >
-          1 Katha
-        </text>
-        <text
-          x="108"
-          y="100"
-          textAnchor="middle"
-          fill="var(--color-accent)"
-          fontFamily="Manrope, ui-sans-serif, system-ui, sans-serif"
-          fontSize="11"
-          opacity="0.85"
-        >
-          after qualification
-        </text>
-      </g>
-      <g transform="translate(508 28)" fill="var(--color-accent)">
-        <path
-          d="M0 18 L0 6 L-3.5 10 M0 6 L3.5 10"
-          fill="none"
-          stroke="var(--color-accent)"
-          strokeWidth="1.4"
-          strokeLinejoin="round"
-        />
-        <text
-          x="0"
-          y="0"
-          textAnchor="middle"
-          fontSize="10"
-          fontWeight="600"
-          fontFamily="Manrope, ui-sans-serif, system-ui, sans-serif"
-        >
-          N
-        </text>
-      </g>
-    </svg>
   );
 }
 
