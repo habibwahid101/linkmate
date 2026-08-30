@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const DEFAULT_APP_NAME = "Grok App";
+export const PRODUCT_APP_NAME = "Link Mate";
 export const OG_SERVICE_URL_DEFAULT = "https://og.grok.me";
 export const OG_SITE_REL_PATH = "src/lib/og/site.json";
 
@@ -151,16 +152,15 @@ export function stripInstallParams(url) {
   return rest ? `${path}?${rest}` : path;
 }
 
-export function renderInstallPageHtml(template, { host, url } = {}) {
+export function renderInstallPageHtml(template, { host, url, site } = {}) {
+  const name = resolveOgTitle(site ?? readOgSite(), PRODUCT_APP_NAME, host);
   return String(template)
-    .replaceAll("{{APP_NAME}}", escapeHtml(appNameFromHost(host)))
+    .replaceAll("{{APP_NAME}}", escapeHtml(name))
     .replaceAll("{{APP_URL}}", escapeHtml(stripInstallParams(url)));
 }
 
-export function renderWebManifest(hostHeader) {
-  const site = readOgSite();
-  const fromSite = String(site.title ?? "").trim();
-  const name = fromSite || appNameFromHost(hostHeader);
+export function renderWebManifest(hostHeader, site) {
+  const name = resolveOgTitle(site ?? readOgSite(), PRODUCT_APP_NAME, hostHeader);
   return JSON.stringify(
     {
       name,

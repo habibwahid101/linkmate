@@ -461,7 +461,7 @@ test("rejects hosts that are not plain slugs", () => {
 
 test("renders install page markup", () => {
   const html = renderInstallPage("wild-race.grok.me", "/?install=1&platform=ios");
-  assert.match(html, /Add Wild Race to your/);
+  assert.match(html, /Add Link Mate to your/);
   assert.match(html, /\/__grok\/install\/styles\.css/);
   assert.match(html, /href="\/"/);
   assert.equal(html.includes("{{APP_NAME}}"), false);
@@ -480,6 +480,12 @@ test("renders the manifest with the per-app name", () => {
   assert.equal(manifest.icons[0].src, "/icon-192.png");
   assert.equal(manifest.icons[1].src, "/icon-512.png");
   assert.equal(manifest.icons[2].purpose, "maskable");
+});
+
+test("manifest stays Link Mate when site.json is unavailable", () => {
+  const manifest = JSON.parse(renderWebManifest("linkmateglobal.com", {}));
+  assert.equal(manifest.name, "Link Mate");
+  assert.equal(manifest.short_name, "Link Mate");
 });
 
 test("brand PWA icons are present", () => {
