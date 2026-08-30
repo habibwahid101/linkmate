@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
-import { Modal } from "@/components/modal";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const AUTO_MS = 5500;
@@ -11,10 +10,8 @@ const SLIDES = [
     id: "avenue",
     caption: "Illustrative Development View",
     alt: "Illustrative street-level view of a landscaped project avenue with plots — conceptual render, not a photograph of a completed site",
-    fit: "cover" as const,
     width: 1255,
     height: 941,
-    lightbox: false,
     badge: "Illustrative",
     note: "Conceptual render — not a photograph of a completed site.",
     srcJpg: "/hero/illustrative-avenue.jpg",
@@ -27,10 +24,8 @@ const SLIDES = [
     id: "aerial",
     caption: "Illustrative Aerial View",
     alt: "Illustrative aerial view of the land project with roads and plots — conceptual render, not a photograph of a completed site",
-    fit: "cover" as const,
     width: 1255,
     height: 941,
-    lightbox: false,
     badge: "Illustrative",
     note: "Conceptual render — not a photograph of a completed site.",
     srcJpg: "/hero/illustrative-aerial.jpg",
@@ -38,18 +33,6 @@ const SLIDES = [
       "/hero/illustrative-aerial-640.jpg 640w, /hero/illustrative-aerial-960.jpg 960w, /hero/illustrative-aerial.jpg 1255w",
     srcSetWebp:
       "/hero/illustrative-aerial-640.webp 640w, /hero/illustrative-aerial-960.webp 960w, /hero/illustrative-aerial.webp 1255w",
-  },
-  {
-    id: "layout",
-    caption: "Project Plot Layout",
-    alt: "Full project plot layout map showing Blocks A through F and marked plot sizes",
-    fit: "contain" as const,
-    width: 882,
-    height: 1193,
-    lightbox: true,
-    srcJpg: "/hero/project-plot-layout.jpg",
-    srcSetJpg: "/hero/project-plot-layout-640.jpg 640w, /hero/project-plot-layout.jpg 882w",
-    srcSetWebp: "/hero/project-plot-layout-640.webp 640w, /hero/project-plot-layout.webp 882w",
   },
 ] as const;
 
@@ -61,7 +44,6 @@ export function HeroProjectVisual() {
   const [hover, setHover] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [loadRest, setLoadRest] = useState(false);
-  const [lightbox, setLightbox] = useState(false);
   const pointer = useRef<{ x: number; y: number } | null>(null);
 
   const slide = SLIDES[index];
@@ -80,12 +62,12 @@ export function HeroProjectVisual() {
   }, []);
 
   useEffect(() => {
-    if (paused || hover || reduced || lightbox) return;
+    if (paused || hover || reduced) return;
     const t = window.setInterval(() => {
       setIndex((i) => (i + 1) % SLIDES.length);
     }, AUTO_MS);
     return () => window.clearInterval(t);
-  }, [paused, hover, reduced, lightbox]);
+  }, [paused, hover, reduced]);
 
   function goTo(next: number, fromUser = false) {
     setIndex((next + SLIDES.length) % SLIDES.length);
@@ -161,17 +143,12 @@ export function HeroProjectVisual() {
                     loading={i === 0 ? "eager" : "lazy"}
                     fetchPriority={i === 0 ? "high" : "low"}
                     draggable={false}
-                    className={cn(
-                      "h-full w-full max-w-none",
-                      item.fit === "contain" ? "object-contain object-center" : "object-cover object-center",
-                    )}
+                    className="h-full w-full max-w-none object-cover object-center"
                   />
                 </picture>
-                {"badge" in item && item.badge ? (
-                  <span className="absolute left-3 top-3 rounded-full bg-surface/90 px-2.5 py-1 text-xs font-medium text-muted shadow-[var(--shadow-card)]">
-                    {item.badge}
-                  </span>
-                ) : null}
+                <span className="absolute left-3 top-3 rounded-full bg-surface/90 px-2.5 py-1 text-xs font-medium text-muted shadow-[var(--shadow-card)]">
+                  {item.badge}
+                </span>
               </div>
             );
           })}
@@ -199,28 +176,11 @@ export function HeroProjectVisual() {
         </button>
       </div>
 
-      <div className="mt-3 flex flex-col items-start gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-        <div className="min-w-0">
-          <p data-hero-slide-caption className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            {slide.caption}
-          </p>
-          {"note" in slide && slide.note ? (
-            <p className="mt-1 text-xs leading-relaxed text-muted">{slide.note}</p>
-          ) : null}
-        </div>
-        {slide.lightbox ? (
-          <button
-            type="button"
-            className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-[12px] px-2.5 text-sm font-medium text-accent hover:bg-accent-soft"
-            onClick={() => {
-              setLightbox(true);
-              setPaused(true);
-            }}
-          >
-            <Maximize2 className="size-4" strokeWidth={1.75} />
-            View Full Layout
-          </button>
-        ) : null}
+      <div className="mt-3">
+        <p data-hero-slide-caption className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+          {slide.caption}
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-muted">{slide.note}</p>
       </div>
 
       <div className="mt-1 flex justify-center" role="tablist" aria-label="Choose project visual">
@@ -243,21 +203,6 @@ export function HeroProjectVisual() {
           </button>
         ))}
       </div>
-
-      <Modal open={lightbox} onClose={() => setLightbox(false)} title="Project Plot Layout" size="xl">
-        <div className="flex max-h-[min(70dvh,46rem)] items-center justify-center overflow-hidden rounded-xl bg-bg">
-          <picture>
-            <source type="image/webp" srcSet="/hero/project-plot-layout.webp" />
-            <img
-              src="/hero/project-plot-layout.jpg"
-              alt="Full project plot layout map showing Blocks A through F and marked plot sizes"
-              width={882}
-              height={1193}
-              className="h-auto w-auto max-h-[min(70dvh,46rem)] max-w-full object-contain"
-            />
-          </picture>
-        </div>
-      </Modal>
     </div>
   );
 }
