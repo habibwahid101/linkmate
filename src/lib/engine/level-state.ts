@@ -1,14 +1,5 @@
 import type { LevelStatus } from "../rules.ts";
 
-export function crossesPackageBoundary(
-  source: { purchase_id: string | null; is_root: boolean },
-  ancestor: { purchase_id: string | null },
-): boolean {
-  if (source.is_root) return false;
-  if (!source.purchase_id) return false;
-  return ancestor.purchase_id !== source.purchase_id;
-}
-
 export function resolveLevelStatus(opts: {
   level: number;
   qualifying: number;

@@ -171,12 +171,15 @@ try {
   const sponsorDash = await page.locator("body").innerText();
   const held880 = sponsorDash.includes("৳880");
   const l1partial = /1\s*\/\s*3/.test(sponsorDash);
-  const noLeak = !sponsorDash.includes("৳2,640") || /next release ৳2,640/.test(sponsorDash);
-  if (held880 && l1partial && (sponsorDash.match(/৳880/g) || []).length >= 1) {
-    pass("external sponsor ৳880 from root only (L1 1/3)");
-  } else fail("external sponsor root-only commission", sponsorDash.slice(0, 600));
-  if (!noLeak && sponsorDash.includes("Available") && /৳2,640/.test(sponsorDash.split("Available")[1] ?? "")) {
-    fail("possible sponsor leak of turbo internals", sponsorDash.slice(0, 400));
+  const gen2held = sponsorDash.includes("৳1,980") || sponsorDash.includes("৳1980");
+  if (held880 && l1partial) {
+    pass("external sponsor L1 1/3 ৳880 HELD from root");
+  } else fail("external sponsor L1 1/3 ৳880 HELD from root", sponsorDash.slice(0, 600));
+  if (gen2held || /3\s*\/\s*9/.test(sponsorDash)) {
+    pass("external sponsor L2 3/9 from turbo internals");
+  } else fail("external sponsor L2 3/9 from turbo internals", sponsorDash.slice(0, 600));
+  if (sponsorDash.includes("Available") && /৳2,640/.test(sponsorDash.split("Available")[1] ?? "")) {
+    fail("possible sponsor leak of turbo internals into available", sponsorDash.slice(0, 400));
   }
 
   await signOut(page);

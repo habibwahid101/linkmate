@@ -11,7 +11,6 @@ import { planPackagePlacement } from "./placement.ts";
 import { formatMemberId, uid } from "./ids.ts";
 import {
   canReleaseLevel,
-  crossesPackageBoundary,
   joinEventId,
   resolveLevelStatus,
   reversalTxId,
@@ -107,19 +106,34 @@ async function ensureWallet(sql: Sql, memberId: string, ownerUserId: string) {
   `;
 }
 
-async function parentOf(sql: Sql, memberId: string): Promise<string | null> {
-  const rows = await sql<{ parent_id: string | null }>`
-    select parent_id from member_ids where id = ${memberId}
-  `;
-  return rows[0]?.parent_id ?? null;
-}
-
 async function loadMember(sql: Sql, id: string): Promise<MemberRow | null> {
   const rows = await sql<MemberRow>`
     select id, owner_user_id, parent_id, sponsor_id, joining_amount_bdt, purchase_id, is_root
     from member_ids where id = ${id}
   `;
   return rows[0] ?? null;
+}
+
+export type SponsorHop = { ancestorId: string; generation: number };
+
+/** Sponsor-tree distance from `memberId` up to generation 9. Placement is ignored. */
+export async function walkSponsorAncestry(sql: Sql, memberId: string): Promise<SponsorHop[]> {
+  const source = await loadMember(sql, memberId);
+  if (!source?.sponsor_id) return [];
+  const hops: SponsorHop[] = [];
+  const seen = new Set<string>([memberId]);
+  let nodeId: string | null = source.sponsor_id;
+  let dist = 1;
+  while (nodeId && dist <= 9) {
+    if (seen.has(nodeId)) break;
+    seen.add(nodeId);
+    hops.push({ ancestorId: nodeId, generation: dist });
+    const ancestor = await loadMember(sql, nodeId);
+    if (!ancestor) break;
+    nodeId = ancestor.sponsor_id;
+    dist += 1;
+  }
+  return hops;
 }
 
 export async function reconcileWallet(sql: Sql, memberId: string) {
@@ -375,73 +389,192 @@ export async function processNewId(sql: Sql, newId: string) {
   const joiningAmount = Number(source.joining_amount_bdt) || STANDARD_ID_VALUE_BDT;
 
   const affected = new Set<string>();
+  const hops = await walkSponsorAncestry(sql, newId);
 
-  if (source.sponsor_id) {
-    const sponsor = await loadMember(sql, source.sponsor_id);
-    if (sponsor) {
-      await sql`
-        insert into generation_memberships (id, beneficiary_id, member_id, generation)
-        values (${uid()}, ${sponsor.id}, ${source.id}, 1)
-        on conflict (beneficiary_id, member_id) do nothing
-      `;
-      await creditCommission(sql, {
-        beneficiary: sponsor,
-        source,
-        generation: 1,
-        joiningAmount,
-      });
-      affected.add(sponsor.id);
-
-      await notify(
-        sql,
-        sponsor.owner_user_id,
-        "direct",
-        "New direct member",
-        `${source.id} joined under ${sponsor.id}.`,
-      );
-    }
-  }
-
-  let nodeId = source.parent_id;
-  let dist = 1;
-  while (nodeId && dist <= 9) {
-    const ancestor = await loadMember(sql, nodeId);
-    if (!ancestor) break;
-
-    if (crossesPackageBoundary(source, ancestor)) break;
+  for (const hop of hops) {
+    const ancestor = await loadMember(sql, hop.ancestorId);
+    if (!ancestor) continue;
 
     await sql`
       insert into generation_memberships (id, beneficiary_id, member_id, generation)
-      values (${uid()}, ${ancestor.id}, ${source.id}, ${dist})
+      values (${uid()}, ${ancestor.id}, ${source.id}, ${hop.generation})
       on conflict (beneficiary_id, member_id) do nothing
     `;
 
-    if (!(dist === 1 && source.sponsor_id === ancestor.id)) {
-      if (dist >= 2) {
-        await creditCommission(sql, {
-          beneficiary: ancestor,
-          source,
-          generation: dist,
-          joiningAmount,
-        });
-        await notify(
-          sql,
-          ancestor.owner_user_id,
-          "generation",
-          `${dist === 2 ? "2nd" : dist === 3 ? "3rd" : dist + "th"} generation member counted`,
-          `${source.id} is now in generation ${dist} of ${ancestor.id}.`,
-        );
-      }
-    }
-
+    const credited = await creditCommission(sql, {
+      beneficiary: ancestor,
+      source,
+      generation: hop.generation,
+      joiningAmount,
+    });
     affected.add(ancestor.id);
-    nodeId = await parentOf(sql, ancestor.id);
-    dist += 1;
+
+    if (!credited.created) continue;
+    if (hop.generation === 1) {
+      await notify(
+        sql,
+        ancestor.owner_user_id,
+        "direct",
+        "New direct member",
+        `${source.id} joined under ${ancestor.id}.`,
+      );
+    } else {
+      const ordinal =
+        hop.generation === 2 ? "2nd" : hop.generation === 3 ? "3rd" : `${hop.generation}th`;
+      await notify(
+        sql,
+        ancestor.owner_user_id,
+        "generation",
+        `${ordinal} generation member counted`,
+        `${source.id} is now in generation ${hop.generation} of ${ancestor.id}.`,
+      );
+    }
   }
 
   for (const id of affected) {
     await recountAndMaybeRelease(sql, id);
   }
+}
+
+export type GenerationReconcileReport = {
+  dryRun: boolean;
+  membersScanned: number;
+  missingMemberships: number;
+  missingCommissions: number;
+  affectedBeneficiaries: string[];
+  wouldRelease: { memberId: string; level: number; qualifying: number; required: number }[];
+};
+
+/**
+ * Idempotent backfill: insert only missing generation memberships and HELD
+ * commissions from actual sponsor ancestry. Never deletes, reverses, or
+ * edits posted wallet rows. Recount/release runs only when dryRun is false.
+ */
+export async function reconcileGenerationAncestry(
+  sql: Sql,
+  opts: { dryRun?: boolean } = {},
+): Promise<GenerationReconcileReport> {
+  const dryRun = Boolean(opts.dryRun);
+  const members = await sql<{ id: string }>`
+    select id from member_ids where status = 'active' order by created_at, id
+  `;
+  const affected = new Set<string>();
+  let missingMemberships = 0;
+  let missingCommissions = 0;
+  const extraByBeneficiary = new Map<string, Map<number, number>>();
+
+  for (const row of members) {
+    const source = await loadMember(sql, row.id);
+    if (!source) continue;
+    const joiningAmount = Number(source.joining_amount_bdt) || STANDARD_ID_VALUE_BDT;
+    const hops = await walkSponsorAncestry(sql, source.id);
+
+    for (const hop of hops) {
+      const ancestor = await loadMember(sql, hop.ancestorId);
+      if (!ancestor) continue;
+
+      const existingMem = await sql<{ n: number }>`
+        select count(*)::int as n from generation_memberships
+        where beneficiary_id = ${ancestor.id} and member_id = ${source.id}
+      `;
+      if ((existingMem[0]?.n ?? 0) === 0) {
+        missingMemberships += 1;
+        affected.add(ancestor.id);
+        const extras = extraByBeneficiary.get(ancestor.id) ?? new Map<number, number>();
+        extras.set(hop.generation, (extras.get(hop.generation) ?? 0) + 1);
+        extraByBeneficiary.set(ancestor.id, extras);
+        if (!dryRun) {
+          await sql`
+            insert into generation_memberships (id, beneficiary_id, member_id, generation)
+            values (${uid()}, ${ancestor.id}, ${source.id}, ${hop.generation})
+            on conflict (beneficiary_id, member_id) do nothing
+          `;
+        }
+      }
+
+      const level = LEVELS.find((l) => l.generation === hop.generation);
+      if (!level) continue;
+      const eventId = joinEventId(source.id, ancestor.id, level.level);
+      const existingComm = await sql<{ n: number }>`
+        select count(*)::int as n from commission_entries where event_id = ${eventId}
+      `;
+      if ((existingComm[0]?.n ?? 0) === 0) {
+        missingCommissions += 1;
+        affected.add(ancestor.id);
+        if (!dryRun) {
+          await creditCommission(sql, {
+            beneficiary: ancestor,
+            source,
+            generation: hop.generation,
+            joiningAmount,
+          });
+        }
+      }
+    }
+  }
+
+  const wouldRelease: GenerationReconcileReport["wouldRelease"] = [];
+  if (dryRun) {
+    for (const beneficiaryId of affected) {
+      const directRows = await sql<{ n: number }>`
+        select count(*)::int as n from sponsor_relationships where sponsor_id = ${beneficiaryId}
+      `;
+      const directCount = directRows[0]?.n ?? 0;
+      const genCounts = await sql<{ generation: number; n: number }>`
+        select generation, count(*)::int as n
+        from generation_memberships
+        where beneficiary_id = ${beneficiaryId}
+        group by generation
+      `;
+      const projected = new Map<number, number>();
+      for (const g of genCounts) projected.set(g.generation, g.n);
+      const extras = extraByBeneficiary.get(beneficiaryId);
+      if (extras) {
+        for (const [gen, n] of extras) projected.set(gen, (projected.get(gen) ?? 0) + n);
+      }
+
+      const progress = await sql<{ level: number; status: string }>`
+        select level, status from level_progress where member_id = ${beneficiaryId} order by level
+      `;
+      let previousReleased = true;
+      for (const level of LEVELS) {
+        const qualifying =
+          level.level === 1 ? directCount : (projected.get(level.generation) ?? 0);
+        const row = progress.find((p) => p.level === level.level);
+        const alreadyReleased = row?.status === "RELEASED";
+        const should = canReleaseLevel({
+          level: level.level,
+          qualifying,
+          required: level.requiredMembers,
+          previousReleased,
+          alreadyReleased,
+          directCount,
+        });
+        if (should && !alreadyReleased) {
+          wouldRelease.push({
+            memberId: beneficiaryId,
+            level: level.level,
+            qualifying,
+            required: level.requiredMembers,
+          });
+        }
+        previousReleased = alreadyReleased || should;
+      }
+    }
+  } else {
+    for (const id of affected) {
+      await recountAndMaybeRelease(sql, id);
+    }
+  }
+
+  return {
+    dryRun,
+    membersScanned: members.length,
+    missingMemberships,
+    missingCommissions,
+    affectedBeneficiaries: [...affected].sort(),
+    wouldRelease,
+  };
 }
 
 export async function reverseJoin(

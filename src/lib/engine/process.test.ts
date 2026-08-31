@@ -52,7 +52,7 @@ test("builder creates 1 ID and no self-commission", async () => {
   assert.equal(l1.completed_members, 0);
   assert.equal(l1.status, "IN_PROGRESS");
 });
-test("turbo: external sponsor earns 880 from root only; root L1 releases 2640", async () => {
+test("turbo: X gets root Gen1 + 3 internals Gen2; Y L1 releases 2640", async () => {
   const sql = await makeSql();
   await insertUser(sql, "u-sponsor", "Sponsor");
   await insertUser(sql, "u-buyer", "Buyer");
@@ -60,16 +60,37 @@ test("turbo: external sponsor earns 880 from root only; root L1 releases 2640", 
   const buyer = await createIdsForPurchase(sql, { userId: "u-buyer", packageId: "turbo", purchaseId: "p-turbo", externalSponsorId: sponsor.rootId });
   assert.equal(buyer.ids.length, 4);
   const sponsorComm = await commissionsFrom(sql, sponsor.rootId);
-  assert.equal(sponsorComm.length, 1);
-  assert.equal(sponsorComm[0]!.source_id, buyer.rootId);
-  assert.equal(Number(sponsorComm[0]!.commission_amount), 880);
-  assert.equal(sponsorComm[0]!.status, "HELD");
+  assert.equal(sponsorComm.length, 4);
+  const byGen = new Map<number, number>();
+  let gen1 = 0;
+  let gen2 = 0;
+  for (const row of sponsorComm) {
+    byGen.set(row.generation, (byGen.get(row.generation) ?? 0) + 1);
+    if (row.generation === 1) {
+      assert.equal(Number(row.commission_amount), 880);
+      assert.equal(row.source_id, buyer.rootId);
+      gen1 += 1;
+    }
+    if (row.generation === 2) {
+      assert.equal(Number(row.commission_amount), 660);
+      gen2 += 1;
+    }
+    assert.equal(row.status, "HELD");
+  }
+  assert.equal(gen1, 1);
+  assert.equal(gen2, 3);
+  const directs = await sql<{ n: number }>`select count(*)::int as n from sponsor_relationships where sponsor_id = ${sponsor.rootId}`;
+  assert.equal(directs[0]!.n, 1);
+  const l1 = await progress(sql, sponsor.rootId, 1);
+  const l2 = await progress(sql, sponsor.rootId, 2);
+  assert.equal(l1.completed_members, 1);
+  assert.equal(l1.status, "IN_PROGRESS");
+  assert.equal(Number(l1.accumulated_commission), 880);
+  assert.equal(l2.completed_members, 3);
+  assert.equal(l2.status, "IN_PROGRESS");
+  assert.equal(Number(l2.accumulated_commission), 1980);
   const rootW = await wallet(sql, buyer.rootId);
   assert.equal(rootW.available, 2640);
-  for (const id of buyer.ids.slice(1)) {
-    const asSource = await sql<{ n: number }>`select count(*)::int as n from commission_entries where source_id = ${id} and beneficiary_id = ${sponsor.rootId}`;
-    assert.equal(asSource[0]!.n, 0);
-  }
 });
 test("replaying processNewId does not duplicate commission or generation", async () => {
   const sql = await makeSql();
@@ -79,7 +100,7 @@ test("replaying processNewId does not duplicate commission or generation", async
   const buyer = await createIdsForPurchase(sql, { userId: "u-b", packageId: "turbo", purchaseId: "p2", externalSponsorId: sponsor.rootId });
   await processNewId(sql, buyer.rootId);
   await processNewId(sql, buyer.ids[1]!);
-  assert.equal((await commissionsFrom(sql, sponsor.rootId)).length, 1);
+  assert.equal((await commissionsFrom(sql, sponsor.rootId)).length, 4);
 });
 test("super turbo places 1+3+9 and completes root L1+L2", async () => {
   const sql = await makeSql();

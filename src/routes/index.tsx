@@ -456,7 +456,7 @@ const FAQ = [
   },
   {
     q: "What happens with multiple-ID packages?",
-    a: "Internal IDs are placed according to the package structure. An external sponsor attaches to your first ID only and does not earn from the package-created extra IDs.",
+    a: "Your external sponsor is the direct sponsor of your first (root) ID only — package-created internal IDs are not their direct referrals. Those internal IDs still sit in the sponsor’s later generations by sponsor-tree distance, and generation-level commissions and progress follow that position.",
   },
   {
     q: "Where can I view land terms and documents?",

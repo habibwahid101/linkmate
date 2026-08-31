@@ -43,6 +43,9 @@ COPY --from=build /app/scripts/docker-entrypoint.mjs ./scripts/docker-entrypoint
 COPY --from=build /app/scripts/provision-admin.mjs ./scripts/provision-admin.mjs
 COPY --from=build /app/scripts/provision-owner-settings.mjs ./scripts/provision-owner-settings.mjs
 COPY --from=build /app/scripts/inspect-owner.mjs ./scripts/inspect-owner.mjs
+COPY --from=build /app/scripts/reconcile-generation.mjs ./scripts/reconcile-generation.mjs
+COPY --from=build /app/src/lib/engine ./src/lib/engine
+COPY --from=build /app/src/lib/rules.ts ./src/lib/rules.ts
 USER linkmate
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \

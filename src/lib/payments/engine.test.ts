@@ -154,7 +154,7 @@ describe("manual payment engine", () => {
     assert.equal(purchases[0]?.n, 1);
   });
 
-  it("approval generates turbo IDs and does not leak to an external sponsor", async () => {
+  it("approval generates turbo IDs; sponsor is direct of root only but Gen2 internals count", async () => {
     const { sql } = await makeSql();
     await configureMethods(sql);
     await insertUser(sql, "sponsor", "Sponsor");
@@ -182,14 +182,27 @@ describe("manual payment engine", () => {
     `;
     assert.equal(sponsorRels.length, 1);
     assert.equal(sponsorRels[0]?.sponsored_id, result.rootId);
-    const commissions = await sql<{ n: number }>`
-      select count(*)::int as n from commission_entries where beneficiary_user_id = ${"sponsor"}
+    const commissions = await sql<{ generation: number; n: number; amt: number }>`
+      select generation, count(*)::int as n, coalesce(sum(commission_amount),0)::int as amt
+      from commission_entries where beneficiary_user_id = ${"sponsor"}
+      group by generation order by generation
     `;
-    assert.ok((commissions[0]?.n ?? 0) > 0);
+    assert.equal(commissions.length, 2);
+    assert.equal(commissions[0]!.generation, 1);
+    assert.equal(commissions[0]!.n, 1);
+    assert.equal(Number(commissions[0]!.amt), 880);
+    assert.equal(commissions[1]!.generation, 2);
+    assert.equal(commissions[1]!.n, 3);
+    assert.equal(Number(commissions[1]!.amt), 1980);
     const held = await sql<{ v: number }>`
       select coalesce(sum(amount),0)::int as v from held_commissions where owner_user_id = ${"sponsor"}
     `;
-    assert.ok((held[0]?.v ?? 0) > 0);
+    assert.equal(Number(held[0]?.v ?? 0), 2860);
+    const gens = await sql<{ generation: number; n: number }>`
+      select generation, count(*)::int as n from generation_memberships
+      where beneficiary_id = ${sponsor.rootId} group by generation order by generation
+    `;
+    assert.deepEqual(gens.map((g) => [g.generation, g.n]), [[1, 1], [2, 3]]);
   });
 
   it("rejected and needs-review payments create no IDs or commissions", async () => {

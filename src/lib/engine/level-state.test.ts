@@ -1,29 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  crossesPackageBoundary,
   resolveLevelStatus,
   canReleaseLevel,
   heldForCount,
 } from "./level-state.ts";
 import { commissionPerMember, fullLevelCommission } from "../rules.ts";
-
-test("package-internal IDs do not walk into the external sponsor", () => {
-  const internal = { purchase_id: "p-turbo", is_root: false };
-  const root = { purchase_id: "p-turbo" };
-  const external = { purchase_id: "p-other" };
-  const externalNoPurchase = { purchase_id: null };
-  assert.equal(crossesPackageBoundary(internal, root), false);
-  assert.equal(crossesPackageBoundary(internal, external), true);
-  assert.equal(crossesPackageBoundary(internal, externalNoPurchase), true);
-  const rootId = { purchase_id: "p-turbo", is_root: true };
-  assert.equal(crossesPackageBoundary(rootId, external), false);
-});
-
-test("an external join (no purchase) walks the full upline", () => {
-  const join = { purchase_id: null, is_root: true };
-  assert.equal(crossesPackageBoundary(join, { purchase_id: "p-x" }), false);
-});
 
 test("Level 1 stays in progress until 3 directs, then can release", () => {
   for (const n of [0, 1, 2]) {
