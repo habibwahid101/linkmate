@@ -2,6 +2,11 @@ name: Inspect production shell
 
 on:
   workflow_dispatch:
+    inputs:
+      apply:
+        description: "Set to 1 to apply missing HELD memberships/commissions. Default 0 is dry-run. Never reverses RELEASED wallets."
+        required: false
+        default: "0"
 
 concurrency:
   group: aws-prod-inspect
@@ -10,7 +15,7 @@ concurrency:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       id-token: write
       contents: read
@@ -70,30 +75,34 @@ jobs:
           audience: sts.amazonaws.com
       - name: Who am I
         run: aws sts get-caller-identity --query '{Account:Account,Arn:Arn}' --output json
-      - name: SSM inspect owner + recent app logs
+      - name: SSM generation reconcile
+        env:
+          APPLY: ${{ github.event.inputs.apply || '0' }}
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
+          APPLY_FLAG="$APPLY"
+          if [ "$APPLY_FLAG" != "1" ]; then APPLY_FLAG=0; fi
+          echo "reconcile APPLY=$APPLY_FLAG"
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Link Mate inspect owner shell" \
+            --comment "Link Mate generation reconcile APPLY=$APPLY_FLAG" \
+            --timeout-seconds 600 \
             --parameters "commands=[
               \"set -euo pipefail\",
               \"echo VERSION\",
               \"curl -fsS -m 8 http://127.0.0.1/api/version || true\",
               \"echo HEALTH\",
               \"curl -fsS -m 8 http://127.0.0.1/api/health || true\",
-              \"echo READY\",
-              \"curl -fsS -m 8 http://127.0.0.1/api/readiness || true\",
-              \"echo INSPECT\",
-              \"docker exec -e ADMIN_EMAIL=$ADMIN_EMAIL linkmate node scripts/inspect-owner.mjs\",
-              \"echo LOGS\",
-              \"docker logs --tail 250 linkmate 2>&1 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/[email]/g; s/postgres(ql)?:\\/\\/[^ ]+/postgres:\\/\\/[redacted]/g' | tail -n 250\"
+              \"echo FILES\",
+              \"docker exec linkmate ls -la scripts/reconcile-generation.mjs src/lib/engine/process.ts src/lib/rules.ts\",
+              \"echo RECONCILE\",
+              \"docker exec -e APPLY=$APPLY_FLAG linkmate node --experimental-strip-types scripts/reconcile-generation.mjs\"
             ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
-          for i in $(seq 1 24); do
+          for i in $(seq 1 60); do
             STATUS=$(aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
             echo "status=$STATUS"
             if [ "$STATUS" = "Success" ] || [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
