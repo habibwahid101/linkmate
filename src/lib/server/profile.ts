@@ -4,6 +4,7 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { runtimeFlags } from "@/lib/runtime";
 import { assertRateLimit } from "@/lib/server/rate-limit";
+import { effectiveRole } from "@/lib/auth/locked-admins";
 
 export type AppProfile = {
   userId: string;
@@ -34,7 +35,7 @@ function mapProfile(row: {
     email: row.email,
     phone: row.phone,
     phoneVerified: row.phone_verified,
-    role: row.role === "admin" ? "admin" : "member",
+    role: effectiveRole(row.email, row.role),
     referralCode: row.referral_code,
     activeId: row.active_id,
     createdAt: row.created_at,

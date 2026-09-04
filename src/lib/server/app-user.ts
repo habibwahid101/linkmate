@@ -1,5 +1,6 @@
 import { makeReferralCode } from "../engine/ids.ts";
 import { runtimeFlags } from "../runtime.ts";
+import { isLockedAdminEmail } from "../auth/locked-admins.ts";
 
 export type Sql = {
   <T = Record<string, unknown>>(
@@ -74,9 +75,16 @@ function uniqueViolation(error: unknown): boolean {
   return code === "23505" || /duplicate key|unique constraint/i.test(message);
 }
 
+async function persistLockedAdmin(sql: Sql, row: AppUserRow): Promise<AppUserRow> {
+  if (!isLockedAdminEmail(row.email)) return row;
+  await sql`update app_users set role = 'admin' where user_id = ${row.userId} and role <> 'admin'`;
+  return { ...row, role: "admin" };
+}
+
 /**
  * Idempotent application profile for a Better Auth identity.
- * Never grants admin in production. Never changes an existing role.
+ * Never grants admin in production except locked platform operator emails.
+ * Never demotes an existing admin. Restores locked operators if their role was toggled off.
  */
 export async function ensureAppUser(
   sql: Sql,
@@ -88,9 +96,10 @@ export async function ensureAppUser(
   if (existing) {
     if (identity.email && !existing.email) {
       await sql`update app_users set email = ${identity.email} where user_id = ${identity.id} and email is null`;
-      return (await loadAppUser(sql, identity.id)) ?? existing;
+      const updated = (await loadAppUser(sql, identity.id)) ?? existing;
+      return persistLockedAdmin(sql, updated);
     }
-    return existing;
+    return persistLockedAdmin(sql, existing);
   }
 
   const authRows = await sql<{ name: string | null; email: string | null }>`
@@ -101,8 +110,8 @@ export async function ensureAppUser(
 
   const flags = runtimeFlags();
   const allowBootstrap = opts?.allowBootstrapAdmin ?? flags.bootstrapAdmin;
-  let role: "member" | "admin" = "member";
-  if (allowBootstrap && !flags.isProduction) {
+  let role: "member" | "admin" = isLockedAdminEmail(email) ? "admin" : "member";
+  if (role === "member" && allowBootstrap && !flags.isProduction) {
     const admins = await sql<{ n: number }>`
       select count(*)::int as n from app_users where role = 'admin' and is_synthetic = false
     `;
@@ -120,17 +129,17 @@ export async function ensureAppUser(
     } catch (error) {
       if (uniqueViolation(error)) {
         const recovered = await loadAppUser(sql, identity.id);
-        if (recovered) return recovered;
+        if (recovered) return persistLockedAdmin(sql, recovered);
         continue;
       }
       throw error;
     }
     const created = await loadAppUser(sql, identity.id);
-    if (created) return created;
+    if (created) return persistLockedAdmin(sql, created);
   }
 
   const last = await loadAppUser(sql, identity.id);
-  if (last) return last;
+  if (last) return persistLockedAdmin(sql, last);
   throw new Error("Could not create application profile");
 }
 

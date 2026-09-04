@@ -1,8 +1,10 @@
 # First admin (production)
 
-First signup is always a **member**. There is no first-user admin bootstrap.
+First signup is always a **member**, except the locked platform operator emails
+(`hello.habibwahid@gmail.com` and `linkmateglobal@gmail.com`). Those accounts
+always keep admin access. They cannot be demoted from **Admin → Users**.
 
-After the owner account exists:
+After any other owner account exists:
 
 ```bash
 DATABASE_URL='postgresql://linkmate:…@…:5432/linkmate?sslmode=require' \

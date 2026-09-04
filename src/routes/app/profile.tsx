@@ -51,6 +51,18 @@ function Profile() {
   return (
     <div>
       <PageHeader title="Profile" hint={p.role === "admin" ? "Administrator" : "Member"} />
+      {p.role === "admin" ? (
+        <Link
+          to="/admin"
+          className="mb-4 flex h-12 items-center justify-between rounded-2xl bg-accent px-4 text-sm font-medium text-accent-fg"
+        >
+          <span className="inline-flex items-center gap-3">
+            <Shield className="size-4" strokeWidth={1.75} />
+            Admin
+          </span>
+          <span className="text-xs font-normal text-accent-fg/80">Open console</span>
+        </Link>
+      ) : null}
       <Card tone="info">
         <form
           className="space-y-3"

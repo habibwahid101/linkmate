@@ -30,7 +30,7 @@ async function makeSql(): Promise<Sql> {
 }
 
 describe("authenticated bootstrap", () => {
-  it("creates a member profile then exposes admin after promotion", async () => {
+  it("creates a locked platform operator as admin", async () => {
     const sql = await makeSql();
     await sql`
       insert into "user" ("id", "name", "email", "emailVerified", "createdAt", "updatedAt")
@@ -39,8 +39,7 @@ describe("authenticated bootstrap", () => {
     const created = await ensureAppUser(sql, { id: "owner", email: "hello.habibwahid@gmail.com" }, {
       allowBootstrapAdmin: false,
     });
-    assert.equal(created.role, "member");
-    await sql`update app_users set role = 'admin' where user_id = ${"owner"}`;
+    assert.equal(created.role, "admin");
     const after = await ensureAppUser(sql, { id: "owner" }, { allowBootstrapAdmin: false });
     assert.equal(after.role, "admin");
     assertAdminRole(after.role);

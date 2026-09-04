@@ -132,6 +132,15 @@ export function AppShell({
           </div>
           <div className="hidden text-sm text-muted lg:block">Operational view · Active ID data only</div>
           <div className="flex items-center gap-1">
+            {isAdmin ? (
+              <Link
+                to="/admin"
+                className="grid size-11 place-items-center rounded-[12px] hover:bg-surface-2 lg:hidden"
+                aria-label="Admin"
+              >
+                <Shield className="size-5" strokeWidth={1.75} />
+              </Link>
+            ) : null}
             <Link
               to="/app/notifications"
               className="relative grid size-11 place-items-center rounded-[12px] hover:bg-surface-2"

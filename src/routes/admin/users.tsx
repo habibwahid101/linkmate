@@ -27,7 +27,7 @@ function Users() {
   if (q.isError) return <QueryError error={q.error} retry={() => q.refetch()} />;
   return (
     <div>
-      <PageHeader title="Users" hint="Production never auto-promotes the first signup. Promote admins only through this screen or provision-admin. Role changes are audited." />
+      <PageHeader title="Users" hint="Platform operators stay admin. Other admins can be promoted here or with provision-admin. Role changes are audited." />
       <AdminList
         rows={q.data.map((u) => ({ ...u, id: u.user_id }))}
         columns={[
@@ -36,24 +36,27 @@ function Users() {
           {
             key: "role",
             label: "Role",
-            render: (r) => (
-              <button
-                type="button"
-                className="underline-offset-2 hover:underline"
-                onClick={() => {
-                  const next = r.role === "admin" ? "member" : "admin";
-                  if (
-                    typeof window !== "undefined" &&
-                    !window.confirm(`Change ${r.display_name} to ${next}?`)
-                  ) {
-                    return;
-                  }
-                  role.mutate({ userId: r.user_id, role: next, confirm: true });
-                }}
-              >
-                {r.role}
-              </button>
-            ),
+            render: (r) =>
+              r.locked ? (
+                <span className="text-sm">{r.role}</span>
+              ) : (
+                <button
+                  type="button"
+                  className="underline-offset-2 hover:underline"
+                  onClick={() => {
+                    const next = r.role === "admin" ? "member" : "admin";
+                    if (
+                      typeof window !== "undefined" &&
+                      !window.confirm(`Change ${r.display_name} to ${next}?`)
+                    ) {
+                      return;
+                    }
+                    role.mutate({ userId: r.user_id, role: next, confirm: true });
+                  }}
+                >
+                  {r.role}
+                </button>
+              ),
           },
           { key: "ids", label: "IDs", render: (r) => r.id_count },
           { key: "ref", label: "Referral", render: (r) => <span className="font-mono text-xs">{r.referral_code}</span> },

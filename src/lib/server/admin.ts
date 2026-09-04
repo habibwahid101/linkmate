@@ -9,6 +9,7 @@ import { LEVELS } from "@/lib/rules";
 import { reverseJoin, reconcileWallet } from "@/lib/engine/process";
 import { assertRateLimit } from "@/lib/server/rate-limit";
 import { assertAdminRole } from "@/lib/auth/roles";
+import { assertCanDemoteAdmin, isLockedAdminEmail } from "@/lib/auth/locked-admins";
 
 export { assertAdminRole };
 
@@ -86,7 +87,7 @@ export const adminListUsers = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireAdmin(context.userId);
     const sql = await getSql();
-    return sql<{
+    return (await sql<{
       user_id: string;
       display_name: string;
       email: string | null;
@@ -101,7 +102,7 @@ export const adminListUsers = createServerFn({ method: "GET" })
       from app_users u
       order by u.created_at desc
       limit 200
-    `;
+    `).map((u) => ({ ...u, locked: isLockedAdminEmail(u.email) }));
   });
 
 export const adminListIds = createServerFn({ method: "GET" })
@@ -326,7 +327,11 @@ export const adminSetRole = createServerFn({ method: "POST" })
     await requireAdmin(context.userId);
     const sql = await getSql();
     await assertRateLimit(sql, `admin:role:${context.userId}`, 20, 3600);
+    const target = await sql<{ email: string | null }>`
+      select email from app_users where user_id = ${data.userId}
+    `;
     if (data.role === "member") {
+      assertCanDemoteAdmin(target[0]?.email);
       const remaining = await sql<{ n: number }>`
         select count(*)::int as n from app_users
         where role = 'admin' and is_synthetic = false and user_id <> ${data.userId}

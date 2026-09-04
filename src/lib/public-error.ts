@@ -25,6 +25,7 @@ const KNOWN = [
   "Unknown setting",
   "Adjustment exceeds",
   "Cannot remove the last administrator",
+  "Cannot demote a platform administrator",
   "Wallet not found",
   "Sample data is only available",
   "You can only simulate joins",

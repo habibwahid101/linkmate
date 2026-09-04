@@ -121,4 +121,32 @@ describe("ensureAppUser", () => {
     const row = await ensureAppUser(sql, { id: "first" }, { allowBootstrapAdmin: false });
     assert.equal(row.role, "member");
   });
+
+  it("creates locked platform operators as admin", async () => {
+    const sql = await makeSql();
+    await insertAuth(sql, { id: "op2", name: "Link Mate", email: "linkmateglobal@gmail.com" });
+    const row = await ensureAppUser(
+      sql,
+      { id: "op2", name: "Link Mate", email: "linkmateglobal@gmail.com" },
+      { allowBootstrapAdmin: false },
+    );
+    assert.equal(row.role, "admin");
+    const stored = await sql<{ role: string }>`select role from app_users where user_id = ${"op2"}`;
+    assert.equal(stored[0]?.role, "admin");
+  });
+
+  it("restores a locked operator if the stored role was toggled to member", async () => {
+    const sql = await makeSql();
+    await insertAuth(sql, { id: "op2", name: "Link Mate", email: "linkmateglobal@gmail.com" });
+    await sql`
+      insert into app_users (user_id, display_name, email, role, referral_code, is_synthetic)
+      values ('op2', 'Link Mate', 'linkmateglobal@gmail.com', 'member', 'MQXSRC', false)
+    `;
+    const row = await ensureAppUser(sql, { id: "op2", email: "linkmateglobal@gmail.com" }, {
+      allowBootstrapAdmin: false,
+    });
+    assert.equal(row.role, "admin");
+    const stored = await sql<{ role: string }>`select role from app_users where user_id = ${"op2"}`;
+    assert.equal(stored[0]?.role, "admin");
+  });
 });
