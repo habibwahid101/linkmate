@@ -13,13 +13,13 @@ export type CardTone =
 
 const TONE: Record<CardTone, string> = {
   default: "bg-surface shadow-[var(--shadow-card)]",
-  info: "bg-surface-info shadow-[0_0_0_1px_var(--color-border-info)] before:bg-info",
-  success: "bg-surface-success shadow-[0_0_0_1px_var(--color-border-success)] before:bg-success",
-  progress: "bg-surface-progress shadow-[0_0_0_1px_var(--color-border-progress)] before:bg-progress",
-  held: "bg-surface-held shadow-[0_0_0_1px_var(--color-border-held)] before:bg-held",
-  package: "bg-surface-package shadow-[0_0_0_1px_var(--color-border-package)] before:bg-package",
-  warning: "bg-warning-soft shadow-[0_0_0_1px_var(--color-border-warning)] before:bg-warning",
-  error: "bg-danger-soft shadow-[0_0_0_1px_var(--color-border-error)] before:bg-danger",
+  info: "bg-surface-info shadow-[0_0_0_1px_var(--color-border-info)]",
+  success: "bg-surface-success shadow-[0_0_0_1px_var(--color-border-success)]",
+  progress: "bg-surface-progress shadow-[0_0_0_1px_var(--color-border-progress)]",
+  held: "bg-surface-held shadow-[0_0_0_1px_var(--color-border-held)]",
+  package: "bg-surface-package shadow-[0_0_0_1px_var(--color-border-package)]",
+  warning: "bg-warning-soft shadow-[0_0_0_1px_var(--color-border-warning)]",
+  error: "bg-danger-soft shadow-[0_0_0_1px_var(--color-border-error)]",
 };
 
 export function Card({
@@ -30,9 +30,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "relative rounded-2xl bg-surface p-4 text-ink shadow-[var(--shadow-card)] sm:p-5",
-        tone !== "default" &&
-          "before:absolute before:bottom-3 before:left-0 before:top-3 before:w-[3px] before:rounded-full before:content-[''] sm:before:bottom-4 sm:before:top-4",
+        "rounded-2xl bg-surface p-4 text-ink shadow-[var(--shadow-card)] sm:p-5",
         TONE[tone],
         className,
       )}
