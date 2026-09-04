@@ -54,7 +54,7 @@ export function MemberWithdrawalPanel({
   return (
     <div className="mt-6">
       <h2 className="mb-3 text-sm font-semibold">Request withdrawal</h2>
-      <Card>
+      <Card tone="info">
         <p className="text-sm text-muted">
           Only released available balance can be withdrawn. Held commission is locked.
           Minimum {formatBdt(policy?.minBdt ?? 500)}. Fee is {(policy?.feePercent ?? 5)}% of the requested amount.

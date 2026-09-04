@@ -39,7 +39,7 @@ function Packages() {
         <QualificationReminder />
       </div>
       {manual ? (
-        <p className="mb-4 rounded-2xl bg-accent-soft px-4 py-3 text-sm text-ink">
+        <p className="mb-4 rounded-2xl bg-surface-info px-4 py-3 text-sm text-ink shadow-[0_0_0_1px_var(--color-border-info)]">
           Submitting a payment does not activate your package. Activation happens only after admin approval.
         </p>
       ) : (
@@ -68,7 +68,7 @@ function Packages() {
           <div className="space-y-2">
             {pending.map((p) => (
               <Link key={p.id} to="/app/payments/$id" params={{ id: p.id }} className="block">
-                <Card className="flex items-center justify-between gap-3">
+                <Card className="flex items-center justify-between gap-3" tone="held">
                   <div>
                     <p className="font-medium">{PACKAGE_LIST.find((x) => x.id === p.packageId)?.name}</p>
                     <p className="text-sm text-muted">

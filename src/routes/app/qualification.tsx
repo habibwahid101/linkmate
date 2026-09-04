@@ -25,7 +25,7 @@ function Qualification() {
         <PageHeader title="Land Qualification" hint="Tracked per active ID after membership is issued." />
         <EmptyState
           title="No membership yet"
-          body="Activate an ID to track sponsor-3 and Level-9 qualification for the 1 Katha land benefit."
+          body="Activate an ID to track sponsor-3 and Level-9 qualification for the 1 Decimal Land benefit."
           action="View packages"
           actionTo="/app/packages"
         />
@@ -46,10 +46,10 @@ function Qualification() {
     <div>
       <PageHeader
         title="Land Qualification"
-        hint={`${d.activeId} · 1 Katha after sponsor 3 and Level 9, then allocation documents.`}
+        hint={`${d.activeId} · 1 Decimal Land after sponsor 3 and Level 9, then allocation documents.`}
       />
       <LandModule q={land} />
-      <Card className="mt-4">
+      <Card className="mt-4" tone="progress">
         <p className="text-sm font-semibold">Level completion</p>
         <p className="mt-1 text-sm text-muted">
           Status is “Qualified” only when both mandatory conditions are complete on this ID.

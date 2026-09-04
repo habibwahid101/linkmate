@@ -17,11 +17,11 @@ export function LandModule({
   const [docs, setDocs] = useState<"terms" | "allocation" | "transfer" | null>(null);
   return (
     <>
-      <Card>
+      <Card tone="success">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-muted">Land Qualification</p>
-            <p className="mt-1 text-lg font-semibold tracking-tight">1 Katha</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-success">Land Qualification</p>
+            <p className="mt-1 text-lg font-semibold tracking-tight">1 Decimal Land</p>
           </div>
           <span
             className={cn(

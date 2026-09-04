@@ -114,7 +114,7 @@ function Pay() {
       <PageHeader title="Pay for membership" hint="Admin verification is required before IDs are issued." />
 
       {step === "confirm" ? (
-        <Card className="space-y-3">
+        <Card className="space-y-3" tone="package">
           <Row label="Selected package" value={pkg.name} />
           <Row label="Package price" value={formatBdt(pkg.amountBdt)} />
           <Row label="Number of IDs" value={String(pkg.idCount)} />
@@ -144,7 +144,7 @@ function Pay() {
               key={m}
               type="button"
               onClick={() => { setMethod(m); setStep("details"); setError(null); }}
-              className="block w-full rounded-2xl bg-surface p-4 text-left shadow-[var(--shadow-card)]"
+              className="block w-full rounded-2xl bg-surface-info p-4 text-left shadow-[0_0_0_1px_var(--color-border-info)]"
             >
               <p className="font-semibold">{PAYMENT_METHOD_LABEL[m]}</p>
               <p className="mt-1 text-sm text-muted">
@@ -170,7 +170,7 @@ function Pay() {
             submit.mutate();
           }}
         >
-          <Card className="space-y-3">
+          <Card className="space-y-3" tone="info">
             <Row label="Payment method" value={PAYMENT_METHOD_LABEL[method]} />
             <Row label="Amount to pay" value={formatBdt(pkg.amountBdt)} />
             {method === "BKASH" || method === "NAGAD" ? (

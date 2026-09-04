@@ -34,7 +34,7 @@ function Earnings() {
       <PageHeader title="Earnings" hint="Held stays pending until the level completes. Released is in your wallet." />
       <div className="space-y-2">
         {q.data.map((row) => (
-          <Card key={row.level} className="flex items-center justify-between gap-3">
+          <Card key={row.level} className="flex items-center justify-between gap-3" tone="held">
             <div>
               <p className="text-sm font-semibold">
                 Level {row.level} · {ordinalGeneration(row.generation)} generation

@@ -9,6 +9,9 @@ const tones: Record<string, string> = {
   held: "bg-held-soft text-held",
   danger: "bg-danger-soft text-danger",
   locked: "bg-surface-2 text-muted",
+  info: "bg-info-soft text-info",
+  progress: "bg-progress-soft text-progress",
+  package: "bg-package-soft text-package",
 };
 
 export function Badge({

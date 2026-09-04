@@ -115,21 +115,25 @@ function Home() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <LevelKpi
+          tone="package"
           label="My package"
           value={<span className="text-xl font-semibold tracking-tight">{pkg?.name ?? "—"}</span>}
           hint={pkg ? `${formatBdt(pkg.amountBdt)} · ${pkg.idCount} ID${pkg.idCount === 1 ? "" : "s"}` : undefined}
         />
         <LevelKpi
+          tone="info"
           label="Active ID"
           value={<span className="block break-all font-mono text-sm font-semibold">{d.activeId}</span>}
           hint={d.ids.length > 1 ? `${d.ids.length} IDs · switch above` : "Single ID"}
         />
         <LevelKpi
+          tone="progress"
           label="Current level"
           value={<span className="text-xl font-semibold tracking-tight">Level {d.currentLevel}</span>}
           hint={currentGen ? `${currentGen.generationLabel} generation` : undefined}
         />
         <LevelKpi
+          tone="info"
           label="Direct sponsor"
           value={
             <span className="tabular text-xl font-semibold tracking-tight">
@@ -139,6 +143,7 @@ function Home() {
           hint="Mandatory"
         />
         <LevelKpi
+          tone="progress"
           label="Overall level progress"
           value={
             <span className="tabular text-xl font-semibold tracking-tight">
@@ -147,9 +152,10 @@ function Home() {
           }
           hint="Completed levels on this ID"
         />
-        <LevelKpi label="Held commission" value={d.idWallet.held} hint="This ID · not withdrawable" />
-        <LevelKpi label="Available wallet" value={d.idWallet.available} hint="This ID · released" />
+        <LevelKpi tone="held" label="Held commission" value={d.idWallet.held} hint="This ID · not withdrawable" />
+        <LevelKpi tone="success" label="Available wallet" value={d.idWallet.available} hint="This ID · released" />
         <LevelKpi
+          tone="success"
           label="Total released"
           value={d.idWallet.released}
           hint={d.wallet.released !== d.idWallet.released ? `Account ${formatBdt(d.wallet.released)}` : "Lifetime released"}
@@ -157,7 +163,7 @@ function Home() {
       </div>
 
       {next ? (
-        <Card className="mt-4">
+        <Card className="mt-4" tone="progress">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wider text-muted">Next milestone</p>
@@ -203,7 +209,7 @@ function Home() {
               Team
             </Link>
           </div>
-          <Card>
+          <Card tone="progress">
             <p className="text-sm text-muted">
               {d.generationTotal} generation members · {d.directSponsors} personal sponsors
             </p>
@@ -232,7 +238,7 @@ function Home() {
                 Wallet
               </Link>
             </div>
-            <Card>
+            <Card tone="success">
               {d.recentTx.length === 0 ? (
                 <p className="text-sm text-muted">Released earnings appear after a level completes.</p>
               ) : (

@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card";
+import { Card, type CardTone } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { ProgressBar } from "@/components/progress-bar";
 import { Money } from "@/components/money";
@@ -17,6 +17,14 @@ export type LevelRow = {
   status: string;
 };
 
+function levelTone(status: string): CardTone {
+  if (status === "RELEASED" || status === "COMPLETED") return "success";
+  if (status === "IN_PROGRESS" || status === "ELIGIBLE") return "progress";
+  if (status === "REVERSED") return "error";
+  if (status === "LOCKED") return "default";
+  return "progress";
+}
+
 export function LevelCard({ row, compact = false }: { row: LevelRow; compact?: boolean }) {
   const rule = getLevel(row.level);
   const release =
@@ -27,10 +35,10 @@ export function LevelCard({ row, compact = false }: { row: LevelRow; compact?: b
         : "Pending";
 
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className="flex flex-col gap-3" tone={levelTone(row.status)}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">
+          <p className="text-xs font-medium uppercase tracking-wider text-progress">
             Level {row.level}
           </p>
           <p className="mt-0.5 text-sm text-ink">
@@ -49,7 +57,7 @@ export function LevelCard({ row, compact = false }: { row: LevelRow; compact?: b
         <ProgressBar value={row.completed_members} max={row.required_members} />
       </div>
       {compact ? null : (
-        <div className="flex items-end justify-between border-t border-border pt-3">
+        <div className="flex items-end justify-between border-t border-border/70 pt-3">
           <div>
             <p className="text-xs text-muted">Commission</p>
             <p className="tabular text-sm font-medium">
@@ -71,13 +79,15 @@ export function LevelKpi({
   label,
   value,
   hint,
+  tone = "default",
 }: {
   label: string;
   value: ReactNode;
   hint?: string;
+  tone?: CardTone;
 }) {
   return (
-    <Card className="min-w-0">
+    <Card className="min-w-0" tone={tone}>
       <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
       <div className="mt-2 min-w-0 overflow-hidden">
         {typeof value === "number" ? <Money amount={value} size="lg" /> : value}

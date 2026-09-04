@@ -22,6 +22,7 @@ export function PackageCard({
 }) {
   return (
     <Card
+      tone="package"
       className={cn(
         "flex h-full flex-col",
         compact ? "gap-2 p-3.5 sm:p-3.5" : "gap-4",
@@ -30,7 +31,7 @@ export function PackageCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          {compact ? null : <p className="text-xs font-medium uppercase tracking-wider text-muted">Package</p>}
+          {compact ? null : <p className="text-xs font-medium uppercase tracking-wider text-package">Package</p>}
           <h3 className={cn("font-semibold tracking-tight", compact ? "text-base" : "mt-0.5 text-lg")}>{pkg.name}</h3>
         </div>
         {current ? <Badge tone="accent">Current</Badge> : null}

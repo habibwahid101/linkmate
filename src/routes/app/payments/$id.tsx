@@ -24,7 +24,7 @@ function PaymentStatus() {
   return (
     <div>
       <PageHeader title={pending ? "Payment request submitted" : "Payment status"} />
-      <Card className="space-y-3">
+      <Card className="space-y-3" tone={pending ? "held" : p.status === "APPROVED" ? "success" : p.status === "REJECTED" ? "error" : "info"}>
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-muted">Status</p>
           <StatusBadge status={p.status} />

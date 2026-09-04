@@ -29,29 +29,29 @@ function Wallet() {
     <div>
       <PageHeader title="Wallet" hint="Held commission is not withdrawable. Only released amounts sit in available balance." />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-held-soft">
+        <Card tone="held">
           <p className="text-xs font-medium uppercase tracking-wider text-held">Held commission</p>
-          <div className="mt-2 text-held">
+          <div className="mt-2">
             <Money amount={held} size="lg" />
           </div>
-          <p className="mt-2 text-xs text-held">Pending until the level’s member count is complete.</p>
+          <p className="mt-2 text-xs text-muted">Pending until the level’s member count is complete.</p>
         </Card>
-        <Card>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Available balance</p>
+        <Card tone="success">
+          <p className="text-xs font-medium uppercase tracking-wider text-success">Available balance</p>
           <div className="mt-2">
             <Money amount={available} size="lg" />
           </div>
           <p className="mt-2 text-xs text-muted">Released to this account and currently available.</p>
         </Card>
-        <Card>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Released earnings</p>
+        <Card tone="success">
+          <p className="text-xs font-medium uppercase tracking-wider text-success">Released earnings</p>
           <div className="mt-2">
             <Money amount={released} size="lg" />
           </div>
           <p className="mt-2 text-xs text-muted">Lifetime full-level releases posted to the ledger.</p>
         </Card>
-        <Card>
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Reversed adjustments</p>
+        <Card tone="error">
+          <p className="text-xs font-medium uppercase tracking-wider text-danger">Reversed adjustments</p>
           <div className="mt-2">
             <Money amount={reversed} size="lg" />
           </div>
@@ -64,7 +64,7 @@ function Wallet() {
           <h2 className="mb-3 text-sm font-semibold">Held by level</h2>
           <div className="space-y-2">
             {q.data.held.map((h) => (
-              <Card key={`${h.memberId}-${h.level}`} className="flex items-center justify-between">
+              <Card key={`${h.memberId}-${h.level}`} className="flex items-center justify-between" tone="held">
                 <div>
                   <p className="text-sm font-medium">Level {h.level}</p>
                   <p className="font-mono text-xs text-muted">{h.memberId}</p>

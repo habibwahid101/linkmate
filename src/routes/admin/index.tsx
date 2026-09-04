@@ -5,7 +5,7 @@ import { getAdminOverview } from "@/lib/server/admin";
 import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
+import { Card, type CardTone } from "@/components/ui/card";
 import { Money } from "@/components/money";
 import { formatBdt, toInt } from "@/lib/money";
 import { formatDate, packageLabel } from "@/lib/format";
@@ -13,9 +13,9 @@ import { PACKAGES } from "@/lib/rules";
 
 export const Route = createFileRoute("/admin/")({ component: Overview });
 
-function Kpi({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
+function Kpi({ label, children, hint, tone = "default" }: { label: string; children: ReactNode; hint?: string; tone?: CardTone }) {
   return (
-    <Card className="min-w-0">
+    <Card className="min-w-0" tone={tone}>
       <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
       <div className="mt-2">{children}</div>
       {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
@@ -33,20 +33,20 @@ function Overview() {
       <PageHeader title="Overview" hint="Live membership, joining value, and commission liability." />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Users">{d.totalUsers}</Kpi>
-        <Kpi label="Active IDs">{d.activeIds}</Kpi>
-        <Kpi label="Joining value">
+        <Kpi tone="info" label="Active IDs">{d.activeIds}</Kpi>
+        <Kpi tone="package" label="Joining value">
           <Money amount={d.joiningValue} size="lg" />
         </Kpi>
-        <Kpi label="Held commission">
+        <Kpi tone="held" label="Held commission">
           <Money amount={d.held} size="lg" />
         </Kpi>
-        <Kpi label="Released">
+        <Kpi tone="success" label="Released">
           <Money amount={d.released} size="lg" />
         </Kpi>
         <Kpi label="Wallet liabilities">
           <Money amount={d.walletLiabilities} size="lg" />
         </Kpi>
-        <Kpi label="Pending payments" hint="Awaiting verification">
+        <Kpi tone="warning" label="Pending payments" hint="Awaiting verification">
           <Link to="/admin/payments" className="tabular text-xl font-semibold text-ink">
             {d.pendingPayments}
           </Link>
@@ -60,7 +60,7 @@ function Overview() {
         {(["builder", "turbo", "super_turbo", "hyper_turbo"] as const).map((id) => {
           const row = d.packages[id];
           return (
-            <Card key={id}>
+            <Card key={id} tone="package">
               <p className="text-sm font-medium">{PACKAGES[id].name}</p>
               <p className="mt-2 tabular text-xl font-semibold">{row?.count ?? 0} sales</p>
               <p className="mt-1 text-xs text-muted">{formatBdt(row?.value ?? 0)}</p>
@@ -73,7 +73,7 @@ function Overview() {
         {d.levels.map((l) => {
           const n = d.completions.find((c) => c.level === l.level)?.n ?? 0;
           return (
-            <Card key={l.level} className="p-3 text-center">
+            <Card key={l.level} className="p-3 text-center" tone="progress">
               <p className="text-[11px] text-muted">L{l.level}</p>
               <p className="tabular text-lg font-semibold">{n}</p>
             </Card>

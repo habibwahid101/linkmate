@@ -60,7 +60,7 @@ function Ids() {
             level9Released: row.level9Released,
           });
           return (
-            <Card key={row.id} className={row.id === active ? "shadow-[0_0_0_2px_var(--color-accent)]" : undefined}>
+            <Card key={row.id} tone="info" className={row.id === active ? "shadow-[0_0_0_2px_var(--color-accent)]" : undefined}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-mono text-sm font-semibold">{row.id}</p>

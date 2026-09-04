@@ -51,7 +51,7 @@ function Profile() {
   return (
     <div>
       <PageHeader title="Profile" hint={p.role === "admin" ? "Administrator" : "Member"} />
-      <Card>
+      <Card tone="info">
         <form
           className="space-y-3"
           onSubmit={(e) => {

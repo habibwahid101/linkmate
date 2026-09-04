@@ -41,7 +41,7 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-title", content: APP_NAME },
       {
         name: "description",
-        content: "Link Mate membership from ৳11,000. Sponsor 3 and complete Level 9 to qualify for 1 Katha land, subject to allocation terms.",
+        content: "Link Mate membership from ৳11,000. Sponsor 3 and complete Level 9 to qualify for 1 Decimal Land, subject to allocation terms.",
       },
     ],
     links: [
