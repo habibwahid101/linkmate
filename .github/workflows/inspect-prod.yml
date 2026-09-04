@@ -2,6 +2,15 @@ name: Inspect production shell
 
 on:
   workflow_dispatch:
+    inputs:
+      email:
+        description: "Email to inspect or promote (must already exist in Better Auth for apply=1)"
+        required: true
+        default: "linkmateglobal@gmail.com"
+      apply:
+        description: "Set to 1 to promote that email via provision-admin.mjs. Default 0 is inspect-only."
+        required: false
+        default: "0"
 
 concurrency:
   group: aws-prod-inspect
@@ -17,7 +26,9 @@ jobs:
     env:
       AWS_REGION: ap-south-1
       EC2_INSTANCE_ID: i-0d5882a956e4d3981
-      ADMIN_EMAIL: hello.habibwahid@gmail.com
+      ADMIN_EMAIL: ${{ github.event.inputs.email || 'linkmateglobal@gmail.com' }}
+      OWNER_EMAIL: hello.habibwahid@gmail.com
+      APPLY: ${{ github.event.inputs.apply || '0' }}
       # Account and role name are already public in prior deploy logs / Terraform.
       TF_GITHUB_DEPLOY_ROLE_ARN: arn:aws:iam::364410974458:role/linkmate-prod-github-deploy
     steps:
@@ -70,26 +81,37 @@ jobs:
           audience: sts.amazonaws.com
       - name: Who am I
         run: aws sts get-caller-identity --query '{Account:Account,Arn:Arn}' --output json
-      - name: SSM inspect owner + recent app logs
+      - name: SSM inspect target + owner (optional promote)
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
+          APPLY_FLAG="$APPLY"
+          if [ "$APPLY_FLAG" != "1" ]; then APPLY_FLAG=0; fi
+          echo "TARGET=$ADMIN_EMAIL APPLY=$APPLY_FLAG"
+          PROVISION_CMD="echo SKIP_PROVISION"
+          if [ "$APPLY_FLAG" = "1" ]; then
+            PROVISION_CMD="docker exec -e ADMIN_EMAIL=$ADMIN_EMAIL linkmate node scripts/provision-admin.mjs"
+          fi
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Link Mate inspect owner shell" \
+            --comment "Link Mate inspect/provision admin" \
             --parameters "commands=[
               \"set -euo pipefail\",
               \"echo VERSION\",
               \"curl -fsS -m 8 http://127.0.0.1/api/version || true\",
               \"echo HEALTH\",
               \"curl -fsS -m 8 http://127.0.0.1/api/health || true\",
-              \"echo READY\",
-              \"curl -fsS -m 8 http://127.0.0.1/api/readiness || true\",
-              \"echo INSPECT\",
+              \"echo TARGET_BEFORE\",
               \"docker exec -e ADMIN_EMAIL=$ADMIN_EMAIL linkmate node scripts/inspect-owner.mjs\",
-              \"echo LOGS\",
-              \"docker logs --tail 250 linkmate 2>&1 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/[email]/g; s/postgres(ql)?:\\/\\/[^ ]+/postgres:\\/\\/[redacted]/g' | tail -n 250\"
+              \"echo OWNER_BEFORE\",
+              \"docker exec -e ADMIN_EMAIL=$OWNER_EMAIL linkmate node scripts/inspect-owner.mjs\",
+              \"echo PROVISION\",
+              \"$PROVISION_CMD\",
+              \"echo TARGET_AFTER\",
+              \"docker exec -e ADMIN_EMAIL=$ADMIN_EMAIL linkmate node scripts/inspect-owner.mjs\",
+              \"echo OWNER_AFTER\",
+              \"docker exec -e ADMIN_EMAIL=$OWNER_EMAIL linkmate node scripts/inspect-owner.mjs\"
             ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
