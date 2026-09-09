@@ -51,8 +51,12 @@ export const getDashboard = createServerFn({ method: "GET" })
       placement_status: string;
       status: string;
       created_at: string;
+      current_level: number | null;
+      progression_status: string | null;
+      referral_code: string | null;
     }>`
-      select id, package_id, is_root, sponsor_id, parent_id, placement_status, status, created_at
+      select id, package_id, is_root, sponsor_id, parent_id, placement_status, status, created_at,
+             current_level, progression_status, referral_code
       from member_ids where owner_user_id = ${context.userId}
       order by created_at asc
     `;
@@ -104,7 +108,7 @@ export const getDashboard = createServerFn({ method: "GET" })
       `;
       const inPlay = [...levelProgress].reverse().find((l) => l.status === "IN_PROGRESS" || l.status === "ELIGIBLE");
       const released = [...levelProgress].reverse().find((l) => l.status === "RELEASED");
-      currentLevel = inPlay?.level ?? released?.level ?? 1;
+      currentLevel = Number(activeMeta?.current_level) || inPlay?.level || released?.level || 1;
 
       const d = await sql<{ n: number }>`
         select count(*)::int as n from sponsor_relationships where sponsor_id = ${activeId}

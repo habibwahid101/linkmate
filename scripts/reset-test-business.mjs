@@ -70,6 +70,12 @@ export async function inventory(client) {
     sponsor_relationships: await count(client, "select count(*)::int as n from sponsor_relationships"),
     placement_relationships: await count(client, "select count(*)::int as n from placement_relationships"),
     generation_memberships: await count(client, "select count(*)::int as n from generation_memberships"),
+    membership_activation_events: (await tableExists(client, "membership_activation_events"))
+      ? await count(client, "select count(*)::int as n from membership_activation_events")
+      : 0,
+    membership_activation_impacts: (await tableExists(client, "membership_activation_impacts"))
+      ? await count(client, "select count(*)::int as n from membership_activation_impacts")
+      : 0,
     level_progress: await count(client, "select count(*)::int as n from level_progress"),
     commission_entries: await count(client, "select count(*)::int as n from commission_entries"),
     held_commissions: await count(client, "select count(*)::int as n from held_commissions"),
@@ -189,6 +195,8 @@ export async function applyReset(client, inv, env = process.env) {
     ["commission_entries", `delete from commission_entries`],
     ["level_progress", `delete from level_progress`],
     ["generation_memberships", `delete from generation_memberships`],
+    ["membership_activation_impacts", `delete from membership_activation_impacts`],
+    ["membership_activation_events", `delete from membership_activation_events`],
     ["placement_relationships", `delete from placement_relationships`],
     ["sponsor_relationships", `delete from sponsor_relationships`],
     ["notifications", `delete from notifications`],

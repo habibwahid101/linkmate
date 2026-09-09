@@ -43,8 +43,13 @@ export function releaseTxId(memberId: string, level: number, batch = 0): string 
   return `release:${memberId}:${level}:${batch}`;
 }
 
-export function joinEventId(sourceId: string, beneficiaryId: string, level: number): string {
-  return `join:${sourceId}:${beneficiaryId}:${level}`;
+/** One activation may credit a beneficiary at most once, regardless of level. */
+export function joinEventId(sourceId: string, beneficiaryId: string): string {
+  return `join:${sourceId}:${beneficiaryId}`;
+}
+
+export function activationEventId(memberId: string): string {
+  return `activate:${memberId}`;
 }
 
 export function reversalTxId(entryId: string): string {

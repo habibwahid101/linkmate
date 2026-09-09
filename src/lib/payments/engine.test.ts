@@ -42,6 +42,7 @@ async function makeSql(): Promise<{ sql: Sql; pg: PGlite }> {
   await pg.exec(readFileSync(join(ROOT, "migrations/0002_schema.sql"), "utf8"));
   await pg.exec(readFileSync(join(ROOT, "migrations/0003_hardening.sql"), "utf8"));
   await pg.exec(readFileSync(join(ROOT, "migrations/0005_manual_payments.sql"), "utf8"));
+  await pg.exec(readFileSync(join(ROOT, "migrations/0010_id_based_engine.sql"), "utf8"));
   return { sql: wrap(pg), pg };
 }
 
@@ -154,7 +155,7 @@ describe("manual payment engine", () => {
     assert.equal(purchases[0]?.n, 1);
   });
 
-  it("approval generates turbo IDs; sponsor is direct of root only but Gen2 internals count", async () => {
+  it("approval generates turbo IDs; sponsor is direct of root only (internals do not credit sponsor at L1)", async () => {
     const { sql } = await makeSql();
     await configureMethods(sql);
     await insertUser(sql, "sponsor", "Sponsor");
@@ -187,22 +188,49 @@ describe("manual payment engine", () => {
       from commission_entries where beneficiary_user_id = ${"sponsor"}
       group by generation order by generation
     `;
-    assert.equal(commissions.length, 2);
+    assert.equal(commissions.length, 1);
     assert.equal(commissions[0]!.generation, 1);
     assert.equal(commissions[0]!.n, 1);
     assert.equal(Number(commissions[0]!.amt), 880);
-    assert.equal(commissions[1]!.generation, 2);
-    assert.equal(commissions[1]!.n, 3);
-    assert.equal(Number(commissions[1]!.amt), 1980);
     const held = await sql<{ v: number }>`
       select coalesce(sum(amount),0)::int as v from held_commissions where owner_user_id = ${"sponsor"}
     `;
-    assert.equal(Number(held[0]?.v ?? 0), 2860);
+    assert.equal(Number(held[0]?.v ?? 0), 880);
     const gens = await sql<{ generation: number; n: number }>`
       select generation, count(*)::int as n from generation_memberships
       where beneficiary_id = ${sponsor.rootId} group by generation order by generation
     `;
     assert.deepEqual(gens.map((g) => [g.generation, g.n]), [[1, 1], [2, 3]]);
+  });
+
+  it("resolves an exact Membership ID referral code to that ID", async () => {
+    const { sql } = await makeSql();
+    await configureMethods(sql);
+    await insertUser(sql, "sponsor", "Sponsor");
+    await insertUser(sql, "buyer", "Buyer");
+    const sponsorPay = await submitPaymentRequest(sql, {
+      userId: "sponsor",
+      packageId: "builder",
+      method: "CASH",
+      submittedAmountBdt: 11000,
+    });
+    const sponsor = await approvePayment(sql, { requestId: sponsorPay.id, adminUserId: "admin1" });
+    const memberCode = await sql<{ referral_code: string }>`
+      select referral_code from member_ids where id = ${sponsor.rootId}
+    `;
+    assert.ok(memberCode[0]?.referral_code);
+    const req = await submitPaymentRequest(sql, {
+      userId: "buyer",
+      packageId: "builder",
+      method: "CASH",
+      submittedAmountBdt: 11000,
+      referralCode: memberCode[0]!.referral_code,
+    });
+    const result = await approvePayment(sql, { requestId: req.id, adminUserId: "admin1" });
+    const child = await sql<{ sponsor_id: string }>`
+      select sponsor_id from member_ids where id = ${result.rootId}
+    `;
+    assert.equal(child[0]?.sponsor_id, sponsor.rootId);
   });
 
   it("rejected and needs-review payments create no IDs or commissions", async () => {
