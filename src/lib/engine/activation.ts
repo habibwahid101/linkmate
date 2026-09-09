@@ -18,6 +18,7 @@ export type Sql = {
     strings: TemplateStringsArray,
     ...values: unknown[]
   ): Promise<T[]>;
+  withTransaction?: <T>(fn: (sql: Sql) => Promise<T>) => Promise<T>;
 };
 
 export type MemberRow = {
@@ -433,6 +434,8 @@ export async function processMembershipIdActivation(
 ): Promise<ActivationResult> {
   const source = await loadMember(sql, newId);
   if (!source) return { sourceId: newId, replay: false, impacts: 0 };
+  await ensureWallet(sql, source.id, source.owner_user_id);
+  await ensureLevelRows(sql, source.id);
   const joiningAmount = Number(source.joining_amount_bdt) || STANDARD_ID_VALUE_BDT;
   const eventPk = activationEventId(source.id);
 
