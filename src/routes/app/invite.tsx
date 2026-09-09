@@ -70,14 +70,14 @@ function Invite() {
           )
         }
       />
-      <Card className="flex flex-col items-center">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted">Referral for {sel.memberId}</p>
-        <p className="mt-2 font-mono text-3xl font-semibold tracking-tight">{sel.referralCode}</p>
-        <p className="mt-1 font-mono text-xs text-muted">{sel.memberId}</p>
+      <Card className="flex flex-col items-center" tone="info">
+        <p className="kicker text-info">Referral for {sel.memberId}</p>
+        <p className="mt-2 break-all font-mono text-3xl font-semibold tracking-tight">{sel.referralCode}</p>
+        <p className="mt-1 font-mono text-[13px] text-muted">{sel.memberId}</p>
         <div className="mt-6 rounded-2xl bg-surface-2 p-3">
           <QrCode value={link || sel.referralCode} />
         </div>
-        <p className="mt-4 max-w-xs break-all text-center text-xs text-muted">{link}</p>
+        <p className="mt-4 max-w-xs break-all text-center text-[13px] text-muted">{link}</p>
         <div className="mt-5 grid w-full grid-cols-2 gap-2">
           <CopyButton value={link} label="Copy link" />
           <CopyButton value={sel.referralCode} label="Copy code" variant="secondary" />
@@ -109,7 +109,7 @@ function Invite() {
             Share
           </Button>
         ) : null}
-        <p className="mt-4 text-center text-xs text-muted">
+        <p className="mt-4 text-center text-[13px] leading-relaxed text-muted">
           This code sponsors {sel.memberId} only — not every ID on the account.{" "}
           <Link to="/app/ids" className="text-accent">
             Choose a different ID

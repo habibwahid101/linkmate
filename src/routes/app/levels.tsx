@@ -53,7 +53,7 @@ function Levels() {
           <p className="mt-1 text-sm text-muted">This ID finished Level 9. There is no Level 10.</p>
         </Card>
       ) : (
-        <p className="mb-4 text-sm text-muted">
+        <p className="mb-4 text-[15px] leading-relaxed text-muted">
           Level 1 needs 3 direct sponsored IDs. Levels 2–9 need eligible downline IDs. Generation depth is not a level requirement.
         </p>
       )}

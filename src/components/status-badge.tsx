@@ -20,7 +20,7 @@ const map: Record<
   APPROVED: { tone: "success", label: "Approved" },
   REJECTED: { tone: "danger", label: "Rejected" },
   GRADUATED: { tone: "success", label: "Graduated" },
-  ACTIVE: { tone: "success", label: "Active" },
+  ACTIVE: { tone: "info", label: "Active" },
   placed: { tone: "info", label: "Placed" },
   pending_config: { tone: "warning", label: "Unplaced" },
   posted: { tone: "success", label: "Posted" },

@@ -81,11 +81,11 @@ export function AppShell({
                 className={cn(
                   "flex h-11 items-center gap-3 rounded-[12px] px-3 text-sm font-medium transition-colors",
                   active
-                    ? "bg-white/10 text-white"
+                    ? "bg-accent text-accent-fg"
                     : "text-sidebar-muted hover:bg-white/5 hover:text-sidebar-fg",
                 )}
               >
-                <Icon className="size-5 shrink-0" strokeWidth={1.75} />
+                <Icon className="size-5 shrink-0" strokeWidth={active ? 2 : 1.75} />
                 {item.label}
               </Link>
             );
@@ -107,7 +107,7 @@ export function AppShell({
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{user?.displayName ?? "Member"}</p>
-              <p className="truncate text-xs text-sidebar-muted">{user?.primaryEmail}</p>
+              <p className="truncate text-[13px] text-sidebar-muted">{user?.primaryEmail}</p>
             </div>
             <button
               type="button"
@@ -130,7 +130,9 @@ export function AppShell({
           <div className="lg:hidden">
             <BrandLink compact />
           </div>
-          <div className="hidden text-sm text-muted lg:block">Account overview · each Membership ID is independent</div>
+          <div className="hidden text-[15px] text-muted lg:block">
+            Account overview · each Membership ID is independent
+          </div>
           <div className="flex items-center gap-1">
             {isAdmin ? (
               <Link

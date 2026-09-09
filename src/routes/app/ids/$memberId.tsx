@@ -5,19 +5,18 @@ import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
 import { EmptyState } from "@/components/empty-state";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card, CardKicker, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { ProgressBar } from "@/components/progress-bar";
 import { Money } from "@/components/money";
 import { CopyButton } from "@/components/copy-button";
-import { LevelCard } from "@/components/level-card";
+import { LevelCard, LevelJourney } from "@/components/level-card";
 import { IdSwitcher, IdScopedLinks } from "@/components/id-switcher";
 import { formatDate, formatDateTime, packageLabel } from "@/lib/format";
 import {
   MEMBERSHIP_ID_NOT_FOUND,
   isGraduated,
-  journeyState,
   levelRequirementCopy,
   originLabel,
   progressFraction,
@@ -25,7 +24,6 @@ import {
 } from "@/lib/id-workspace";
 import { publicErrorMessage } from "@/lib/public-error";
 import { useEffect, useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/ids/$memberId")({ component: IdDashboard });
 
@@ -82,22 +80,22 @@ function IdDashboard() {
         <Card tone={graduated ? "success" : "progress"}>
           {graduated ? (
             <>
-              <p className="text-xs font-medium uppercase tracking-wider text-success">Graduated</p>
+              <CardKicker tone="success">Graduated</CardKicker>
               <p className="mt-1 text-lg font-semibold">Level journey complete</p>
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-1 text-[15px] leading-relaxed text-muted">
                 This ID finished Level 9. History, earnings, network, and referral remain available. There is no Level 10.
               </p>
             </>
           ) : (
             <>
-              <p className="text-xs font-medium uppercase tracking-wider text-progress">Current level</p>
+              <CardKicker tone="progress">Current level</CardKicker>
               <p className="mt-1 text-lg font-semibold">
                 Level {p.level} · {progressFraction(p)} complete
               </p>
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-1 text-[15px] leading-relaxed text-muted">
                 {levelRequirementCopy(p.level)} · {remainingCopy(p)}
               </p>
-              <ProgressBar className="mt-3" value={p.completed} max={p.required} />
+              <ProgressBar className="mt-3" value={p.completed} max={p.required} tone={d.wallet.held > 0 ? "held" : "progress"} />
             </>
           )}
         </Card>
@@ -105,38 +103,12 @@ function IdDashboard() {
 
       <section className="mt-6">
         <CardTitle>Level journey</CardTitle>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-[15px] leading-relaxed text-muted">
           Level 1 needs 3 direct sponsored IDs. Levels 2–9 count eligible downline IDs — not generation depth.
         </p>
-        <ol className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-9">
-          {d.journey.map((row) => {
-            const state = journeyState(row, graduated);
-            return (
-              <li
-                key={row.level}
-                className={cn(
-                  "rounded-xl px-2 py-2 text-center text-xs",
-                  state === "completed" || state === "graduated"
-                    ? "bg-surface-success text-success"
-                    : state === "current"
-                      ? "bg-surface-progress text-progress"
-                      : "bg-surface-2 text-muted",
-                )}
-              >
-                <p className="font-semibold">L{row.level}</p>
-                <p className="mt-0.5">
-                  {state === "graduated"
-                    ? "Graduated"
-                    : state === "completed"
-                      ? "Done"
-                      : state === "current"
-                        ? "Current"
-                        : "Locked"}
-                </p>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="mt-3">
+          <LevelJourney rows={d.journey} graduated={graduated} />
+        </div>
         <div className="mt-3 space-y-3">
           {d.journey
             .filter((row) => row.status !== "LOCKED")
@@ -189,22 +161,22 @@ function IdDashboard() {
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Card tone="held">
-            <p className="text-xs uppercase tracking-wider text-held">Held commission</p>
+            <CardKicker tone="held">Held commission</CardKicker>
             <div className="mt-2">
-              <Money amount={d.wallet.held} size="lg" />
+              <Money amount={d.wallet.held} size="lg" className="text-held" />
             </div>
-            <p className="mt-1 text-xs text-muted">Not withdrawable until the level completes.</p>
+            <p className="mt-1 text-[13px] leading-snug text-muted">Not withdrawable until the level completes.</p>
           </Card>
           <Card tone="success">
-            <p className="text-xs uppercase tracking-wider text-success">Released</p>
+            <CardKicker tone="success">Released</CardKicker>
             <div className="mt-2">
-              <Money amount={d.wallet.released} size="lg" />
+              <Money amount={d.wallet.released} size="lg" className="text-success" />
             </div>
           </Card>
           <Card tone="success">
-            <p className="text-xs uppercase tracking-wider text-success">Available</p>
+            <CardKicker tone="success">Available</CardKicker>
             <div className="mt-2">
-              <Money amount={d.wallet.available} size="lg" />
+              <Money amount={d.wallet.available} size="lg" className="text-accent" />
             </div>
           </Card>
         </div>
@@ -277,9 +249,9 @@ function IdHeader({
     <Card tone="info">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Membership ID</p>
-          <p className="mt-1 break-all font-mono text-lg font-semibold">{detail.id}</p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="kicker text-info">Viewing Membership ID</p>
+          <p className="mt-1 break-all font-mono text-xl font-semibold">{detail.id}</p>
+          <p className="mt-1 text-[15px] text-muted">
             {packageLabel(detail.package_id)} · {originLabel(detail)}
           </p>
         </div>
@@ -287,8 +259,8 @@ function IdHeader({
       </div>
       {detail.referral_code ? (
         <div className="mt-4 border-t border-border/70 pt-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">Referral for {detail.id}</p>
-          <p className="mt-1 font-mono text-2xl font-semibold tracking-tight">{detail.referral_code}</p>
+          <p className="kicker text-muted">Referral for {detail.id}</p>
+          <p className="mt-1 break-all font-mono text-2xl font-semibold tracking-tight">{detail.referral_code}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <CopyButton value={detail.referral_code} label="Copy code" />
             {link ? <CopyButton value={link} label="Copy link" variant="secondary" /> : null}

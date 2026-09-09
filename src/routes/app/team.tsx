@@ -104,7 +104,7 @@ function Team() {
         }
       />
 
-      <p className="mb-4 text-sm text-muted">
+      <p className="mb-4 text-[15px] leading-relaxed text-muted">
         This list is for {team.data.activeId} only. Direct IDs count toward Level 1. Network depth is informational — it is not the level requirement.
       </p>
 
