@@ -3,6 +3,8 @@
 Authoritative implementation contract for batches after Batch 1.
 Batch 1 locks this document only. It does **not** implement the new engine.
 
+**Batch 1 lock:** production test-business reset applied `2026-09-09T08:22:24Z` (`app_settings.batch1_test_reset_at`). Two admin identities preserved. No ID-progression/commission engine was implemented in Batch 1.
+
 ## A. Core entity model
 
 1. **User Account** — a human/login/identity container. One account can own multiple Membership IDs.

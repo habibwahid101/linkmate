@@ -2,46 +2,56 @@ name: Inspect production shell
 
 on:
   workflow_dispatch:
-    inputs:
-      apply:
-        description: "0=inventory only. 1=snapshot+reset test business data."
-        required: false
-        default: "0"
-      force:
-        description: "Set 1 only to re-run after batch1_test_reset_at exists."
-        required: false
-        default: "0"
 
 concurrency:
   group: aws-prod-inspect
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     permissions:
       id-token: write
       contents: read
     env:
       AWS_REGION: ap-south-1
       EC2_INSTANCE_ID: i-0d5882a956e4d3981
-      RDS_ID: linkmate-prod-pg
       ADMIN_EMAIL: hello.habibwahid@gmail.com
+      # Account and role name are already public in prior deploy logs / Terraform.
       TF_GITHUB_DEPLOY_ROLE_ARN: arn:aws:iam::364410974458:role/linkmate-prod-github-deploy
     steps:
-      - uses: actions/checkout@v4
       - name: Diagnose GitHub OIDC claims
         run: |
           set -euo pipefail
           TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" | jq -r .value)
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Failed to obtain OIDC token"
+            exit 1
+          fi
           PAYLOAD=$(printf '%s' "$TOKEN" | cut -d. -f2 | tr '_-' '/+' )
           case $(( ${#PAYLOAD} % 4 )) in
             2) PAYLOAD="${PAYLOAD}==" ;;
             3) PAYLOAD="${PAYLOAD}=" ;;
           esac
-          printf '%s' "$PAYLOAD" | base64 -d | jq -r '"repository=\(.repository // "null")","ref=\(.ref // "null")"'
+          CLAIMS=$(printf '%s' "$PAYLOAD" | base64 -d)
+          echo "=== OIDC non-secret claims (sts.amazonaws.com audience) ==="
+          echo "$CLAIMS" | jq -r '
+            "sub=\(.sub // "null")",
+            "aud=\(.aud // "null")",
+            "iss=\(.iss // "null")",
+            "repository=\(.repository // "null")",
+            "repository_id=\(.repository_id // "null")",
+            "repository_owner=\(.repository_owner // "null")",
+            "repository_owner_id=\(.repository_owner_id // "null")",
+            "ref=\(.ref // "null")",
+            "event_name=\(.event_name // "null")",
+            "environment=\(.environment // "null")",
+            "job_workflow_ref=\(.job_workflow_ref // "null")"
+          '
+          echo "secret_role_set=$([ -n "${AWS_ROLE_ARN:-}" ] && echo yes || echo no)"
+          echo "tf_role=$TF_GITHUB_DEPLOY_ROLE_ARN"
         env:
           AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
       - uses: aws-actions/configure-aws-credentials@v4
@@ -60,77 +70,30 @@ jobs:
           audience: sts.amazonaws.com
       - name: Who am I
         run: aws sts get-caller-identity --query '{Account:Account,Arn:Arn}' --output json
-      - name: Record RDS recovery point
-        continue-on-error: true
-        run: |
-          set +e
-          echo "RDS_INSTANCE"
-          aws rds describe-db-instances --db-instance-identifier "$RDS_ID" \
-            --query 'DBInstances[0].{Id:DBInstanceIdentifier,Status:DBInstanceStatus,BackupRetention:BackupRetentionPeriod,LatestRestorable:LatestRestorableTime}' \
-            --output json
-          echo "RDS_SNAPSHOTS"
-          aws rds describe-db-snapshots --db-instance-identifier "$RDS_ID" \
-            --query 'DBSnapshots | sort_by(@,&SnapshotCreateTime) | [-3:].[DBSnapshotIdentifier,Status,SnapshotCreateTime]' \
-            --output json
-          echo "RDS_NOTE GitHub deploy role may lack rds:Describe/CreateSnapshot. Automated 7-day PITR remains the platform recovery point (infra/aws/rds.tf)."
-      - name: Create manual snapshot before apply
-        if: ${{ github.event.inputs.apply == '1' }}
-        continue-on-error: true
-        run: |
-          set +e
-          SNAP="linkmate-batch1-pre-reset-$(date -u +%Y%m%d%H%M)"
-          echo "SNAPSHOT=$SNAP"
-          echo "SNAPSHOT=$SNAP" >> "$GITHUB_ENV"
-          aws rds create-db-snapshot \
-            --db-instance-identifier "$RDS_ID" \
-            --db-snapshot-identifier "$SNAP" \
-            --tags Key=purpose,Value=batch1-pre-reset
-          echo "SNAPSHOT_CREATE_EXIT=$?"
-      - name: SSM inventory or reset
-        env:
-          APPLY: ${{ github.event.inputs.apply || '0' }}
-          FORCE: ${{ github.event.inputs.force || '0' }}
+      - name: SSM inspect owner + recent app logs
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
-          python3 - <<'PY'
-          import json, os, pathlib
-          script = pathlib.Path("scripts/reset-test-business.mjs").read_text()
-          apply = os.environ.get("APPLY") == "1"
-          force = os.environ.get("FORCE") or "0"
-          run = (
-              "docker exec -e CONFIRM=LINKMATE-RESET-TEST-BUSINESS "
-              f"-e FORCE={force} -e NODE_PATH=/app/node_modules -w /app "
-              "linkmate node /tmp/reset-test-business.mjs --apply"
-              if apply else
-              "docker exec -e NODE_PATH=/app/node_modules -w /app linkmate node /tmp/reset-test-business.mjs"
-          )
-          commands = [
-              "set -euo pipefail",
-              "echo VERSION",
-              "curl -fsS -m 8 http://127.0.0.1:8080/api/version || true",
-              "echo HEALTH",
-              "curl -fsS -m 8 http://127.0.0.1:8080/api/health || true",
-              "echo DOCKER",
-              "docker ps",
-              "echo EXEC_PROBE",
-              "docker exec -w /app linkmate node -e 'console.log(1)' || (echo RESTARTING && docker restart linkmate && sleep 15 && docker exec -w /app linkmate node -e 'console.log(2)')",
-              "echo SCRIPT",
-              "cat > /tmp/reset-test-business.mjs << 'ENDSCRIPT'\n" + script + "\nENDSCRIPT",
-              "docker cp /tmp/reset-test-business.mjs linkmate:/tmp/reset-test-business.mjs",
-              "echo RUN",
-              run,
-          ]
-          pathlib.Path("/tmp/ssm-params.json").write_text(json.dumps({"commands": commands}))
-          PY
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Link Mate batch1 inventory/reset" \
-            --parameters file:///tmp/ssm-params.json \
+            --comment "Link Mate inspect owner shell" \
+            --parameters "commands=[
+              \"set -euo pipefail\",
+              \"echo VERSION\",
+              \"curl -fsS -m 8 http://127.0.0.1/api/version || true\",
+              \"echo HEALTH\",
+              \"curl -fsS -m 8 http://127.0.0.1/api/health || true\",
+              \"echo READY\",
+              \"curl -fsS -m 8 http://127.0.0.1/api/readiness || true\",
+              \"echo INSPECT\",
+              \"docker exec -e ADMIN_EMAIL=$ADMIN_EMAIL linkmate node scripts/inspect-owner.mjs\",
+              \"echo LOGS\",
+              \"docker logs --tail 250 linkmate 2>&1 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/[email]/g; s/postgres(ql)?:\\/\\/[^ ]+/postgres:\\/\\/[redacted]/g' | tail -n 250\"
+            ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
-          for i in $(seq 1 36); do
+          for i in $(seq 1 24); do
             STATUS=$(aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
             echo "status=$STATUS"
             if [ "$STATUS" = "Success" ] || [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then

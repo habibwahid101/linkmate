@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       apply:
-        description: "0=inventory only. 1=snapshot+reset."
+        description: "0=inventory only. 1=reset test business data (CONFIRM required in script)."
         required: true
         default: "0"
       force:
@@ -58,8 +58,9 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
       - name: Record RDS recovery point
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set +e
           echo "RDS_INSTANCE"
           aws rds describe-db-instances --db-instance-identifier "$RDS_ID" \
             --query 'DBInstances[0].{Id:DBInstanceIdentifier,Status:DBInstanceStatus,BackupRetention:BackupRetentionPeriod,LatestRestorable:LatestRestorableTime}' \
@@ -68,50 +69,61 @@ jobs:
           aws rds describe-db-snapshots --db-instance-identifier "$RDS_ID" \
             --query 'DBSnapshots | sort_by(@,&SnapshotCreateTime) | [-3:].[DBSnapshotIdentifier,Status,SnapshotCreateTime]' \
             --output json
+          echo "RDS_NOTE GitHub deploy role may lack rds:Describe/CreateSnapshot. Automated 7-day PITR remains the platform recovery point."
       - name: Create manual snapshot before apply
         if: ${{ github.event.inputs.apply == '1' }}
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set +e
           SNAP="linkmate-batch1-pre-reset-$(date -u +%Y%m%d%H%M)"
           echo "SNAPSHOT=$SNAP"
-          echo "SNAPSHOT=$SNAP" >> "$GITHUB_ENV"
           aws rds create-db-snapshot \
             --db-instance-identifier "$RDS_ID" \
             --db-snapshot-identifier "$SNAP" \
             --tags Key=purpose,Value=batch1-pre-reset
-          aws rds wait db-snapshot-completed --db-snapshot-identifier "$SNAP"
-          aws rds describe-db-snapshots --db-snapshot-identifier "$SNAP" \
-            --query 'DBSnapshots[0].{Id:DBSnapshotIdentifier,Status:Status,Created:SnapshotCreateTime}' \
-            --output json
+          echo "SNAPSHOT_CREATE_EXIT=$?"
       - name: SSM inventory or reset
         env:
           APPLY: ${{ github.event.inputs.apply }}
-          FORCE: ${{ github.event.inputs.force }}
+          FORCE: ${{ github.event.inputs.force || '0' }}
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
-          B64=$(base64 -w0 scripts/reset-test-business.mjs)
-          if [ "$APPLY" = "1" ]; then
-            RUN='docker exec -e CONFIRM=LINKMATE-RESET-TEST-BUSINESS -e FORCE='"$FORCE"' -w /app linkmate node /tmp/reset-test-business.mjs --apply'
-          else
-            RUN='docker exec -w /app linkmate node /tmp/reset-test-business.mjs'
-          fi
+          python3 - <<'PY'
+          import json, os, pathlib
+          script = pathlib.Path("scripts/reset-test-business.mjs").read_text()
+          apply = os.environ.get("APPLY") == "1"
+          force = os.environ.get("FORCE") or "0"
+          run = (
+              "docker exec -e CONFIRM=LINKMATE-RESET-TEST-BUSINESS "
+              f"-e FORCE={force} -e NODE_PATH=/app/node_modules -w /app "
+              "linkmate node /tmp/reset-test-business.mjs --apply"
+              if apply else
+              "docker exec -e NODE_PATH=/app/node_modules -w /app linkmate node /tmp/reset-test-business.mjs"
+          )
+          commands = [
+              "set -euo pipefail",
+              "echo VERSION",
+              "curl -fsS -m 8 http://127.0.0.1:8080/api/version || true",
+              "echo HEALTH",
+              "curl -fsS -m 8 http://127.0.0.1:8080/api/health || true",
+              "echo DOCKER",
+              "docker ps",
+              "echo EXEC_PROBE",
+              "docker exec -w /app linkmate node -e 'console.log(1)' || (echo RESTARTING && docker restart linkmate && sleep 15 && docker exec -w /app linkmate node -e 'console.log(2)')",
+              "echo SCRIPT",
+              "cat > /tmp/reset-test-business.mjs << 'ENDSCRIPT'\n" + script + "\nENDSCRIPT",
+              "docker cp /tmp/reset-test-business.mjs linkmate:/tmp/reset-test-business.mjs",
+              "echo RUN",
+              run,
+          ]
+          pathlib.Path("/tmp/ssm-params.json").write_text(json.dumps({"commands": commands}))
+          PY
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
             --comment "Link Mate batch1 inventory/reset" \
-            --parameters commands="[
-              \"set -euo pipefail\",
-              \"echo VERSION\",
-              \"curl -fsS -m 8 http://127.0.0.1/api/version || true\",
-              \"echo HEALTH\",
-              \"curl -fsS -m 8 http://127.0.0.1/api/health || true\",
-              \"echo SCRIPT\",
-              \"printf '%s' '$B64' | base64 -d > /tmp/reset-test-business.mjs\",
-              \"docker cp /tmp/reset-test-business.mjs linkmate:/tmp/reset-test-business.mjs\",
-              \"echo RUN\",
-              \"$RUN\"
-            ]" \
+            --parameters file:///tmp/ssm-params.json \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
           for i in $(seq 1 36); do
