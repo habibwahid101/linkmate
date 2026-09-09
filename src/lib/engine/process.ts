@@ -1,4 +1,4 @@
-import { STANDARD_ID_VALUE_BDT, type PackageId } from "../rules.ts";
+import { STANDARD_ID_VALUE_BDT, PACKAGES, type PackageId } from "../rules.ts";
 import { planPackagePlacement } from "./placement.ts";
 import { formatMemberId, makeReferralCode, uid } from "./ids.ts";
 import {
@@ -25,6 +25,27 @@ export {
   ensureWallet,
 };
 export type { SponsorHop, GenerationReconcileReport } from "./activation.ts";
+export type { Sql };
+
+type TxSql = Sql & { __inTx?: boolean };
+
+/** Nested-safe transaction boundary. No-ops if already inside a transaction. */
+export async function inTransaction<T>(sql: Sql, fn: (sql: Sql) => Promise<T>): Promise<T> {
+  const s = sql as TxSql;
+  if (s.__inTx) return fn(sql);
+  if (typeof s.withTransaction === "function") {
+    return s.withTransaction(async (tx) => {
+      const inner = tx as TxSql;
+      inner.__inTx = true;
+      try {
+        return await fn(inner);
+      } finally {
+        inner.__inTx = false;
+      }
+    });
+  }
+  return fn(sql);
+}
 
 async function nextMemberCode(sql: Sql): Promise<string> {
   const rows = await sql<{ n: number }>`select nextval('member_id_seq')::int as n`;
@@ -43,14 +64,20 @@ async function notify(
 }
 
 async function uniqueReferralCode(sql: Sql, seed: string): Promise<string> {
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 16; i++) {
     const code = makeReferralCode(i === 0 ? seed : `${seed}:${i}:${uid()}`);
     const taken = await sql<{ n: number }>`
       select count(*)::int as n from member_ids where referral_code = ${code}
     `;
-    if ((taken[0]?.n ?? 0) === 0) return code;
+    if (Number(taken[0]?.n ?? 0) === 0) return code;
   }
-  return makeReferralCode(uid());
+  const raw = uid().replace(/-/g, "");
+  let out = "";
+  for (let i = 0; i < 6; i++) {
+    const n = parseInt(raw.slice(i * 5, i * 5 + 5), 16) || i;
+    out += "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[n % 32]!;
+  }
+  return out;
 }
 
 async function insertMemberId(
@@ -68,37 +95,73 @@ async function insertMemberId(
   },
 ) {
   await assertAcyclicSponsor(sql, opts.id, opts.sponsorId);
-  const referralCode = await uniqueReferralCode(sql, opts.id);
-  await sql`
-    insert into member_ids (
-      id, owner_user_id, package_id, purchase_id, is_root, sponsor_id, parent_id,
-      placement_status, status, joining_amount_bdt, referral_code, current_level,
-      progression_status, activated_at, origin_kind
-    ) values (
-      ${opts.id}, ${opts.ownerUserId}, ${opts.packageId}, ${opts.purchaseId}, ${opts.isRoot},
-      ${opts.sponsorId}, ${opts.parentId}, ${opts.placementStatus}, 'active', ${STANDARD_ID_VALUE_BDT},
-      ${referralCode}, 1, 'ACTIVE', now(), ${opts.originKind}
-    )
-  `;
-  await ensureWallet(sql, opts.id, opts.ownerUserId);
-  await ensureLevelRows(sql, opts.id);
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const referralCode = await uniqueReferralCode(
+      sql,
+      attempt === 0 ? opts.id : `${opts.id}:${attempt}:${uid()}`,
+    );
+    try {
+      await sql`
+        insert into member_ids (
+          id, owner_user_id, package_id, purchase_id, is_root, sponsor_id, parent_id,
+          placement_status, status, joining_amount_bdt, referral_code, current_level,
+          progression_status, activated_at, origin_kind
+        ) values (
+          ${opts.id}, ${opts.ownerUserId}, ${opts.packageId}, ${opts.purchaseId}, ${opts.isRoot},
+          ${opts.sponsorId}, ${opts.parentId}, ${opts.placementStatus}, 'active', ${STANDARD_ID_VALUE_BDT},
+          ${referralCode}, 1, 'ACTIVE', now(), ${opts.originKind}
+        )
+      `;
+      return;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/member_ids_referral_code_uq|duplicate key.*referral_code/i.test(msg)) throw err;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Unable to allocate unique referral code");
 }
 
-export async function createIdsForPurchase(
+export type CreateIdsOpts = {
+  userId: string;
+  packageId: PackageId;
+  purchaseId: string;
+  externalSponsorId: string | null;
+  /** Test-only: throw after N member rows are inserted. */
+  failAfterCreated?: number;
+};
+
+async function loadExistingPurchaseIds(sql: Sql, purchaseId: string) {
+  return sql<{ id: string; is_root: boolean }>`
+    select id, is_root from member_ids where purchase_id = ${purchaseId}
+    order by created_at, id
+  `;
+}
+
+async function orchestratePurchaseIds(
   sql: Sql,
-  opts: {
-    userId: string;
-    packageId: PackageId;
-    purchaseId: string;
-    externalSponsorId: string | null;
-  },
+  opts: CreateIdsOpts,
 ): Promise<{ rootId: string; ids: string[] }> {
+  const expected = PACKAGES[opts.packageId].idCount;
+  const existing = await loadExistingPurchaseIds(sql, opts.purchaseId);
+  if (existing.length > 0) {
+    if (existing.length !== expected) {
+      throw new Error("Incomplete package ID set for this purchase");
+    }
+    const ids = existing.map((r) => r.id);
+    const rootId = existing.find((r) => r.is_root)?.id ?? ids[0]!;
+    for (const id of ids) await processNewId(sql, id);
+    return { rootId, ids };
+  }
+
   const plan = planPackagePlacement(opts.packageId);
   const codes: string[] = [];
   for (let i = 0; i < plan.length; i++) {
     codes.push(await nextMemberCode(sql));
   }
 
+  // Parent-before-child inserts so every child sponsor/placement FK target exists.
   for (let i = 0; i < plan.length; i++) {
     const p = plan[i]!;
     const id = codes[i]!;
@@ -136,8 +199,12 @@ export async function createIdsForPurchase(
         on conflict (child_id) do nothing
       `;
     }
+    if (opts.failAfterCreated != null && i + 1 >= opts.failAfterCreated) {
+      throw new Error("PACKAGE_TEST_FAILURE");
+    }
   }
 
+  // Activate in the same parent-before-child order. Engine owns progress/commission.
   for (let i = 0; i < plan.length; i++) {
     const p = plan[i]!;
     if (p.placementStatus === "pending_config" && !p.isRoot && p.sponsorIndex == null && p.parentIndex == null) {
@@ -158,6 +225,13 @@ export async function createIdsForPurchase(
   );
 
   return { rootId, ids: codes };
+}
+
+export async function createIdsForPurchase(
+  sql: Sql,
+  opts: CreateIdsOpts,
+): Promise<{ rootId: string; ids: string[] }> {
+  return inTransaction(sql, (tx) => orchestratePurchaseIds(tx, opts));
 }
 
 export async function attachExternalMember(

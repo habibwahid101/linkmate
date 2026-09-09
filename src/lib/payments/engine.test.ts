@@ -23,12 +23,24 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 let lastPg: PGlite | undefined;
 
 function wrap(pg: PGlite): Sql {
-  return (async <T>(strings: TemplateStringsArray, ...values: unknown[]) => {
-    let text = strings[0] ?? "";
-    for (let i = 0; i < values.length; i += 1) text += `$${i + 1}${strings[i + 1] ?? ""}`;
-    const result = await pg.query<T>(text, values);
-    return result.rows;
-  }) as Sql;
+  const bind = (client: { query: typeof pg.query }): Sql => {
+    const sql = (async <T>(strings: TemplateStringsArray, ...values: unknown[]) => {
+      let text = strings[0] ?? "";
+      for (let i = 0; i < values.length; i += 1) text += `$${i + 1}${strings[i + 1] ?? ""}`;
+      const result = await client.query<T>(text, values as never[]);
+      return result.rows;
+    }) as Sql;
+    return sql;
+  };
+  const sql = bind(pg);
+  sql.withTransaction = async <T>(fn: (tx: Sql) => Promise<T>) => {
+    return pg.transaction(async (tx) => {
+      const inner = bind(tx);
+      inner.withTransaction = async (nested) => nested(inner);
+      return fn(inner);
+    });
+  };
+  return sql;
 }
 
 async function makeSql(): Promise<{ sql: Sql; pg: PGlite }> {

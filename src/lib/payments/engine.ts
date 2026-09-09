@@ -1,5 +1,5 @@
 import { PACKAGES, type PackageId } from "../rules.ts";
-import { createIdsForPurchase } from "../engine/process.ts";
+import { createIdsForPurchase, inTransaction } from "../engine/process.ts";
 import { uid } from "../engine/ids.ts";
 import {
   type PaymentMethod,
@@ -14,6 +14,7 @@ export type Sql = {
     strings: TemplateStringsArray,
     ...values: unknown[]
   ): Promise<T[]>;
+  withTransaction?: <T>(fn: (sql: Sql) => Promise<T>) => Promise<T>;
 };
 
 export type PaymentSettingsRow = {
@@ -329,6 +330,13 @@ async function fulfill(
 }
 
 export async function approvePayment(
+  sql: Sql,
+  opts: { requestId: string; adminUserId: string },
+): Promise<{ purchaseId: string; rootId: string; ids: string[]; replayed: boolean }> {
+  return inTransaction(sql, (tx) => approvePaymentInner(tx, opts));
+}
+
+async function approvePaymentInner(
   sql: Sql,
   opts: { requestId: string; adminUserId: string },
 ): Promise<{ purchaseId: string; rootId: string; ids: string[]; replayed: boolean }> {
