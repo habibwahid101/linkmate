@@ -111,6 +111,8 @@ jobs:
               \"curl -fsS -m 8 http://127.0.0.1/api/health || true\",
               \"echo DOCKER\",
               \"docker ps\",
+              \"echo EXEC_PROBE\",
+              \"docker exec linkmate node -e 'console.log(1)' || (echo RESTARTING && docker restart linkmate && sleep 12 && docker exec linkmate node -e 'console.log(2)')\",
               \"echo FETCH\",
               \"curl -fsSL $SCRIPT_URL -o /tmp/reset-test-business.mjs\",
               \"docker cp /tmp/reset-test-business.mjs linkmate:/tmp/reset-test-business.mjs\",
