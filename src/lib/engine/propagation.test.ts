@@ -35,6 +35,7 @@ async function makeSql(): Promise<Sql> {
   await pg.waitReady;
   await pg.exec(readFileSync(join(ROOT, "migrations/0002_schema.sql"), "utf8"));
   await pg.exec(readFileSync(join(ROOT, "migrations/0003_hardening.sql"), "utf8"));
+  await pg.exec(readFileSync(join(ROOT, "migrations/0010_id_based_engine.sql"), "utf8"));
   return wrap(pg);
 }
 async function insertUser(sql: Sql, userId: string, name: string) {
@@ -93,7 +94,7 @@ test("builder: X Gen1 = 1, L1 1/3, 880 HELD", async () => {
   assert.ok((c[0]!.statuses as string[]).every((s) => s === "HELD"));
 });
 
-test("turbo: X Gen1=1 Gen2=3; Y L1 released; directs stay root-only", async () => {
+test("turbo: sponsor stays L1 1/3; buyer L1 released; internals are informational gen2", async () => {
   const sql = await makeSql();
   await insertUser(sql, "u-x", "X");
   await insertUser(sql, "u-y", "Y");
@@ -107,20 +108,20 @@ test("turbo: X Gen1=1 Gen2=3; Y L1 released; directs stay root-only", async () =
   const xl2 = await progress(sql, x.rootId, 2);
   assert.equal(xl1.completed_members, 1);
   assert.equal(Number(xl1.accumulated_commission), 880);
-  assert.equal(xl2.completed_members, 3);
-  assert.equal(Number(xl2.accumulated_commission), 1980);
+  assert.equal(xl2.completed_members, 0);
   assert.equal(xl1.status, "IN_PROGRESS");
-  assert.equal(xl2.status, "IN_PROGRESS");
+  assert.equal(xl2.status, "LOCKED");
   const yl1 = await progress(sql, y.rootId, 1);
   assert.equal(yl1.status, "RELEASED");
   assert.equal(Number(yl1.accumulated_commission), 2640);
   assert.equal((await wallet(sql, y.rootId)).available, 2640);
   const xc = await comms(sql, x.rootId);
-  assert.equal(Number(xc.find((r) => r.generation === 1)!.amt), 880);
-  assert.equal(Number(xc.find((r) => r.generation === 2)!.amt), 1980);
+  assert.equal(xc.length, 1);
+  assert.equal(Number(xc[0]!.amt), 880);
+  assert.equal(xc[0]!.level, 1);
 });
 
-test("super turbo: X Gen1+2+3 and Y completes L1+L2", async () => {
+test("super turbo: Y completes L1+L2; sponsor X stays L1 1/3", async () => {
   const sql = await makeSql();
   await insertUser(sql, "u-x", "X");
   await insertUser(sql, "u-y", "Y");
@@ -134,17 +135,15 @@ test("super turbo: X Gen1+2+3 and Y completes L1+L2", async () => {
   const xl2 = await progress(sql, x.rootId, 2);
   const xl3 = await progress(sql, x.rootId, 3);
   assert.equal(xl1.completed_members, 1);
-  assert.equal(xl2.completed_members, 3);
-  assert.equal(xl3.completed_members, 9);
+  assert.equal(xl2.completed_members, 0);
+  assert.equal(xl3.completed_members, 0);
   assert.equal(Number(xl1.accumulated_commission), 880);
-  assert.equal(Number(xl2.accumulated_commission), 1980);
-  assert.equal(Number(xl3.accumulated_commission), 2970);
   assert.equal((await progress(sql, y.rootId, 1)).status, "RELEASED");
   assert.equal((await progress(sql, y.rootId, 2)).status, "RELEASED");
   assert.equal((await wallet(sql, y.rootId)).available, 2640 + 5940);
 });
 
-test("hyper turbo: X Gen1–4; Y L1+L2 released, L3 9/27 held 2970", async () => {
+test("hyper turbo: Y L1+L2 released, L3 9/27; sponsor X stays L1 1/3", async () => {
   const sql = await makeSql();
   await insertUser(sql, "u-x", "X");
   await insertUser(sql, "u-y", "Y");
@@ -157,10 +156,10 @@ test("hyper turbo: X Gen1–4; Y L1+L2 released, L3 9/27 held 2970", async () =>
   assert.equal(y.ids[13] && (await sql<{ sponsor_id: string }>`select sponsor_id from member_ids where id = ${y.ids[13]}`)[0]!.sponsor_id, y.ids[5]);
   assert.equal(y.ids[16] && (await sql<{ sponsor_id: string }>`select sponsor_id from member_ids where id = ${y.ids[16]}`)[0]!.sponsor_id, y.ids[8]);
   assert.equal(y.ids[19] && (await sql<{ sponsor_id: string }>`select sponsor_id from member_ids where id = ${y.ids[19]}`)[0]!.sponsor_id, y.ids[11]);
+  const xl1 = await progress(sql, x.rootId, 1);
   const xl4 = await progress(sql, x.rootId, 4);
-  assert.equal(xl4.completed_members, 9);
-  assert.equal(Number(xl4.accumulated_commission), 1980);
-  assert.equal(xl4.status, "IN_PROGRESS");
+  assert.equal(xl1.completed_members, 1);
+  assert.equal(xl4.completed_members, 0);
   const yl3 = await progress(sql, y.rootId, 3);
   assert.equal(yl3.completed_members, 9);
   assert.equal(yl3.status, "IN_PROGRESS");
@@ -216,7 +215,7 @@ test("placement plan for hyper turbo is unchanged 1+3+9+9 via A2/B2/C2", () => {
   assert.deepEqual(plan.filter((p) => p.sponsorIndex === 11).map((p) => p.index), [19, 20, 21]);
 });
 
-test("reconciliation backfills omitted upstream gens and is idempotent", async () => {
+test("reconciliation backfills omitted generation rows without creating retroactive commissions", async () => {
   const sql = await makeSql();
   await insertUser(sql, "u-x", "X");
   await insertUser(sql, "u-y", "Y");
@@ -224,30 +223,21 @@ test("reconciliation backfills omitted upstream gens and is idempotent", async (
   const y = await createIdsForPurchase(sql, { userId: "u-y", packageId: "turbo", purchaseId: "p-y", externalSponsorId: x.rootId });
   for (const id of y.ids.slice(1)) {
     await sql`delete from generation_memberships where member_id = ${id} and beneficiary_id = ${x.rootId}`;
-    await sql`delete from commission_entries where source_id = ${id} and beneficiary_id = ${x.rootId}`;
   }
-  await sql`delete from held_commissions where member_id = ${x.rootId} and level = 2`;
-  await sql`update level_progress set completed_members = 0, remaining_members = 9, accumulated_commission = 0, status = 'LOCKED' where member_id = ${x.rootId} and level = 2`;
   assert.deepEqual(await gens(sql, x.rootId), { 1: 1 });
 
   const dry = await reconcileGenerationAncestry(sql, { dryRun: true });
   assert.equal(dry.dryRun, true);
   assert.ok(dry.missingMemberships >= 3);
-  assert.ok(dry.missingCommissions >= 3);
+  assert.equal(dry.missingCommissions, 0);
   assert.deepEqual(await gens(sql, x.rootId), { 1: 1 });
 
   const applied = await reconcileGenerationAncestry(sql, { dryRun: false });
   assert.equal(applied.dryRun, false);
   assert.deepEqual(await gens(sql, x.rootId), { 1: 1, 2: 3 });
   const l2 = await progress(sql, x.rootId, 2);
-  assert.equal(l2.completed_members, 3);
-  assert.equal(Number(l2.accumulated_commission), 1980);
-  assert.equal(l2.status, "IN_PROGRESS");
-
-  const again = await reconcileGenerationAncestry(sql, { dryRun: false });
-  assert.equal(again.missingMemberships, 0);
-  assert.equal(again.missingCommissions, 0);
+  assert.equal(l2.completed_members, 0);
   const commCount = await sql<{ n: number }>`
     select count(*)::int as n from commission_entries where beneficiary_id = ${x.rootId}`;
-  assert.equal(commCount[0]!.n, 4);
+  assert.equal(commCount[0]!.n, 1);
 });

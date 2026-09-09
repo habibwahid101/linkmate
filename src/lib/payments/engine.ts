@@ -153,6 +153,14 @@ export async function savePaymentMethod(
 async function resolveSponsor(sql: Sql, referralCode: string | undefined): Promise<string | null> {
   const code = referralCode?.trim().toUpperCase();
   if (!code) return null;
+  const byMemberCode = await sql<{ id: string }>`
+    select id from member_ids where upper(referral_code) = ${code}
+  `;
+  if (byMemberCode[0]) return byMemberCode[0].id;
+  const byId = await sql<{ id: string }>`
+    select id from member_ids where id = ${code} or id = ${"LM-" + code}
+  `;
+  if (byId[0]) return byId[0].id;
   const byUser = await sql<{ user_id: string; active_id: string | null }>`
     select user_id, active_id from app_users where upper(referral_code) = ${code}
   `;
@@ -164,9 +172,7 @@ async function resolveSponsor(sql: Sql, referralCode: string | undefined): Promi
     `;
     return first[0]?.id ?? null;
   }
-  const byId = await sql<{ id: string }>`select id from member_ids where id = ${code}`;
-  if (!byId[0]) throw new Error("Invalid referral code");
-  return byId[0].id;
+  throw new Error("Invalid referral code");
 }
 
 export async function submitPaymentRequest(sql: Sql, input: SubmitPaymentInput): Promise<PaymentRequestRow> {

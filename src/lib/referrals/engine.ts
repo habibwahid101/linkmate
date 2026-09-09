@@ -15,14 +15,23 @@ export type ClaimResult = {
 async function resolveSponsorUser(sql: Sql, raw: string) {
   const code = raw.trim().toUpperCase();
   if (!code) return null;
+  const byMemberCode = await sql<{ owner_user_id: string; referral_code: string }>`
+    select owner_user_id, referral_code from member_ids where upper(referral_code) = ${code}
+  `;
+  if (byMemberCode[0]?.referral_code) {
+    return { user_id: byMemberCode[0].owner_user_id, referral_code: byMemberCode[0].referral_code };
+  }
   const byUser = await sql<{ user_id: string; referral_code: string }>`
     select user_id, referral_code from app_users where upper(referral_code) = ${code}
   `;
   if (byUser[0]) return byUser[0];
-  const byId = await sql<{ owner_user_id: string }>`
-    select owner_user_id from member_ids where id = ${code} or id = ${"LM-" + code}
+  const byId = await sql<{ owner_user_id: string; referral_code: string | null }>`
+    select owner_user_id, referral_code from member_ids where id = ${code} or id = ${"LM-" + code}
   `;
   if (!byId[0]) return null;
+  if (byId[0].referral_code) {
+    return { user_id: byId[0].owner_user_id, referral_code: byId[0].referral_code };
+  }
   const owner = await sql<{ user_id: string; referral_code: string }>`
     select user_id, referral_code from app_users where user_id = ${byId[0].owner_user_id}
   `;

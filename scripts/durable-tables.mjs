@@ -17,6 +17,8 @@ export const DURABLE_TABLES = [
   "sponsor_relationships",
   "placement_relationships",
   "generation_memberships",
+  "membership_activation_events",
+  "membership_activation_impacts",
   "level_progress",
   "commission_entries",
   "held_commissions",

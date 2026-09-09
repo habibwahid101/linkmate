@@ -33,6 +33,7 @@ async function makeSql(): Promise<Sql> {
   await pg.exec(readFileSync(join(ROOT, "migrations/0002_schema.sql"), "utf8"));
   await pg.exec(readFileSync(join(ROOT, "migrations/0006_withdrawals.sql"), "utf8"));
   await pg.exec(readFileSync(join(ROOT, "migrations/0007_referral_lock_withdraw_fee.sql"), "utf8"));
+  await pg.exec(readFileSync(join(ROOT, "migrations/0010_id_based_engine.sql"), "utf8"));
   return wrap(pg);
 }
 
@@ -61,5 +62,25 @@ describe("intended referral lock", () => {
     `;
     await assert.rejects(() => claimIntendedReferral(sql, "buyer", "BUY001"), /yourself/);
     await assert.rejects(() => claimIntendedReferral(sql, "buyer", "NOPE00"), /Invalid referral/);
+  });
+
+  it("locks an exact Membership ID referral code", async () => {
+    const sql = await makeSql();
+    await sql`
+      insert into app_users (user_id, display_name, email, role, referral_code, is_synthetic)
+      values ('sponsor', 'Sponsor', 's@lm.test', 'member', 'SPON01', false),
+             ('buyer', 'Buyer', 'b@lm.test', 'member', 'BUY001', false)
+    `;
+    await sql`
+      insert into member_ids (
+        id, owner_user_id, package_id, is_root, placement_status, joining_amount_bdt, referral_code
+      ) values (
+        'LM-900001', 'sponsor', 'builder', true, 'placed', 11000, 'IDCODE'
+      )
+    `;
+    const claimed = await claimIntendedReferral(sql, "buyer", "idcode");
+    assert.equal(claimed.locked, true);
+    assert.equal(claimed.referralCode, "IDCODE");
+    assert.equal(claimed.sponsorUserId, "sponsor");
   });
 });
