@@ -93,32 +93,41 @@ jobs:
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
-          SCRIPT_URL="https://raw.githubusercontent.com/habibwahid101/linkmate/ops/batch1/scripts/reset-test-business.mjs"
-          if [ "$APPLY" = "1" ]; then
-            RUN="docker exec -e CONFIRM=LINKMATE-RESET-TEST-BUSINESS -e FORCE=$FORCE -e NODE_PATH=/app/node_modules linkmate node /tmp/reset-test-business.mjs --apply"
-          else
-            RUN="docker exec -e NODE_PATH=/app/node_modules linkmate node /tmp/reset-test-business.mjs"
-          fi
+          python3 - <<'PY'
+          import json, os, pathlib
+          script = pathlib.Path("scripts/reset-test-business.mjs").read_text()
+          apply = os.environ.get("APPLY") == "1"
+          force = os.environ.get("FORCE") or "0"
+          run = (
+              "docker exec -e CONFIRM=LINKMATE-RESET-TEST-BUSINESS "
+              f"-e FORCE={force} -e NODE_PATH=/app/node_modules -w /app "
+              "linkmate node /tmp/reset-test-business.mjs --apply"
+              if apply else
+              "docker exec -e NODE_PATH=/app/node_modules -w /app linkmate node /tmp/reset-test-business.mjs"
+          )
+          commands = [
+              "set -euo pipefail",
+              "echo VERSION",
+              "curl -fsS -m 8 http://127.0.0.1:8080/api/version || true",
+              "echo HEALTH",
+              "curl -fsS -m 8 http://127.0.0.1:8080/api/health || true",
+              "echo DOCKER",
+              "docker ps",
+              "echo EXEC_PROBE",
+              "docker exec -w /app linkmate node -e 'console.log(1)' || (echo RESTARTING && docker restart linkmate && sleep 15 && docker exec -w /app linkmate node -e 'console.log(2)')",
+              "echo SCRIPT",
+              "cat > /tmp/reset-test-business.mjs << 'ENDSCRIPT'\n" + script + "\nENDSCRIPT",
+              "docker cp /tmp/reset-test-business.mjs linkmate:/tmp/reset-test-business.mjs",
+              "echo RUN",
+              run,
+          ]
+          pathlib.Path("/tmp/ssm-params.json").write_text(json.dumps({"commands": commands}))
+          PY
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
             --comment "Link Mate batch1 inventory/reset" \
-            --parameters "commands=[
-              \"set -euo pipefail\",
-              \"echo VERSION\",
-              \"curl -fsS -m 8 http://127.0.0.1/api/version || true\",
-              \"echo HEALTH\",
-              \"curl -fsS -m 8 http://127.0.0.1/api/health || true\",
-              \"echo DOCKER\",
-              \"docker ps\",
-              \"echo EXEC_PROBE\",
-              \"docker exec linkmate node -e 'console.log(1)' || (echo RESTARTING && docker restart linkmate && sleep 12 && docker exec linkmate node -e 'console.log(2)')\",
-              \"echo FETCH\",
-              \"curl -fsSL $SCRIPT_URL -o /tmp/reset-test-business.mjs\",
-              \"docker cp /tmp/reset-test-business.mjs linkmate:/tmp/reset-test-business.mjs\",
-              \"echo RUN\",
-              \"$RUN\"
-            ]" \
+            --parameters file:///tmp/ssm-params.json \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
           for i in $(seq 1 36); do
