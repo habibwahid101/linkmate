@@ -4,62 +4,33 @@ import { getSql, advisoryLock, dbSource } from "@/lib/db";
 import { runtimeFlags, PAYMENTS_DISABLED_MESSAGE, assertDurableMutations } from "@/lib/runtime";
 import { assertRateLimit } from "@/lib/server/rate-limit";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { PACKAGES, PACKAGE_IDS, type PackageId } from "@/lib/rules";
+import { PACKAGES, PACKAGE_IDS } from "@/lib/rules";
 import { toInt } from "@/lib/money";
 import { uid } from "@/lib/engine/ids";
 import { createIdsForPurchase, attachExternalMember } from "@/lib/engine/process";
 import { ensureProfileRow } from "@/lib/server/profile";
+import { resolveSponsorMember } from "@/lib/referrals/engine";
+import {
+  loadCompactIds,
+  loadMembershipIdDetail,
+  loadIdNetwork,
+  loadInviteForId,
+  resolveOwnedId,
+  accountFromCompact,
+} from "@/lib/server/id-views";
+import { summarizeAccount } from "@/lib/id-workspace";
 
 const packageIdSchema = z.enum(PACKAGE_IDS);
-
-async function resolveActiveId(userId: string, preferred?: string | null) {
-  const sql = await getSql();
-  if (preferred) {
-    const ok = await sql<{ id: string }>`
-      select id from member_ids where id = ${preferred} and owner_user_id = ${userId}
-    `;
-    if (ok[0]) return ok[0].id;
-  }
-  const profile = await sql<{ active_id: string | null }>`
-    select active_id from app_users where user_id = ${userId}
-  `;
-  if (profile[0]?.active_id) {
-    const ok = await sql<{ id: string }>`
-      select id from member_ids where id = ${profile[0].active_id} and owner_user_id = ${userId}
-    `;
-    if (ok[0]) return ok[0].id;
-  }
-  const first = await sql<{ id: string }>`
-    select id from member_ids where owner_user_id = ${userId} order by created_at asc limit 1
-  `;
-  return first[0]?.id ?? null;
-}
+const optionalMemberId = z.object({ memberId: z.string().min(3).max(40).optional() }).optional();
+const requiredMemberId = z.object({ memberId: z.string().min(3).max(40) });
 
 export const getDashboard = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
     const profile = await ensureProfileRow(context.userId, "Member", null);
-    const activeId = await resolveActiveId(context.userId, profile.activeId);
-
-    const ids = await sql<{
-      id: string;
-      package_id: string;
-      is_root: boolean;
-      sponsor_id: string | null;
-      parent_id: string | null;
-      placement_status: string;
-      status: string;
-      created_at: string;
-      current_level: number | null;
-      progression_status: string | null;
-      referral_code: string | null;
-    }>`
-      select id, package_id, is_root, sponsor_id, parent_id, placement_status, status, created_at,
-             current_level, progression_status, referral_code
-      from member_ids where owner_user_id = ${context.userId}
-      order by created_at asc
-    `;
+    const ids = await loadCompactIds(sql, context.userId);
+    const summary = accountFromCompact(ids);
 
     const purchases = await sql<{
       id: string;
@@ -71,134 +42,38 @@ export const getDashboard = createServerFn({ method: "GET" })
       where user_id = ${context.userId} order by created_at desc
     `;
 
-    const latestPackage = purchases[0]?.package_id ?? null;
-
-    const walletAgg = await sql<{ available: number; released: number }>`
-      select coalesce(sum(available_balance),0)::int as available,
-             coalesce(sum(total_released),0)::int as released
-      from wallets where owner_user_id = ${context.userId}
-    `;
-    const heldAgg = await sql<{ held: number }>`
-      select coalesce(sum(amount),0)::int as held
-      from held_commissions where owner_user_id = ${context.userId}
-    `;
-
-    let currentLevel = 0;
-    let levelProgress: {
-      level: number;
-      generation: number;
-      required_members: number;
-      completed_members: number;
-      remaining_members: number;
-      accumulated_commission: number;
-      expected_full_commission: number;
-      status: string;
-    }[] = [];
-    let directSponsors = 0;
-    let generationTotal = 0;
-    let idWallet = { available: 0, held: 0, released: 0 };
-    let activeMeta: (typeof ids)[number] | null = null;
-
-    if (activeId) {
-      activeMeta = ids.find((i) => i.id === activeId) ?? null;
-      levelProgress = await sql`
-        select level, generation, required_members, completed_members, remaining_members,
-               accumulated_commission, expected_full_commission, status
-        from level_progress where member_id = ${activeId} order by level
-      `;
-      const inPlay = [...levelProgress].reverse().find((l) => l.status === "IN_PROGRESS" || l.status === "ELIGIBLE");
-      const released = [...levelProgress].reverse().find((l) => l.status === "RELEASED");
-      currentLevel = Number(activeMeta?.current_level) || inPlay?.level || released?.level || 1;
-
-      const d = await sql<{ n: number }>`
-        select count(*)::int as n from sponsor_relationships where sponsor_id = ${activeId}
-      `;
-      directSponsors = d[0]?.n ?? 0;
-      const g = await sql<{ n: number }>`
-        select count(*)::int as n from generation_memberships where beneficiary_id = ${activeId}
-      `;
-      generationTotal = g[0]?.n ?? 0;
-
-      const w = await sql<{ available_balance: number; total_released: number }>`
-        select available_balance, total_released from wallets where member_id = ${activeId}
-      `;
-      const h = await sql<{ held: number }>`
-        select coalesce(sum(amount),0)::int as held from held_commissions where member_id = ${activeId}
-      `;
-      idWallet = {
-        available: toInt(w[0]?.available_balance),
-        released: toInt(w[0]?.total_released),
-        held: toInt(h[0]?.held),
-      };
-    }
-
     const recentTx = await sql<{
       id: string;
       amount: number;
       source: string;
       level: number | null;
-      generation: number | null;
       status: string;
       created_at: string;
       member_id: string;
     }>`
-      select id, amount, source, level, generation, status, created_at, member_id
+      select id, amount, source, level, status, created_at, member_id
       from wallet_transactions where owner_user_id = ${context.userId}
       order by created_at desc limit 6
     `;
-
-    const recentMembers = activeId
-      ? await sql<{
-          member_id: string;
-          generation: number;
-          display_name: string;
-          package_id: string;
-          created_at: string;
-        }>`
-          select gm.member_id, gm.generation, u.display_name, m.package_id, m.created_at
-          from generation_memberships gm
-          join member_ids m on m.id = gm.member_id
-          join app_users u on u.user_id = m.owner_user_id
-          where gm.beneficiary_id = ${activeId}
-          order by m.created_at desc limit 6
-        `
-      : [];
 
     const unread = await sql<{ n: number }>`
       select count(*)::int as n from notifications where user_id = ${context.userId} and read = false
     `;
 
-    const next = levelProgress.find((l) => l.status === "IN_PROGRESS" || l.status === "ELIGIBLE")
-      ?? levelProgress.find((l) => l.status === "LOCKED");
-
     return {
       profile,
-      activeId,
-      activeMeta,
       ids,
-      latestPackage,
-      currentLevel,
-      directSponsors,
-      generationTotal,
+      latestPackage: purchases[0]?.package_id ?? null,
       wallet: {
-        available: toInt(walletAgg[0]?.available),
-        held: toInt(heldAgg[0]?.held),
-        released: toInt(walletAgg[0]?.released),
+        available: summary.available,
+        held: summary.held,
+        released: summary.released,
       },
-      idWallet,
-      levelProgress,
-      nextMilestone: next
-        ? {
-            level: next.level,
-            remaining: next.remaining_members,
-            required: next.required_members,
-            completed: next.completed_members,
-            nextRelease: next.expected_full_commission,
-            status: next.status,
-          }
-        : null,
+      idCount: summary.idCount,
+      highestActiveLevel: summary.highestActiveLevel,
+      idsInProgress: summary.idsInProgress,
+      graduatedCount: summary.graduatedCount,
       recentTx,
-      recentMembers,
       unread: unread[0]?.n ?? 0,
       flags: runtimeFlags(),
     };
@@ -209,115 +84,35 @@ export const listMyIds = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sql = await getSql();
     await ensureProfileRow(context.userId, "Member", null);
-    const rows = await sql<{
-      id: string;
-      package_id: string;
-      sponsor_id: string | null;
-      parent_id: string | null;
-      placement_status: string;
-      status: string;
-      is_root: boolean;
-      created_at: string;
-    }>`
-      select id, package_id, sponsor_id, parent_id, placement_status, status, is_root, created_at
-      from member_ids where owner_user_id = ${context.userId} order by created_at asc
-    `;
-    if (rows.length === 0) return [];
+    return loadCompactIds(sql, context.userId);
+  });
 
-    const wallets = await sql<{ member_id: string; available_balance: number; total_released: number }>`
-      select member_id, available_balance, total_released from wallets where owner_user_id = ${context.userId}
-    `;
-    const heldRows = await sql<{ member_id: string; held: number }>`
-      select member_id, coalesce(sum(amount),0)::int as held
-      from held_commissions where owner_user_id = ${context.userId}
-      group by member_id
-    `;
-    const progress = await sql<{ member_id: string; level: number; status: string }>`
-      select lp.member_id, lp.level, lp.status
-      from level_progress lp
-      join member_ids m on m.id = lp.member_id
-      where m.owner_user_id = ${context.userId}
-    `;
-
-    const walletBy = new Map(wallets.map((w) => [w.member_id, w]));
-    const heldBy = new Map(heldRows.map((h) => [h.member_id, toInt(h.held)]));
-    const inPlay = new Map<string, number>();
-    const lastReleased = new Map<string, number>();
-    const completedBy = new Map<string, number>();
-    const l9 = new Set<string>();
-    for (const row of progress) {
-      if (row.status === "IN_PROGRESS" || row.status === "ELIGIBLE") {
-        const prev = inPlay.get(row.member_id);
-        if (prev == null || row.level < prev) inPlay.set(row.member_id, row.level);
-      }
-      if (row.status === "RELEASED") {
-        const prev = lastReleased.get(row.member_id) ?? 0;
-        if (row.level > prev) lastReleased.set(row.member_id, row.level);
-        completedBy.set(row.member_id, (completedBy.get(row.member_id) ?? 0) + 1);
-        if (row.level === 9) l9.add(row.member_id);
-      }
-    }
-
-    const directs = await sql<{ sponsor_id: string; n: number }>`
-      select sponsor_id, count(*)::int as n
-      from sponsor_relationships
-      where sponsor_id in (select id from member_ids where owner_user_id = ${context.userId})
-      group by sponsor_id
-    `;
-    const directBy = new Map(directs.map((d) => [d.sponsor_id, d.n]));
-
-    return rows.map((row) => ({
-      ...row,
-      held: heldBy.get(row.id) ?? 0,
-      available: toInt(walletBy.get(row.id)?.available_balance),
-      released: toInt(walletBy.get(row.id)?.total_released),
-      currentLevel: inPlay.get(row.id) ?? lastReleased.get(row.id) ?? 1,
-      directSponsors: directBy.get(row.id) ?? 0,
-      completedLevels: completedBy.get(row.id) ?? 0,
-      level9Released: l9.has(row.id),
-    }));
+export const getMembershipIdDetail = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator(requiredMemberId)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    return loadMembershipIdDetail(sql, context.userId, data.memberId);
   });
 
 export const getTeam = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
-  .validator(z.object({ memberId: z.string().optional() }).optional())
+  .validator(optionalMemberId)
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    const activeId = await resolveActiveId(context.userId, data?.memberId ?? null);
+    const activeId = await resolveOwnedId(sql, context.userId, data?.memberId ?? null);
     if (!activeId) {
-      return { activeId: null, levels: [], members: [] as never[], flags: runtimeFlags() };
+      return {
+        activeId: null,
+        levels: [],
+        directs: [] as never[],
+        members: [] as never[],
+        hasMore: false,
+        flags: runtimeFlags(),
+      };
     }
-    const progress = await sql<{
-      level: number;
-      generation: number;
-      required_members: number;
-      completed_members: number;
-      remaining_members: number;
-      status: string;
-    }>`
-      select level, generation, required_members, completed_members, remaining_members, status
-      from level_progress where member_id = ${activeId} order by level
-    `;
-    const members = await sql<{
-      member_id: string;
-      generation: number;
-      display_name: string;
-      package_id: string;
-      created_at: string;
-      status: string;
-      sponsor_id: string | null;
-      owner_user_id: string;
-    }>`
-      select gm.member_id, gm.generation, u.display_name, m.package_id, m.created_at,
-             m.status, m.sponsor_id, m.owner_user_id
-      from generation_memberships gm
-      join member_ids m on m.id = gm.member_id
-      join app_users u on u.user_id = m.owner_user_id
-      where gm.beneficiary_id = ${activeId}
-      order by gm.generation, m.created_at
-      limit 1500
-    `;
-    return { activeId, levels: progress, members, flags: runtimeFlags() };
+    const network = await loadIdNetwork(sql, context.userId, activeId);
+    return { ...network, flags: runtimeFlags() };
   });
 
 export const getWallet = createServerFn({ method: "GET" })
@@ -325,11 +120,8 @@ export const getWallet = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sql = await getSql();
     await ensureProfileRow(context.userId, "Member", null);
-    const wallets = await sql<{
-      member_id: string;
-      available_balance: number;
-      total_released: number;
-    }>`select member_id, available_balance, total_released from wallets where owner_user_id = ${context.userId}`;
+    const ids = await loadCompactIds(sql, context.userId);
+    const summary = summarizeAccount(ids);
     const held = await sql<{ member_id: string; level: number; amount: number }>`
       select member_id, level, amount from held_commissions
       where owner_user_id = ${context.userId} and amount > 0
@@ -366,10 +158,16 @@ export const getWallet = createServerFn({ method: "GET" })
       order by held_at desc limit 100
     `;
     return {
-      wallets: wallets.map((w) => ({
-        memberId: w.member_id,
-        available: toInt(w.available_balance),
-        released: toInt(w.total_released),
+      summary,
+      ids,
+      wallets: ids.map((id) => ({
+        memberId: id.id,
+        available: id.available,
+        released: id.released,
+        held: id.held,
+        currentLevel: id.current_level,
+        packageId: id.package_id,
+        progressionStatus: id.progression_status,
       })),
       held: held.map((h) => ({
         memberId: h.member_id,
@@ -383,28 +181,24 @@ export const getWallet = createServerFn({ method: "GET" })
 
 export const getLevels = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
-  .validator(z.object({ memberId: z.string().optional() }).optional())
+  .validator(optionalMemberId)
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    const activeId = await resolveActiveId(context.userId, data?.memberId ?? null);
-    if (!activeId) return { activeId: null, levels: [] as never[] };
-    const rows = await sql<{
-      level: number;
-      generation: number;
-      required_members: number;
-      completed_members: number;
-      remaining_members: number;
-      accumulated_commission: number;
-      expected_full_commission: number;
-      status: string;
-      completed_at: string | null;
-      released_at: string | null;
-    }>`
-      select level, generation, required_members, completed_members, remaining_members,
-             accumulated_commission, expected_full_commission, status, completed_at, released_at
-      from level_progress where member_id = ${activeId} order by level
-    `;
-    return { activeId, levels: rows };
+    const activeId = await resolveOwnedId(sql, context.userId, data?.memberId ?? null);
+    if (!activeId) return { activeId: null, levels: [] as never[], meta: null };
+    const detail = await loadMembershipIdDetail(sql, context.userId, activeId);
+    return {
+      activeId,
+      levels: detail.journey,
+      meta: {
+        id: detail.id,
+        currentLevel: detail.current_level,
+        progressionStatus: detail.progression_status,
+        packageId: detail.package_id,
+        isRoot: detail.is_root,
+        currentProgress: detail.currentProgress,
+      },
+    };
   });
 
 const purchaseLocks = (globalThis as typeof globalThis & {
@@ -478,27 +272,9 @@ export const purchasePackage = createServerFn({ method: "POST" })
     let sponsorMemberId: string | null = null;
     const code = data.referralCode?.trim().toUpperCase();
     if (code) {
-      const byUser = await sql<{ user_id: string; active_id: string | null }>`
-        select user_id, active_id from app_users where referral_code = ${code}
-      `;
-      if (byUser[0]) {
-        sponsorMemberId = byUser[0].active_id;
-        if (!sponsorMemberId) {
-          const first = await sql<{ id: string }>`
-            select id from member_ids where owner_user_id = ${byUser[0].user_id}
-            order by created_at asc limit 1
-          `;
-          sponsorMemberId = first[0]?.id ?? null;
-        }
-      } else {
-        const byId = await sql<{ id: string }>`
-          select id from member_ids where id = ${code}
-        `;
-        sponsorMemberId = byId[0]?.id ?? null;
-      }
-      if (!sponsorMemberId) {
-        throw new Error("Invalid referral code");
-      }
+      const sponsor = await resolveSponsorMember(sql, code);
+      if (!sponsor) throw new Error("Invalid referral code");
+      sponsorMemberId = sponsor.memberId;
     }
 
     const purchaseId = uid();
@@ -698,33 +474,66 @@ export const simulateDirectJoin = createServerFn({ method: "POST" })
 
 export const getInvite = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
-  .handler(async ({ context }) => {
+  .validator(optionalMemberId)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
     const profile = await ensureProfileRow(context.userId, "Member", null);
-    const activeId = await resolveActiveId(context.userId, profile.activeId);
-    return {
-      referralCode: profile.referralCode,
-      activeId,
-      displayName: profile.displayName,
-    };
+    const ids = await loadCompactIds(sql, context.userId);
+    if (ids.length === 0) {
+      return {
+        ids,
+        selected: null as null,
+        displayName: profile.displayName,
+      };
+    }
+    const activeId = await resolveOwnedId(sql, context.userId, data?.memberId ?? null);
+    const memberId = activeId ?? ids[0]!.id;
+    const selected = await loadInviteForId(sql, context.userId, memberId);
+    return { ids, selected, displayName: profile.displayName };
   });
 
 export const getEarningsByLevel = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
-    const rows = await sql<{
+    const ids = await loadCompactIds(sql, context.userId);
+    const byLevel = await sql<{
       level: number;
-      generation: number;
       held: number;
       released: number;
     }>`
-      select level, generation,
+      select level,
         coalesce(sum(case when status = 'HELD' then commission_amount else 0 end),0)::int as held,
         coalesce(sum(case when status = 'RELEASED' then commission_amount else 0 end),0)::int as released
       from commission_entries
       where beneficiary_user_id = ${context.userId}
-      group by level, generation
+      group by level
       order by level
     `;
-    return rows;
+    const byId = await sql<{
+      beneficiary_id: string;
+      held: number;
+      released: number;
+    }>`
+      select beneficiary_id,
+        coalesce(sum(case when status = 'HELD' then commission_amount else 0 end),0)::int as held,
+        coalesce(sum(case when status = 'RELEASED' then commission_amount else 0 end),0)::int as released
+      from commission_entries
+      where beneficiary_user_id = ${context.userId}
+      group by beneficiary_id
+    `;
+    const byIdMap = new Map(byId.map((r) => [r.beneficiary_id, r]));
+    return {
+      summary: summarizeAccount(ids),
+      byLevel,
+      byId: ids.map((id) => ({
+        memberId: id.id,
+        packageId: id.package_id,
+        currentLevel: id.current_level,
+        progressionStatus: id.progression_status,
+        held: toInt(byIdMap.get(id.id)?.held) || id.held,
+        released: toInt(byIdMap.get(id.id)?.released) || id.released,
+        available: id.available,
+      })),
+    };
   });

@@ -18,7 +18,7 @@ describe("publicErrorMessage", () => {
       "Amount does not match the locked package price.",
     );
     assert.equal(publicErrorMessage(new Error("Payment request not found")), "Payment request not found");
-    assert.equal(publicErrorMessage(new Error("Forbidden")), "You do not have access to that.");
+    assert.equal(publicErrorMessage(new Error("Membership ID not found")), "Membership ID not found");
   });
 
   it("hides stack traces and database errors", () => {

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getInvite } from "@/lib/server/member";
+import { getInvite, listMyIds } from "@/lib/server/member";
 import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
 import { EmptyState } from "@/components/empty-state";
@@ -9,32 +9,45 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/copy-button";
 import { QrCode } from "@/components/qr-code";
+import { IdSwitcher, IdScopedLinks } from "@/components/id-switcher";
+import { parseMemberIdSearch } from "@/lib/id-workspace";
 import { useEffect, useMemo, useState } from "react";
 
-export const Route = createFileRoute("/app/invite")({ component: Invite });
+export const Route = createFileRoute("/app/invite")({
+  validateSearch: parseMemberIdSearch,
+  component: Invite,
+});
 
 function Invite() {
-  const q = useQuery({ queryKey: ["invite"], queryFn: () => getInvite() });
+  const { id } = Route.useSearch();
+  const ids = useQuery({ queryKey: ["ids"], queryFn: () => listMyIds() });
+  const selected = id ?? ids.data?.[0]?.id;
+  const q = useQuery({
+    queryKey: ["invite", selected],
+    queryFn: () => getInvite({ data: selected ? { memberId: selected } : {} }),
+    enabled: Boolean(selected) || (ids.isSuccess && (ids.data?.length ?? 0) === 0),
+  });
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const [canShare, setCanShare] = useState(false);
   useEffect(() => {
     setCanShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
   }, []);
   const link = useMemo(() => {
-    if (!q.data) return "";
-    return `${origin}/signup?ref=${encodeURIComponent(q.data.referralCode)}`;
+    if (!q.data?.selected) return "";
+    return `${origin}/signup?ref=${encodeURIComponent(q.data.selected.referralCode)}`;
   }, [origin, q.data]);
 
-  if (q.isPending) return <DashboardSkeleton />;
+  if (ids.isPending || q.isPending) return <DashboardSkeleton />;
+  if (ids.isError) return <QueryError error={ids.error} retry={() => ids.refetch()} />;
   if (q.isError) return <QueryError error={q.error} retry={() => q.refetch()} />;
 
-  if (!q.data.activeId) {
+  if (!q.data.selected) {
     return (
       <div>
-        <PageHeader title="Invite" hint="Sponsorship starts after a Membership ID is active." />
+        <PageHeader title="Invite" hint="Each Membership ID has its own referral code." />
         <EmptyState
           title="Activate a Membership ID to start inviting"
-          body="Your referral code is reserved, but invite links become operational only after admin-approved package activation."
+          body="Invite links become operational only after a Membership ID is issued. Choose which ID you want to share from My IDs."
           action="Choose a package"
           actionTo="/app/packages"
         />
@@ -42,22 +55,32 @@ function Invite() {
     );
   }
 
-  const text = `Join me on Link Mate. Referral ${q.data.referralCode} · ID ${q.data.activeId}. ${link}`;
+  const sel = q.data.selected;
+  const text = `Join me on Link Mate. Referral for ${sel.memberId}: ${sel.referralCode}. ${link}`;
 
   return (
     <div>
-      <PageHeader title="Invite" hint="Your referral link preserves sponsor attribution. The new member’s first ID attaches to you — not every ID in a multi-ID package." />
+      <PageHeader
+        title="Invite"
+        hint={
+          ids.data && ids.data.length > 0 ? (
+            <IdSwitcher ids={ids.data} selectedId={sel.memberId} onSelectPath="/app/invite" />
+          ) : (
+            `Referral for ${sel.memberId}`
+          )
+        }
+      />
       <Card className="flex flex-col items-center">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted">Referral code</p>
-        <p className="mt-2 font-mono text-3xl font-semibold tracking-tight">{q.data.referralCode}</p>
-        <p className="mt-1 font-mono text-xs text-muted">{q.data.activeId}</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-muted">Referral for {sel.memberId}</p>
+        <p className="mt-2 font-mono text-3xl font-semibold tracking-tight">{sel.referralCode}</p>
+        <p className="mt-1 font-mono text-xs text-muted">{sel.memberId}</p>
         <div className="mt-6 rounded-2xl bg-surface-2 p-3">
-          <QrCode value={link || q.data.referralCode} />
+          <QrCode value={link || sel.referralCode} />
         </div>
         <p className="mt-4 max-w-xs break-all text-center text-xs text-muted">{link}</p>
         <div className="mt-5 grid w-full grid-cols-2 gap-2">
           <CopyButton value={link} label="Copy link" />
-          <CopyButton value={q.data.referralCode} label="Copy code" variant="secondary" />
+          <CopyButton value={sel.referralCode} label="Copy code" variant="secondary" />
         </div>
         <div className="mt-2 grid w-full grid-cols-2 gap-2">
           <a
@@ -87,10 +110,15 @@ function Invite() {
           </Button>
         ) : null}
         <p className="mt-4 text-center text-xs text-muted">
-          Invites do not activate membership or pay commission until the referred member’s payment is approved.{" "}
-          <Link to="/app/packages" className="text-accent">Review packages</Link>
+          This code sponsors {sel.memberId} only — not every ID on the account.{" "}
+          <Link to="/app/ids" className="text-accent">
+            Choose a different ID
+          </Link>
         </p>
       </Card>
+      <div className="mt-6">
+        <IdScopedLinks memberId={sel.memberId} />
+      </div>
     </div>
   );
 }

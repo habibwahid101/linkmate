@@ -47,5 +47,7 @@ test("never marks qualified until sponsor 3 and level 9 are both complete", () =
 
 test("next action copy is operational", () => {
   assert.equal(nextActionCopy({ level: 1, remaining: 1 }), "1 more direct sponsor needed");
-  assert.equal(nextActionCopy({ level: 2, remaining: 3 }), "3 more Level-2 members needed");
+  assert.equal(nextActionCopy({ level: 2, remaining: 3 }), "3 more eligible downline IDs needed");
+  assert.equal(nextActionCopy({ level: 1, remaining: 2 }), "2 more direct sponsors needed");
+  assert.equal(nextActionCopy({ level: 9, remaining: 1 }), "1 more eligible downline ID needed");
 });

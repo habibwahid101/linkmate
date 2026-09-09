@@ -3,7 +3,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { ProgressBar } from "@/components/progress-bar";
 import { Money } from "@/components/money";
 import { formatBdt } from "@/lib/money";
-import { getLevel, ordinalGeneration } from "@/lib/rules";
+import { getLevel } from "@/lib/rules";
+import { levelRequirementCopy, progressNounShort } from "@/lib/id-workspace";
 import type { ReactNode } from "react";
 
 export type LevelRow = {
@@ -42,17 +43,17 @@ export function LevelCard({ row, compact = false }: { row: LevelRow; compact?: b
             Level {row.level}
           </p>
           <p className="mt-0.5 text-sm text-ink">
-            {ordinalGeneration(row.generation)} Generation · {rule.rateLabel}
+            {levelRequirementCopy(row.level)} · {rule.rateLabel}
           </p>
         </div>
         <StatusBadge status={row.status} />
       </div>
       <div>
-        <div className="mb-1.5 flex items-baseline justify-between text-sm">
+        <div className="mb-1.5 flex items-baseline justify-between gap-2 text-sm">
           <span className="tabular font-medium">
-            {row.completed_members} / {row.required_members} Members
+            {row.completed_members} / {row.required_members} {progressNounShort(row.level)}
           </span>
-          <span className="text-muted">{row.remaining_members} remaining</span>
+          <span className="shrink-0 text-muted">{row.remaining_members} remaining</span>
         </div>
         <ProgressBar value={row.completed_members} max={row.required_members} />
       </div>
