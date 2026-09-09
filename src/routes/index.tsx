@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrandLink } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Card, type CardTone } from "@/components/ui/card";
+import { Card, CardKicker, type CardTone } from "@/components/ui/card";
 import { BookingSheet } from "@/components/booking-sheet";
 import { HeroProjectVisual } from "@/components/hero-project-visual";
 import { LEVELS, STANDARD_ID_VALUE_BDT, fullLevelCommission } from "@/lib/rules";
@@ -71,7 +71,7 @@ function Landing() {
               <a
                 key={item.href}
                 href={item.href}
-                className="inline-flex h-11 items-center px-3 text-sm font-medium text-muted hover:text-ink"
+                className="inline-flex h-11 items-center rounded-[10px] px-3 text-sm font-medium text-muted hover:bg-surface-2 hover:text-ink"
               >
                 {item.label}
               </a>
@@ -108,7 +108,7 @@ function Landing() {
             {isPending ? <div className="h-9 w-16 animate-pulse rounded-[10px] bg-surface-2 min-[375px]:w-20" /> : null}
             <button
               type="button"
-              className="grid size-10 shrink-0 place-items-center rounded-[12px] hover:bg-surface-2 min-[375px]:size-11 lg:hidden"
+              className="grid size-11 shrink-0 place-items-center rounded-[12px] hover:bg-surface-2 lg:hidden"
               aria-label={menu ? "Close menu" : "Open menu"}
               aria-expanded={menu}
               onClick={() => setMenu((v) => !v)}
@@ -193,9 +193,9 @@ function Landing() {
           </div>
         </section>
 
-        <section id="how-it-works" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6">
+        <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
           <h2 className="text-2xl font-semibold tracking-tight">How it works</h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted">
+          <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted">
             Qualification requirements are visible before joining. Commission and land eligibility are tracked
             separately.
           </p>
@@ -203,24 +203,24 @@ function Landing() {
             {[
               { n: "1", t: "Activate Membership", d: "Purchase 1 or more Link Mate membership IDs through an available package.", tone: "package" as const },
               { n: "2", t: "Sponsor 3", d: "Personally sponsor 3 qualifying members to complete the mandatory direct-sponsor requirement.", tone: "info" as const },
-              { n: "3", t: "Progress Through Levels", d: "Your generation progress is tracked across Levels 1–9.", tone: "progress" as const },
+              { n: "3", t: "Progress Through Levels", d: "Your level journey is tracked across Levels 1–9. Eligible downline IDs count — not generation depth.", tone: "progress" as const },
               { n: "4", t: "Complete Level 9", d: "Successfully satisfy the required qualification conditions through Level 9.", tone: "progress" as const },
               { n: "5", t: "Land Benefit Eligibility", d: "After qualification is verified, the applicable land allocation and transfer process begins according to the relevant terms and documents.", tone: "success" as const },
             ].map((s) => (
               <li key={s.n}>
                 <Card tone={s.tone} className="h-full p-4 sm:p-4">
                   <p className="font-mono text-xs font-medium text-accent">Step {s.n}</p>
-                  <p className="mt-2 text-sm font-semibold">{s.t}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-muted">{s.d}</p>
+                  <p className="mt-2 text-[15px] font-semibold">{s.t}</p>
+                  <p className="mt-1 text-[15px] leading-relaxed text-muted">{s.d}</p>
                 </Card>
               </li>
             ))}
           </ol>
         </section>
 
-        <section id="land-benefit" className="mx-auto max-w-6xl scroll-mt-24 px-4 pb-16 sm:px-6">
+        <section id="land-benefit" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
           <h2 className="text-2xl font-semibold tracking-tight">Understand the land benefit before you join.</h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted">
+          <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted">
             Land allocation and transfer are subject to the applicable terms and documentation. Buying an ID
             does not immediately transfer ownership.
           </p>
@@ -234,7 +234,7 @@ function Landing() {
                   >
                     <Check className="size-3" strokeWidth={3} />
                   </span>
-                  <span className="min-w-0 text-sm font-medium leading-relaxed text-ink">{line}</span>
+                  <span className="min-w-0 text-[15px] font-medium leading-relaxed text-ink">{line}</span>
                 </div>
               ))}
             </Card>
@@ -243,7 +243,7 @@ function Landing() {
                 <Landmark className="size-6 shrink-0 text-info" strokeWidth={1.75} />
                 <p className="min-w-0 text-base font-semibold">View Land Terms & Documents</p>
               </div>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
+              <p className="mt-2 text-[15px] leading-relaxed text-muted">
                 Land documents will be available here before final allocation/transfer. We do not publish
                 placeholder legal files.
               </p>
@@ -259,9 +259,9 @@ function Landing() {
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <TrustItem tone="package" icon={<Scale className="size-5" />} t="Clear Membership Cost" d={`${formatBdt(STANDARD_ID_VALUE_BDT)} per standard ID`} />
             <TrustItem tone="progress" icon={<Users className="size-5" />} t="Clear Qualification" d="Sponsor 3 + Complete Level 9" />
-            <TrustItem tone="progress" icon={<Layers className="size-5" />} t="Visible Progress" d="Every level and generation can be tracked" />
+            <TrustItem tone="progress" icon={<Layers className="size-5" />} t="Visible Progress" d="Every level and Membership ID can be tracked" />
             <TrustItem tone="held" icon={<Wallet className="size-5" />} t="Transparent Commission Status" d="Held and released amounts are shown separately" />
-            <TrustItem tone="info" icon={<BadgeCheck className="size-5" />} t="Generation Integrity" d="Members remain in their actual generation" />
+            <TrustItem tone="info" icon={<BadgeCheck className="size-5" />} t="Sponsor-tree integrity" d="Members remain in their actual sponsor-tree position" />
             <TrustItem tone="info" icon={<BookOpen className="size-5" />} t="Ledger-Based Transactions" d="Financial activity remains traceable" />
             <TrustItem tone="success" icon={<Landmark className="size-5" />} t="Land Documentation" d="Allocation and transfer documents are available through the qualification process" />
           </div>
@@ -269,30 +269,30 @@ function Landing() {
 
         <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
           <h2 className="text-2xl font-semibold tracking-tight">Progress you can actually follow.</h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted">
+          <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted">
             After login, the dashboard shows where you are, what is held, what is released, and what to do next.
             Held commission is released after the applicable level is completed.
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <Card tone="info" className="p-5">
-              <p className="text-sm font-semibold">Current position</p>
-              <p className="mt-1 text-sm text-muted">Active ID, current level, and direct-sponsor count.</p>
+              <p className="text-[15px] font-semibold">Current position</p>
+              <p className="mt-1 text-[15px] leading-relaxed text-muted">Active ID, current level, and direct-sponsor count.</p>
             </Card>
             <Card tone="held" className="p-5">
-              <p className="text-sm font-semibold">Held vs available</p>
-              <p className="mt-1 text-sm text-muted">Held commission is not mixed with withdrawable balance.</p>
+              <p className="text-[15px] font-semibold">Held vs available</p>
+              <p className="mt-1 text-[15px] leading-relaxed text-muted">Held commission is not mixed with withdrawable balance.</p>
             </Card>
             <Card tone="success" className="p-5">
-              <p className="text-sm font-semibold">Land qualification</p>
-              <p className="mt-1 text-sm text-muted">Sponsor 3 and Level 9 are tracked until both are complete.</p>
+              <p className="text-[15px] font-semibold">Land qualification</p>
+              <p className="mt-1 text-[15px] leading-relaxed text-muted">Sponsor 3 and Level 9 are tracked until both are complete.</p>
             </Card>
           </div>
         </section>
 
-        <section id="levels" className="mx-auto max-w-6xl scroll-mt-24 px-4 pb-16 sm:px-6">
-          <h2 className="text-2xl font-semibold tracking-tight">Nine levels, actual generations</h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted">
-            This table is educational. Generation positions are not reclassified when higher levels are reached.
+        <section id="levels" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+          <h2 className="text-2xl font-semibold tracking-tight">Nine levels. Generation is informational.</h2>
+          <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted">
+            This table is educational. Generation describes sponsor-tree position — it is not the level requirement.
             Commission is calculated on the standard ID value of {formatBdt(STANDARD_ID_VALUE_BDT)}.
           </p>
           <Card tone="progress" className="mt-5 overflow-x-auto p-0 sm:p-0">
@@ -319,21 +319,21 @@ function Landing() {
               </tbody>
             </table>
           </Card>
-          <p className="mt-3 text-xs text-muted">
-            Level 1 requires 3 personal sponsors. Members stay in their true generation.
+          <p className="mt-3 text-[13px] leading-relaxed text-muted">
+            Level 1 requires 3 personal sponsors. Members stay in their true sponsor-tree position.
           </p>
         </section>
 
-        <section id="faq" className="mx-auto max-w-6xl scroll-mt-24 px-4 pb-16 sm:px-6">
+        <section id="faq" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
           <h2 className="text-2xl font-semibold tracking-tight">Questions, answered plainly</h2>
           <Card className="mt-6 divide-y divide-border overflow-hidden p-0 sm:p-0">
             {FAQ.map((item) => (
               <details key={item.q} className="group px-4 py-1">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-4 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-4 text-[15px] font-semibold [&::-webkit-details-marker]:hidden">
                   {item.q}
                   <ChevronDown className="size-4 shrink-0 text-muted transition-transform group-open:rotate-180" />
                 </summary>
-                <p className="pb-4 text-sm leading-relaxed text-muted">{item.a}</p>
+                <p className="pb-4 text-[15px] leading-relaxed text-muted">{item.a}</p>
               </details>
             ))}
           </Card>
@@ -344,7 +344,7 @@ function Landing() {
             <h2 className="max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">
               Know the conditions. Track your progress. Start when you are ready.
             </h2>
-            <p className="mt-3 max-w-xl text-sm text-sidebar-muted">
+            <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-sidebar-muted">
               Qualification requirements are visible before joining. There is no artificial scarcity on this page.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
@@ -367,8 +367,8 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-start sm:justify-between sm:px-6">
           <div>
             <BrandLink />
-            <p className="mt-3 max-w-sm text-sm text-muted">
-              Membership IDs, generation commission, and a documented land qualification path.
+            <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-muted">
+              Membership IDs, held-and-released commission, and a documented 1 Decimal Land qualification path.
             </p>
           </div>
           <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm" aria-label="Footer">
@@ -409,17 +409,6 @@ function MenuToggleIcon({ open }: { open: boolean }) {
   );
 }
 
-const KICKER: Record<CardTone, string> = {
-  default: "text-muted",
-  info: "text-info",
-  success: "text-success",
-  progress: "text-progress",
-  held: "text-held",
-  package: "text-package",
-  warning: "text-warning",
-  error: "text-danger",
-};
-
 function SummaryCard({
   kicker,
   title,
@@ -433,9 +422,9 @@ function SummaryCard({
 }) {
   return (
     <Card tone={tone} className="p-5">
-      <p className={cn("text-xs font-medium uppercase tracking-wider", KICKER[tone])}>{kicker}</p>
+      <CardKicker tone={tone}>{kicker}</CardKicker>
       <p className="mt-2 text-xl font-semibold tracking-tight">{title}</p>
-      <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-muted">{body}</p>
     </Card>
   );
 }
@@ -455,8 +444,8 @@ function TrustItem({
     <Card tone={tone} className="flex gap-3 p-5">
       <div className="grid size-10 shrink-0 place-items-center rounded-[10px] bg-surface text-ink">{icon}</div>
       <div>
-        <p className="text-sm font-semibold">{t}</p>
-        <p className="mt-1 text-sm text-muted">{d}</p>
+        <p className="text-[15px] font-semibold">{t}</p>
+        <p className="mt-1 text-[15px] leading-relaxed text-muted">{d}</p>
       </div>
     </Card>
   );
@@ -464,7 +453,7 @@ function TrustItem({
 
 function HeroChip({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-accent-soft px-3 py-1.5 text-xs font-medium text-accent">
+    <span className="inline-flex items-center rounded-full bg-accent-soft px-3 py-1.5 text-[13px] font-medium text-accent">
       {children}
     </span>
   );
@@ -489,7 +478,7 @@ const FAQ = [
   },
   {
     q: "What does completing Level 9 mean?",
-    a: "Level 9 is the 9th generation. Its required member count must be fully met. Commission for that level is held until complete, then released in full. Land qualification also requires this level to be complete.",
+    a: "Level 9 is the last qualification level. Its required eligible-downline count must be fully met. Commission for that level is held until complete, then released in full. Land qualification also requires this level to be complete.",
   },
   {
     q: "Does buying an ID immediately transfer land ownership?",

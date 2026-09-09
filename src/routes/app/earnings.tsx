@@ -46,16 +46,16 @@ function Earnings() {
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card tone="held">
-          <p className="text-xs uppercase tracking-wider text-held">Account held</p>
-          <p className="mt-2 tabular text-xl font-semibold">{formatBdt(q.data.summary.held)}</p>
+          <p className="kicker text-held">Account held</p>
+          <p className="mt-2 tabular text-xl font-semibold text-held">{formatBdt(q.data.summary.held)}</p>
         </Card>
         <Card tone="success">
-          <p className="text-xs uppercase tracking-wider text-success">Account released</p>
-          <p className="mt-2 tabular text-xl font-semibold">{formatBdt(q.data.summary.released)}</p>
+          <p className="kicker text-success">Account released</p>
+          <p className="mt-2 tabular text-xl font-semibold text-success">{formatBdt(q.data.summary.released)}</p>
         </Card>
         <Card tone="success">
-          <p className="text-xs uppercase tracking-wider text-success">Account available</p>
-          <p className="mt-2 tabular text-xl font-semibold">{formatBdt(q.data.summary.available)}</p>
+          <p className="kicker text-accent">Account available</p>
+          <p className="mt-2 tabular text-xl font-semibold text-accent">{formatBdt(q.data.summary.available)}</p>
         </Card>
       </div>
 

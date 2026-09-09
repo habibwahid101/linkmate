@@ -6,7 +6,7 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   return (
     <input
       className={cn(
-        "h-11 w-full rounded-[12px] bg-surface px-3.5 text-sm text-ink shadow-[0_0_0_1px_var(--color-border)] placeholder:text-subtle",
+        "h-11 w-full rounded-[12px] bg-surface px-3.5 text-[15px] text-ink shadow-[0_0_0_1px_var(--color-border)] placeholder:text-subtle",
         "transition-[box-shadow] duration-150",
         "focus:shadow-[0_0_0_2px_var(--color-accent)] focus:outline-none",
         "disabled:opacity-50",
@@ -44,7 +44,7 @@ export function PasswordInput({ className, ...props }: InputHTMLAttributes<HTMLI
 export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
-      className={cn("mb-1.5 block text-xs font-medium tracking-wide text-muted", className)}
+      className={cn("mb-1.5 block text-[13px] font-medium tracking-wide text-muted", className)}
       {...props}
     />
   );

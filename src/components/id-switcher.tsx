@@ -17,18 +17,18 @@ export function IdSwitcher({
   if (ids.length === 0) return null;
   const selected = ids.find((id) => id.id === selectedId) ?? ids[0]!;
   return (
-    <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-      <label htmlFor="id-switcher" className="shrink-0 text-xs font-medium uppercase tracking-wider text-muted">
+    <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+      <label htmlFor="id-switcher" className="kicker shrink-0 text-muted">
         Viewing Membership ID
       </label>
       {ids.length === 1 ? (
-        <p id="id-switcher" className="font-mono text-sm font-semibold">
+        <p id="id-switcher" className="break-all font-mono text-[15px] font-semibold">
           {selected.id}
         </p>
       ) : (
         <select
           id="id-switcher"
-          className="h-11 min-w-0 max-w-full rounded-[12px] bg-surface px-3 font-mono text-xs shadow-[0_0_0_1px_var(--color-border)] focus:shadow-[0_0_0_2px_var(--color-accent)] focus:outline-none sm:max-w-[18rem]"
+          className="h-11 min-w-0 max-w-full rounded-[12px] bg-surface px-3 font-mono text-[13px] shadow-[0_0_0_1px_var(--color-border)] focus:shadow-[0_0_0_2px_var(--color-accent)] focus:outline-none sm:max-w-[18rem]"
           value={selectedId}
           aria-label="Switch Membership ID"
           onChange={(e) => {
@@ -49,7 +49,7 @@ export function IdSwitcher({
           ))}
         </select>
       )}
-      <p className="text-xs text-muted">
+      <p className="text-[13px] text-muted">
         {packageLabel(selected.package_id)} · {originLabel(selected)} · {idStatusLabel(selected)}
       </p>
     </div>
@@ -72,7 +72,7 @@ export function IdScopedLinks({ memberId }: { memberId: string }) {
             key={item.label}
             to="/app/ids/$memberId"
             params={{ memberId }}
-            className="shrink-0 rounded-full px-3 py-2 text-sm font-medium text-accent hover:bg-surface-2"
+            className="inline-flex h-11 shrink-0 items-center rounded-full px-3 text-[15px] font-medium text-accent hover:bg-surface-2"
           >
             {item.label}
           </Link>
@@ -81,7 +81,7 @@ export function IdScopedLinks({ memberId }: { memberId: string }) {
             key={item.label}
             to={item.to}
             search={{ id: memberId }}
-            className="shrink-0 rounded-full px-3 py-2 text-sm font-medium text-accent hover:bg-surface-2"
+            className="inline-flex h-11 shrink-0 items-center rounded-full px-3 text-[15px] font-medium text-accent hover:bg-surface-2"
           >
             {item.label}
           </Link>

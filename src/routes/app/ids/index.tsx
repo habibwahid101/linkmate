@@ -75,7 +75,7 @@ function Ids() {
                 role="tab"
                 aria-selected={filter === f.id}
                 className={cn(
-                  "h-9 shrink-0 rounded-full px-3 text-sm font-medium",
+                  "inline-flex h-11 shrink-0 items-center rounded-full px-3.5 text-sm font-medium",
                   filter === f.id ? "bg-accent text-accent-fg" : "bg-surface-2 text-ink",
                 )}
                 onClick={() => setFilter(f.id)}

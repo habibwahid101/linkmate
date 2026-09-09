@@ -37,25 +37,25 @@ function Wallet() {
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card tone="success">
-          <p className="text-xs font-medium uppercase tracking-wider text-success">Available balance</p>
+          <p className="kicker text-accent">Available balance</p>
           <div className="mt-2">
-            <Money amount={available} size="lg" />
+            <Money amount={available} size="lg" className="text-accent" />
           </div>
-          <p className="mt-2 text-xs text-muted">Account-level withdrawable total of released earnings.</p>
+          <p className="mt-2 text-[13px] leading-snug text-muted">Account-level withdrawable total of released earnings.</p>
         </Card>
         <Card tone="held">
-          <p className="text-xs font-medium uppercase tracking-wider text-held">Held commission</p>
+          <p className="kicker text-held">Held commission</p>
           <div className="mt-2">
-            <Money amount={held} size="lg" />
+            <Money amount={held} size="lg" className="text-held" />
           </div>
-          <p className="mt-2 text-xs text-muted">Aggregate held across IDs. Not withdrawable.</p>
+          <p className="mt-2 text-[13px] leading-snug text-muted">Aggregate held across IDs. Not withdrawable.</p>
         </Card>
         <Card tone="success">
-          <p className="text-xs font-medium uppercase tracking-wider text-success">Released earnings</p>
+          <p className="kicker text-success">Released earnings</p>
           <div className="mt-2">
-            <Money amount={released} size="lg" />
+            <Money amount={released} size="lg" className="text-success" />
           </div>
-          <p className="mt-2 text-xs text-muted">Lifetime full-level releases posted to the ledger.</p>
+          <p className="mt-2 text-[13px] leading-snug text-muted">Lifetime full-level releases posted to the ledger.</p>
         </Card>
         <Card tone="error">
           <p className="text-xs font-medium uppercase tracking-wider text-danger">Reversed adjustments</p>
@@ -88,16 +88,16 @@ function Wallet() {
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-right text-sm">
                   <div>
-                    <p className="text-xs text-muted">Held</p>
+                    <p className="text-[13px] text-held">Held</p>
                     <p className="tabular font-medium text-held">{formatBdt(w.held)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted">Released</p>
-                    <p className="tabular font-medium">{formatBdt(w.released)}</p>
+                    <p className="text-[13px] text-success">Released</p>
+                    <p className="tabular font-medium text-success">{formatBdt(w.released)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted">Available</p>
-                    <p className="tabular font-medium">{formatBdt(w.available)}</p>
+                    <p className="text-[13px] text-accent">Available</p>
+                    <p className="tabular font-medium text-accent">{formatBdt(w.available)}</p>
                   </div>
                 </div>
               </Card>

@@ -144,7 +144,7 @@ function Pay() {
               key={m}
               type="button"
               onClick={() => { setMethod(m); setStep("details"); setError(null); }}
-              className="block w-full rounded-2xl bg-surface-info p-4 text-left shadow-[0_0_0_1px_var(--color-border-info)]"
+              className="block w-full rounded-2xl bg-surface-package p-4 text-left shadow-[0_0_0_1px_var(--color-border-package)] transition-[box-shadow] hover:shadow-[var(--shadow-card-hover)]"
             >
               <p className="font-semibold">{PAYMENT_METHOD_LABEL[m]}</p>
               <p className="mt-1 text-sm text-muted">

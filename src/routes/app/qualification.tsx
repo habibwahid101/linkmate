@@ -69,7 +69,7 @@ function Qualification() {
       <LandModule q={land} />
       <Card className="mt-4" tone="progress">
         <p className="text-sm font-semibold">Level completion on {d.id}</p>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-[15px] leading-relaxed text-muted">
           Status is “Qualified” only when both mandatory conditions are complete on this ID.
         </p>
         <ul className="mt-4 space-y-3">

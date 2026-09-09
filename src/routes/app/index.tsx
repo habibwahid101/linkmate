@@ -88,9 +88,24 @@ function Home() {
           value={<span className="tabular text-xl font-semibold tracking-tight">{d.idCount}</span>}
           hint={pkg ? `${pkg.name} · ${pkg.idCount} issued` : "Owned by this account"}
         />
-        <LevelKpi tone="success" label="Available balance" value={d.wallet.available} hint="Account total · withdrawable" />
-        <LevelKpi tone="held" label="Held commission" value={d.wallet.held} hint="Account total · not withdrawable" />
-        <LevelKpi tone="success" label="Released earnings" value={d.wallet.released} hint="Account lifetime released" />
+        <LevelKpi
+          tone="success"
+          label="Available balance"
+          value={<Money amount={d.wallet.available} size="lg" className="text-accent" />}
+          hint="Account total · withdrawable"
+        />
+        <LevelKpi
+          tone="held"
+          label="Held commission"
+          value={<Money amount={d.wallet.held} size="lg" className="text-held" />}
+          hint="Account total · not withdrawable"
+        />
+        <LevelKpi
+          tone="success"
+          label="Released earnings"
+          value={<Money amount={d.wallet.released} size="lg" className="text-success" />}
+          hint="Account lifetime released"
+        />
         <LevelKpi
           tone="progress"
           label="Highest active level"
@@ -124,7 +139,7 @@ function Home() {
       <div className="mt-6 flex items-end justify-between gap-3">
         <div>
           <CardTitle>My Membership IDs</CardTitle>
-          <p className="mt-1 text-sm text-muted">Open an ID to see its progress, referral, earnings, and network.</p>
+          <p className="mt-1 text-[15px] leading-relaxed text-muted">Open an ID to see its progress, referral, earnings, and network.</p>
         </div>
         <Link to="/app/ids" className="shrink-0 text-sm font-medium text-accent">
           Manage IDs
@@ -153,7 +168,7 @@ function Home() {
           </Link>
         </div>
         <Card tone="success">
-          <p className="text-sm text-muted">Account-wide ledger. Open an ID to see only that ID’s earnings.</p>
+          <p className="text-[15px] leading-relaxed text-muted">Account-wide ledger. Open an ID to see only that ID’s earnings.</p>
           {d.recentTx.length === 0 ? (
             <p className="mt-3 text-sm text-muted">Released earnings appear after a level completes on an ID.</p>
           ) : (

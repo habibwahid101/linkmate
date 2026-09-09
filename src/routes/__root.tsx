@@ -14,14 +14,14 @@ const FONT_HREF =
 /** Unlayered canvas + @layer base resets so Tailwind utilities still win after load. */
 const CRITICAL_CSS = [
   ":root{",
-  "--color-bg:#f3f1ec;--color-surface:#fffcf7;--color-ink:#161513;--color-muted:#6b6560;",
-  "--color-accent:#1f4d45;--color-accent-fg:#f3f1ec;--color-accent-hover:#173b35;--color-accent-soft:#e4eeeb;",
-  "--color-border:#e4dfd6;--color-sidebar:#161513;--color-sidebar-fg:#f3f1ec;--color-sidebar-muted:#a8a29a;",
+  "--color-bg:#f4f1ea;--color-surface:#fffcf7;--color-ink:#1c1916;--color-muted:#58534e;",
+  "--color-accent:#1f4d45;--color-accent-fg:#f4f1ea;--color-accent-hover:#173b35;--color-accent-soft:#e6f0ec;",
+  "--color-border:#e2ddd3;--color-sidebar:#161513;--color-sidebar-fg:#f4f1ea;--color-sidebar-muted:#a8a29a;",
   "--font-sans:Manrope,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif",
   "}",
-  "html{color-scheme:light;-webkit-text-size-adjust:100%}",
+  "html{color-scheme:light;-webkit-text-size-adjust:100%;scroll-padding-top:4.75rem}",
   "html,body{background:var(--color-bg);color:var(--color-ink);margin:0;min-height:100%}",
-  "body{font-family:var(--font-sans);line-height:1.5}",
+  "body{font-family:var(--font-sans);line-height:1.55;font-size:1rem}",
   "@layer base{",
   "a{color:inherit;text-decoration:none}",
   "button,input,select,textarea{font:inherit}",
@@ -36,7 +36,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: APP_NAME },
-      { name: "theme-color", content: "#161513" },
+      { name: "theme-color", content: "#1f4d45" },
       { name: "application-name", content: APP_NAME },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
       {

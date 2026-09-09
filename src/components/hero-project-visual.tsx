@@ -177,10 +177,10 @@ export function HeroProjectVisual() {
       </div>
 
       <div className="mt-3">
-        <p data-hero-slide-caption className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+        <p data-hero-slide-caption className="text-[13px] font-semibold uppercase tracking-[0.14em] text-muted">
           {slide.caption}
         </p>
-        <p className="mt-1 text-xs leading-relaxed text-muted">{slide.note}</p>
+        <p className="mt-1 text-[13px] leading-relaxed text-muted">{slide.note}</p>
       </div>
 
       <div className="mt-1 flex justify-center" role="tablist" aria-label="Choose project visual">
