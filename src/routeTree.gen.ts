@@ -37,7 +37,6 @@ import { Route as ApiReadinessRouteImport } from './routes/api/readiness'
 import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppEarningsRouteImport } from './routes/app/earnings'
-import { Route as AppIdsRouteImport } from './routes/app/ids'
 import { Route as AppInviteRouteImport } from './routes/app/invite'
 import { Route as AppLevelsRouteImport } from './routes/app/levels'
 import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
@@ -52,6 +51,8 @@ import { Route as AppWalletRouteImport } from './routes/app/wallet'
 import { Route as AdminPaymentsIndexRouteImport } from './routes/admin/payments/index'
 import { Route as AdminPaymentsIdRouteImport } from './routes/admin/payments/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AppIdsIndexRouteImport } from './routes/app/ids/index'
+import { Route as AppIdsMemberIdRouteImport } from './routes/app/ids/$memberId'
 import { Route as AppPaymentsIndexRouteImport } from './routes/app/payments/index'
 import { Route as AppPaymentsIdRouteImport } from './routes/app/payments/$id'
 
@@ -195,11 +196,6 @@ const AppEarningsRoute = AppEarningsRouteImport.update({
   path: '/earnings',
   getParentRoute: () => AppRoute,
 } as any)
-const AppIdsRoute = AppIdsRouteImport.update({
-  id: '/ids',
-  path: '/ids',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppInviteRoute = AppInviteRouteImport.update({
   id: '/invite',
   path: '/invite',
@@ -270,6 +266,16 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIdsIndexRoute = AppIdsIndexRouteImport.update({
+  id: '/ids/',
+  path: '/ids/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppIdsMemberIdRoute = AppIdsMemberIdRouteImport.update({
+  id: '/ids/$memberId',
+  path: '/ids/$memberId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPaymentsIndexRoute = AppPaymentsIndexRouteImport.update({
   id: '/payments/',
   path: '/payments/',
@@ -308,7 +314,6 @@ export interface FileRoutesByFullPath {
   '/api/readiness': typeof ApiReadinessRoute
   '/api/version': typeof ApiVersionRoute
   '/app/earnings': typeof AppEarningsRoute
-  '/app/ids': typeof AppIdsRoute
   '/app/invite': typeof AppInviteRoute
   '/app/levels': typeof AppLevelsRoute
   '/app/notifications': typeof AppNotificationsRoute
@@ -324,8 +329,10 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/admin/payments/$id': typeof AdminPaymentsIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/app/ids/$memberId': typeof AppIdsMemberIdRoute
   '/app/payments/$id': typeof AppPaymentsIdRoute
   '/admin/payments/': typeof AdminPaymentsIndexRoute
+  '/app/ids/': typeof AppIdsIndexRoute
   '/app/payments/': typeof AppPaymentsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -353,7 +360,6 @@ export interface FileRoutesByTo {
   '/api/readiness': typeof ApiReadinessRoute
   '/api/version': typeof ApiVersionRoute
   '/app/earnings': typeof AppEarningsRoute
-  '/app/ids': typeof AppIdsRoute
   '/app/invite': typeof AppInviteRoute
   '/app/levels': typeof AppLevelsRoute
   '/app/notifications': typeof AppNotificationsRoute
@@ -369,8 +375,10 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/admin/payments/$id': typeof AdminPaymentsIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/app/ids/$memberId': typeof AppIdsMemberIdRoute
   '/app/payments/$id': typeof AppPaymentsIdRoute
   '/admin/payments': typeof AdminPaymentsIndexRoute
+  '/app/ids': typeof AppIdsIndexRoute
   '/app/payments': typeof AppPaymentsIndexRoute
 }
 export interface FileRoutesById {
@@ -401,7 +409,6 @@ export interface FileRoutesById {
   '/api/readiness': typeof ApiReadinessRoute
   '/api/version': typeof ApiVersionRoute
   '/app/earnings': typeof AppEarningsRoute
-  '/app/ids': typeof AppIdsRoute
   '/app/invite': typeof AppInviteRoute
   '/app/levels': typeof AppLevelsRoute
   '/app/notifications': typeof AppNotificationsRoute
@@ -417,8 +424,10 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/admin/payments/$id': typeof AdminPaymentsIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/app/ids/$memberId': typeof AppIdsMemberIdRoute
   '/app/payments/$id': typeof AppPaymentsIdRoute
   '/admin/payments/': typeof AdminPaymentsIndexRoute
+  '/app/ids/': typeof AppIdsIndexRoute
   '/app/payments/': typeof AppPaymentsIndexRoute
 }
 export interface FileRouteTypes {
@@ -450,7 +459,6 @@ export interface FileRouteTypes {
     | '/api/readiness'
     | '/api/version'
     | '/app/earnings'
-    | '/app/ids'
     | '/app/invite'
     | '/app/levels'
     | '/app/notifications'
@@ -466,8 +474,10 @@ export interface FileRouteTypes {
     | '/app/'
     | '/admin/payments/$id'
     | '/api/auth/$'
+    | '/app/ids/$memberId'
     | '/app/payments/$id'
     | '/admin/payments/'
+    | '/app/ids/'
     | '/app/payments/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -495,7 +505,6 @@ export interface FileRouteTypes {
     | '/api/readiness'
     | '/api/version'
     | '/app/earnings'
-    | '/app/ids'
     | '/app/invite'
     | '/app/levels'
     | '/app/notifications'
@@ -511,8 +520,10 @@ export interface FileRouteTypes {
     | '/app'
     | '/admin/payments/$id'
     | '/api/auth/$'
+    | '/app/ids/$memberId'
     | '/app/payments/$id'
     | '/admin/payments'
+    | '/app/ids'
     | '/app/payments'
   id:
     | '__root__'
@@ -542,7 +553,6 @@ export interface FileRouteTypes {
     | '/api/readiness'
     | '/api/version'
     | '/app/earnings'
-    | '/app/ids'
     | '/app/invite'
     | '/app/levels'
     | '/app/notifications'
@@ -558,8 +568,10 @@ export interface FileRouteTypes {
     | '/app/'
     | '/admin/payments/$id'
     | '/api/auth/$'
+    | '/app/ids/$memberId'
     | '/app/payments/$id'
     | '/admin/payments/'
+    | '/app/ids/'
     | '/app/payments/'
   fileRoutesById: FileRoutesById
 }
@@ -776,13 +788,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEarningsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/ids': {
-      id: '/app/ids'
-      path: '/ids'
-      fullPath: '/app/ids'
-      preLoaderRoute: typeof AppIdsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/invite': {
       id: '/app/invite'
       path: '/invite'
@@ -881,6 +886,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/ids/': {
+      id: '/app/ids/'
+      path: '/ids'
+      fullPath: '/app/ids/'
+      preLoaderRoute: typeof AppIdsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/ids/$memberId': {
+      id: '/app/ids/$memberId'
+      path: '/ids/$memberId'
+      fullPath: '/app/ids/$memberId'
+      preLoaderRoute: typeof AppIdsMemberIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/payments/': {
       id: '/app/payments/'
       path: '/payments'
@@ -942,7 +961,6 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface AppRouteChildren {
   AppEarningsRoute: typeof AppEarningsRoute
-  AppIdsRoute: typeof AppIdsRoute
   AppInviteRoute: typeof AppInviteRoute
   AppLevelsRoute: typeof AppLevelsRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
@@ -955,13 +973,14 @@ interface AppRouteChildren {
   AppTransactionsRoute: typeof AppTransactionsRoute
   AppWalletRoute: typeof AppWalletRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppIdsMemberIdRoute: typeof AppIdsMemberIdRoute
   AppPaymentsIdRoute: typeof AppPaymentsIdRoute
+  AppIdsIndexRoute: typeof AppIdsIndexRoute
   AppPaymentsIndexRoute: typeof AppPaymentsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppEarningsRoute: AppEarningsRoute,
-  AppIdsRoute: AppIdsRoute,
   AppInviteRoute: AppInviteRoute,
   AppLevelsRoute: AppLevelsRoute,
   AppNotificationsRoute: AppNotificationsRoute,
@@ -974,7 +993,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppTransactionsRoute: AppTransactionsRoute,
   AppWalletRoute: AppWalletRoute,
   AppIndexRoute: AppIndexRoute,
+  AppIdsMemberIdRoute: AppIdsMemberIdRoute,
   AppPaymentsIdRoute: AppPaymentsIdRoute,
+  AppIdsIndexRoute: AppIdsIndexRoute,
   AppPaymentsIndexRoute: AppPaymentsIndexRoute,
 }
 

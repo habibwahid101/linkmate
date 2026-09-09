@@ -4,44 +4,51 @@ import { getWallet } from "@/lib/server/member";
 import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Money } from "@/components/money";
 import { StatusBadge } from "@/components/status-badge";
 import { MemberWithdrawalPanel } from "@/components/withdrawal-panel";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, packageLabel } from "@/lib/format";
+import { useState } from "react";
 
 export const Route = createFileRoute("/app/wallet")({ component: Wallet });
 
 function Wallet() {
   const q = useQuery({ queryKey: ["wallet"], queryFn: () => getWallet() });
+  const [withdrawId, setWithdrawId] = useState<string | null>(null);
   if (q.isPending) return <DashboardSkeleton />;
   if (q.isError) return <QueryError error={q.error} retry={() => q.refetch()} />;
-  const held = q.data.held.reduce((s, h) => s + h.amount, 0);
-  const available = q.data.wallets.reduce((s, w) => s + w.available, 0);
-  const released = q.data.wallets.reduce((s, w) => s + w.released, 0);
+  const held = q.data.summary.held;
+  const available = q.data.summary.available;
+  const released = q.data.summary.released;
   const reversed = q.data.transactions
     .filter((tx) => tx.status === "REVERSED" || tx.type === "REVERSAL")
     .reduce((s, tx) => s + Math.abs(toInt(tx.amount)), 0);
-  const primaryId = q.data.wallets[0]?.memberId ?? null;
+  const richest = [...q.data.wallets].sort((a, b) => b.available - a.available)[0];
+  const selectedId = withdrawId ?? richest?.memberId ?? null;
+  const selectedWallet = q.data.wallets.find((w) => w.memberId === selectedId);
 
   return (
     <div>
-      <PageHeader title="Wallet" hint="Held commission is not withdrawable. Only released amounts sit in available balance." />
+      <PageHeader
+        title="Account wallet"
+        hint="Available balance is the account total of released amounts. Held commission is not withdrawable. IDs earn; this account uses the balance."
+      />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card tone="held">
-          <p className="text-xs font-medium uppercase tracking-wider text-held">Held commission</p>
-          <div className="mt-2">
-            <Money amount={held} size="lg" />
-          </div>
-          <p className="mt-2 text-xs text-muted">Pending until the level’s member count is complete.</p>
-        </Card>
         <Card tone="success">
           <p className="text-xs font-medium uppercase tracking-wider text-success">Available balance</p>
           <div className="mt-2">
             <Money amount={available} size="lg" />
           </div>
-          <p className="mt-2 text-xs text-muted">Released to this account and currently available.</p>
+          <p className="mt-2 text-xs text-muted">Account-level withdrawable total of released earnings.</p>
+        </Card>
+        <Card tone="held">
+          <p className="text-xs font-medium uppercase tracking-wider text-held">Held commission</p>
+          <div className="mt-2">
+            <Money amount={held} size="lg" />
+          </div>
+          <p className="mt-2 text-xs text-muted">Aggregate held across IDs. Not withdrawable.</p>
         </Card>
         <Card tone="success">
           <p className="text-xs font-medium uppercase tracking-wider text-success">Released earnings</p>
@@ -59,9 +66,49 @@ function Wallet() {
         </Card>
       </div>
 
+      <div className="mt-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <CardTitle>Earnings by Membership ID</CardTitle>
+          <Link to="/app/earnings" className="text-sm font-medium text-accent">
+            Earnings
+          </Link>
+        </div>
+        {q.data.wallets.length === 0 ? (
+          <Card className="py-8 text-center text-sm text-muted">No Membership IDs yet. Wallet rows appear after a package is activated.</Card>
+        ) : (
+          <div className="space-y-2">
+            {q.data.wallets.map((w) => (
+              <Card key={w.memberId} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="font-mono text-sm font-semibold">{w.memberId}</p>
+                  <p className="text-xs text-muted">
+                    {packageLabel(w.packageId)} · Level {w.currentLevel}
+                    {w.progressionStatus === "GRADUATED" ? " · Graduated" : ""}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-right text-sm">
+                  <div>
+                    <p className="text-xs text-muted">Held</p>
+                    <p className="tabular font-medium text-held">{formatBdt(w.held)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted">Released</p>
+                    <p className="tabular font-medium">{formatBdt(w.released)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted">Available</p>
+                    <p className="tabular font-medium">{formatBdt(w.available)}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
       {q.data.held.length > 0 ? (
         <div className="mt-6">
-          <h2 className="mb-3 text-sm font-semibold">Held by level</h2>
+          <h2 className="mb-3 text-sm font-semibold">Held by level (per ID)</h2>
           <div className="space-y-2">
             {q.data.held.map((h) => (
               <Card key={`${h.memberId}-${h.level}`} className="flex items-center justify-between" tone="held">
@@ -76,7 +123,25 @@ function Wallet() {
         </div>
       ) : null}
 
-      <MemberWithdrawalPanel memberId={primaryId} available={available} />
+      {q.data.wallets.length > 1 ? (
+        <label className="mt-6 flex flex-col gap-1 text-sm">
+          <span className="text-muted">Withdraw from released balance of</span>
+          <select
+            className="h-11 w-full rounded-[12px] bg-surface px-3 font-mono text-xs shadow-[0_0_0_1px_var(--color-border)] sm:max-w-sm"
+            value={selectedId ?? ""}
+            onChange={(e) => setWithdrawId(e.target.value)}
+            aria-label="Membership ID to withdraw from"
+          >
+            {q.data.wallets.map((w) => (
+              <option key={w.memberId} value={w.memberId}>
+                {w.memberId} · {formatBdt(w.available)} available
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+
+      <MemberWithdrawalPanel memberId={selectedId} available={selectedWallet?.available ?? available} />
 
       <div className="mt-6 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Transaction history</h2>
@@ -95,9 +160,8 @@ function Wallet() {
               <div className="min-w-0">
                 <p className="text-sm font-medium">{tx.source}</p>
                 <p className="mt-0.5 font-mono text-[11px] text-muted">
-                  {tx.id.slice(0, 8)} · {tx.member_id}
-                  {tx.level ? ` · L${tx.level}` : ""}
-                  {tx.generation ? ` · G${tx.generation}` : ""}
+                  {tx.member_id}
+                  {tx.level ? ` · Level ${tx.level}` : ""}
                 </p>
                 <p className="text-xs text-muted">{formatDateTime(tx.created_at)}</p>
               </div>

@@ -5,6 +5,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { runtimeFlags } from "@/lib/runtime";
 import { assertRateLimit } from "@/lib/server/rate-limit";
 import { effectiveRole } from "@/lib/auth/locked-admins";
+import { resolveSponsorMember } from "@/lib/referrals/engine";
 
 export type AppProfile = {
   userId: string;
@@ -107,44 +108,14 @@ export const lookupReferral = createServerFn({ method: "GET" })
     const sql = await getSql();
     const code = data.code.trim().toUpperCase();
     await assertRateLimit(sql, `referral:${code.slice(0, 16)}`, 40, 60);
-    const byUser = await sql<{
-      user_id: string;
-      display_name: string;
-      referral_code: string;
-      active_id: string | null;
-    }>`select user_id, display_name, referral_code, active_id from app_users where referral_code = ${code}`;
-    if (byUser[0]) {
-      let sponsorId = byUser[0].active_id;
-      if (!sponsorId) {
-        const first = await sql<{ id: string }>`
-          select id from member_ids where owner_user_id = ${byUser[0].user_id} and is_root = true
-          order by created_at asc limit 1
-        `;
-        sponsorId = first[0]?.id ?? null;
-      }
-      return {
-        valid: true as const,
-        name: byUser[0].display_name,
-        referralCode: byUser[0].referral_code,
-        sponsorMemberId: sponsorId,
-      };
-    }
-    const byId = await sql<{
-      id: string;
-      owner_user_id: string;
-    }>`select id, owner_user_id from member_ids where id = ${code} or id = ${"LM-" + code}`;
-    if (byId[0]) {
-      const owner = await sql<{ display_name: string; referral_code: string }>`
-        select display_name, referral_code from app_users where user_id = ${byId[0].owner_user_id}
-      `;
-      return {
-        valid: true as const,
-        name: owner[0]?.display_name ?? "Member",
-        referralCode: owner[0]?.referral_code ?? code,
-        sponsorMemberId: byId[0].id,
-      };
-    }
-    return { valid: false as const };
+    const sponsor = await resolveSponsorMember(sql, code);
+    if (!sponsor) return { valid: false as const };
+    return {
+      valid: true as const,
+      name: sponsor.displayName,
+      referralCode: sponsor.referralCode,
+      sponsorMemberId: sponsor.memberId,
+    };
   });
 
 export const markNotificationRead = createServerFn({ method: "POST" })

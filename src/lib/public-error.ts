@@ -22,6 +22,7 @@ const KNOWN = [
   "Sample network is disabled",
   "Simulated joins are disabled",
   "ID not found",
+  "Membership ID not found",
   "Unknown setting",
   "Adjustment exceeds",
   "Cannot remove the last administrator",

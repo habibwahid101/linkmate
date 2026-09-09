@@ -19,6 +19,7 @@ export function CopyButton({
       type="button"
       variant={variant}
       size={size}
+      aria-live="polite"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(value);

@@ -53,6 +53,6 @@ export function nextActionCopy(next: { level: number; remaining: number } | null
       : `${next.remaining} more direct sponsors needed`;
   }
   return next.remaining === 1
-    ? `1 more Level-${next.level} member needed`
-    : `${next.remaining} more Level-${next.level} members needed`;
+    ? `1 more eligible downline ID needed`
+    : `${next.remaining} more eligible downline IDs needed`;
 }

@@ -25,7 +25,7 @@ import { useState, type ReactNode } from "react";
 const desktopNav = [
   { to: "/app", label: "Dashboard", icon: Home },
   { to: "/app/ids", label: "My IDs", icon: IdCard },
-  { to: "/app/team", label: "Team", icon: Users },
+  { to: "/app/team", label: "Network", icon: Users },
   { to: "/app/levels", label: "Level Progress", icon: BarChart3 },
   { to: "/app/packages", label: "Packages", icon: Layers },
   { to: "/app/payments", label: "Payments", icon: Receipt },
@@ -40,7 +40,7 @@ const desktopNav = [
 
 const mobileNav = [
   { to: "/app", label: "Home", icon: Home },
-  { to: "/app/team", label: "Team", icon: Users },
+  { to: "/app/ids", label: "My IDs", icon: IdCard },
   { to: "/app/packages", label: "Packages", icon: Layers },
   { to: "/app/wallet", label: "Wallet", icon: Wallet },
   { to: "/app/profile", label: "Profile", icon: UserRound },
@@ -130,7 +130,7 @@ export function AppShell({
           <div className="lg:hidden">
             <BrandLink compact />
           </div>
-          <div className="hidden text-sm text-muted lg:block">Operational view · Active ID data only</div>
+          <div className="hidden text-sm text-muted lg:block">Account overview · each Membership ID is independent</div>
           <div className="flex items-center gap-1">
             {isAdmin ? (
               <Link

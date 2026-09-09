@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
-import { authoritativeReferralCode, claimIntendedReferral, type Sql } from "./engine.ts";
+import { authoritativeReferralCode, claimIntendedReferral, resolveSponsorMember, type Sql } from "./engine.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 let lastPg: PGlite | undefined;
@@ -82,5 +82,25 @@ describe("intended referral lock", () => {
     assert.equal(claimed.locked, true);
     assert.equal(claimed.referralCode, "IDCODE");
     assert.equal(claimed.sponsorUserId, "sponsor");
+  });
+
+  it("resolves two Membership ID codes to different sponsor IDs", async () => {
+    const sql = await makeSql();
+    await sql`
+      insert into app_users (user_id, display_name, email, role, referral_code, is_synthetic)
+      values ('sponsor', 'Sponsor', 's@lm.test', 'member', 'SPON01', false)
+    `;
+    await sql`
+      insert into member_ids (
+        id, owner_user_id, package_id, is_root, placement_status, joining_amount_bdt, referral_code
+      ) values
+        ('LM-900001', 'sponsor', 'turbo', true, 'placed', 11000, 'IDAAA1'),
+        ('LM-900002', 'sponsor', 'turbo', false, 'placed', 11000, 'IDBBB2')
+    `;
+    const a = await resolveSponsorMember(sql, "idaaa1");
+    const b = await resolveSponsorMember(sql, "idbbb2");
+    assert.equal(a?.memberId, "LM-900001");
+    assert.equal(b?.memberId, "LM-900002");
+    assert.notEqual(a?.memberId, b?.memberId);
   });
 });
