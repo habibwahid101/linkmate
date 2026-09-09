@@ -93,24 +93,26 @@ jobs:
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
-          B64=$(base64 -w0 scripts/reset-test-business.mjs)
+          SCRIPT_URL="https://raw.githubusercontent.com/habibwahid101/linkmate/ops/batch1/scripts/reset-test-business.mjs"
           if [ "$APPLY" = "1" ]; then
-            RUN='docker exec -e CONFIRM=LINKMATE-RESET-TEST-BUSINESS -e FORCE='"$FORCE"' -w /app linkmate node /tmp/reset-test-business.mjs --apply'
+            RUN="docker exec -e CONFIRM=LINKMATE-RESET-TEST-BUSINESS -e FORCE=$FORCE -e NODE_PATH=/app/node_modules linkmate node /tmp/reset-test-business.mjs --apply"
           else
-            RUN='docker exec -w /app linkmate node /tmp/reset-test-business.mjs'
+            RUN="docker exec -e NODE_PATH=/app/node_modules linkmate node /tmp/reset-test-business.mjs"
           fi
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
             --comment "Link Mate batch1 inventory/reset" \
-            --parameters commands="[
+            --parameters "commands=[
               \"set -euo pipefail\",
               \"echo VERSION\",
               \"curl -fsS -m 8 http://127.0.0.1/api/version || true\",
               \"echo HEALTH\",
               \"curl -fsS -m 8 http://127.0.0.1/api/health || true\",
-              \"echo SCRIPT\",
-              \"printf '%s' '$B64' | base64 -d > /tmp/reset-test-business.mjs\",
+              \"echo DOCKER\",
+              \"docker ps\",
+              \"echo FETCH\",
+              \"curl -fsSL $SCRIPT_URL -o /tmp/reset-test-business.mjs\",
               \"docker cp /tmp/reset-test-business.mjs linkmate:/tmp/reset-test-business.mjs\",
               \"echo RUN\",
               \"$RUN\"
