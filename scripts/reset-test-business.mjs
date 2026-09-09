@@ -11,8 +11,12 @@
  * After a successful apply, app_settings.batch1_test_reset_at is set and a
  * second apply is refused unless FORCE=1.
  */
-import pg from "pg";
+import { createRequire } from "node:module";
+import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+
+const require = createRequire(existsSync("/app/package.json") ? "/app/package.json" : import.meta.url);
+const pg = require("pg");
 
 export const KEEP_ADMIN_EMAILS = ["hello.habibwahid@gmail.com", "linkmateglobal@gmail.com"];
 export const CONFIRM_TOKEN = "LINKMATE-RESET-TEST-BUSINESS";
