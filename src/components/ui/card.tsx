@@ -5,6 +5,7 @@ export type CardTone =
   | "default"
   | "info"
   | "success"
+  | "available"
   | "progress"
   | "held"
   | "package"
@@ -15,6 +16,7 @@ const TONE: Record<CardTone, string> = {
   default: "bg-surface shadow-[var(--shadow-card)]",
   info: "bg-surface-info shadow-[0_0_0_1px_var(--color-border-info)]",
   success: "bg-surface-success shadow-[0_0_0_1px_var(--color-border-success)]",
+  available: "bg-surface-available shadow-[0_0_0_1px_var(--color-border-available)]",
   progress: "bg-surface-progress shadow-[0_0_0_1px_var(--color-border-progress)]",
   held: "bg-surface-held shadow-[0_0_0_1px_var(--color-border-held)]",
   package: "bg-surface-package shadow-[0_0_0_1px_var(--color-border-package)]",
@@ -26,6 +28,7 @@ export const KICKER: Record<CardTone, string> = {
   default: "text-muted",
   info: "text-info",
   success: "text-success",
+  available: "text-accent",
   progress: "text-progress",
   held: "text-held",
   package: "text-package",

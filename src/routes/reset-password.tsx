@@ -69,7 +69,11 @@ function Reset() {
               autoComplete="new-password"
             />
           </div>
-          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          {error ? (
+            <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
           <Button type="submit" className="w-full" disabled={busy}>
             {busy ? "Saving…" : "Update password"}
           </Button>

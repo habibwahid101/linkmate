@@ -53,7 +53,7 @@ function Earnings() {
           <p className="kicker text-success">Account released</p>
           <p className="mt-2 tabular text-xl font-semibold text-success">{formatBdt(q.data.summary.released)}</p>
         </Card>
-        <Card tone="success">
+        <Card tone="available">
           <p className="kicker text-accent">Account available</p>
           <p className="mt-2 tabular text-xl font-semibold text-accent">{formatBdt(q.data.summary.available)}</p>
         </Card>
@@ -87,7 +87,7 @@ function Earnings() {
                   "flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between",
                   id === row.memberId && "shadow-[0_0_0_2px_var(--color-accent)]",
                 )}
-                tone="held"
+                tone={row.held > 0 ? "held" : row.progressionStatus === "GRADUATED" ? "success" : "info"}
               >
                 <div className="min-w-0">
                   <p className="font-mono text-sm font-semibold">{row.memberId}</p>

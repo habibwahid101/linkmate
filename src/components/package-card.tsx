@@ -1,9 +1,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardKicker } from "@/components/ui/card";
+import { Card, CardKicker, type CardTone } from "@/components/ui/card";
 import { formatBdt } from "@/lib/money";
-import type { PackageRule } from "@/lib/rules";
+import type { PackageId, PackageRule } from "@/lib/rules";
 import { cn } from "@/lib/utils";
+
+const PACKAGE_TONE: Record<PackageId, CardTone> = {
+  builder: "package",
+  turbo: "info",
+  super_turbo: "progress",
+  hyper_turbo: "available",
+};
 
 export function PackageCard({
   pkg,
@@ -20,9 +27,10 @@ export function PackageCard({
   busy?: boolean;
   compact?: boolean;
 }) {
+  const tone = PACKAGE_TONE[pkg.id];
   return (
     <Card
-      tone="package"
+      tone={tone}
       className={cn(
         "flex h-full flex-col",
         compact ? "gap-2 p-3.5 sm:p-3.5" : "gap-4",
@@ -31,7 +39,7 @@ export function PackageCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          {compact ? null : <CardKicker tone="package">Package</CardKicker>}
+          {compact ? null : <CardKicker tone={tone}>Package</CardKicker>}
           <h3 className={cn("font-semibold tracking-tight", compact ? "text-base" : "mt-0.5 text-lg")}>{pkg.name}</h3>
         </div>
         {current ? <Badge tone="accent">Current</Badge> : null}

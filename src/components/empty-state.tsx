@@ -16,7 +16,7 @@ export function EmptyState({
   icon?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl bg-surface px-6 py-12 text-center shadow-[var(--shadow-card)]">
+    <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-info px-6 py-12 text-center shadow-[0_0_0_1px_var(--color-border-info)]">
       {icon ? <div className="mb-4 text-muted">{icon}</div> : null}
       <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
       <p className="mt-2 max-w-md text-[15px] leading-relaxed text-muted">{body}</p>

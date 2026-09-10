@@ -52,6 +52,11 @@
   --color-surface-held: #f5efdc;
   --color-border-held: #e1d3a6;
 
+  --color-available: #1f4d45;
+  --color-available-soft: #e4f0ec;
+  --color-surface-available: #e4f0ec;
+  --color-border-available: #b7d0c8;
+
   --color-border-warning: #e4d2ae;
   --color-border-error: #e8c8c0;
 
