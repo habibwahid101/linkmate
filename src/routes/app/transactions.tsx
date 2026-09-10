@@ -25,7 +25,10 @@ function Transactions() {
       ) : (
         <div className="space-y-2">
           {q.data.transactions.map((tx) => (
-            <Card key={tx.id}>
+            <Card
+              key={tx.id}
+              tone={tx.status === "HELD" ? "held" : tx.status === "REVERSED" ? "error" : tx.status === "RELEASED" ? "success" : "default"}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{tx.source}</p>
@@ -57,7 +60,11 @@ function Transactions() {
         ) : (
           <div className="space-y-2">
             {q.data.commissions.map((c) => (
-              <Card key={c.id} className="flex items-start justify-between gap-3">
+              <Card
+                key={c.id}
+                className="flex items-start justify-between gap-3"
+                tone={c.status === "HELD" ? "held" : c.status === "REVERSED" ? "error" : c.status === "RELEASED" ? "success" : "default"}
+              >
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Level {c.level}</p>
                   <p className="font-mono text-xs text-muted">

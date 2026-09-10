@@ -164,7 +164,7 @@ function Team() {
               const members = membersByDepth.get(depth) ?? [];
               const open = openDepth === depth;
               return (
-                <div key={depth} className="overflow-hidden rounded-2xl bg-surface shadow-[var(--shadow-card)]">
+                <div key={depth} className="overflow-hidden rounded-2xl bg-surface-progress shadow-[0_0_0_1px_var(--color-border-progress)]">
                   <button
                     type="button"
                     className="flex w-full items-center gap-3 p-4 text-left"

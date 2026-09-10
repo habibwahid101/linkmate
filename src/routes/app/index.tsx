@@ -89,7 +89,7 @@ function Home() {
           hint={pkg ? `${pkg.name} · ${pkg.idCount} issued` : "Owned by this account"}
         />
         <LevelKpi
-          tone="success"
+          tone="available"
           label="Available balance"
           value={<Money amount={d.wallet.available} size="lg" className="text-accent" />}
           hint="Account total · withdrawable"

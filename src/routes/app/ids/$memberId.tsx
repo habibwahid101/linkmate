@@ -173,8 +173,8 @@ function IdDashboard() {
               <Money amount={d.wallet.released} size="lg" className="text-success" />
             </div>
           </Card>
-          <Card tone="success">
-            <CardKicker tone="success">Available</CardKicker>
+          <Card tone="available">
+            <CardKicker tone="available">Available</CardKicker>
             <div className="mt-2">
               <Money amount={d.wallet.available} size="lg" className="text-accent" />
             </div>

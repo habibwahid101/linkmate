@@ -36,7 +36,7 @@ function Wallet() {
         hint="Available balance is the account total of released amounts. Held commission is not withdrawable. IDs earn; this account uses the balance."
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card tone="success">
+        <Card tone="available">
           <p className="kicker text-accent">Available balance</p>
           <div className="mt-2">
             <Money amount={available} size="lg" className="text-accent" />
@@ -78,7 +78,7 @@ function Wallet() {
         ) : (
           <div className="space-y-2">
             {q.data.wallets.map((w) => (
-              <Card key={w.memberId} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <Card key={w.memberId} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" tone={w.held > 0 ? "held" : w.progressionStatus === "GRADUATED" ? "success" : "info"}>
                 <div className="min-w-0">
                   <p className="font-mono text-sm font-semibold">{w.memberId}</p>
                   <p className="text-xs text-muted">
@@ -156,7 +156,11 @@ function Wallet() {
           </Card>
         ) : (
           q.data.transactions.slice(0, 12).map((tx) => (
-            <Card key={tx.id} className="flex items-start justify-between gap-3">
+            <Card
+              key={tx.id}
+              className="flex items-start justify-between gap-3"
+              tone={tx.status === "HELD" ? "held" : tx.status === "REVERSED" ? "error" : tx.status === "RELEASED" ? "success" : "default"}
+            >
               <div className="min-w-0">
                 <p className="text-sm font-medium">{tx.source}</p>
                 <p className="mt-0.5 font-mono text-[11px] text-muted">

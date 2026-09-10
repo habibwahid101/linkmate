@@ -340,11 +340,11 @@ function Landing() {
         </section>
 
         <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-          <div className="rounded-2xl bg-sidebar px-5 py-10 text-sidebar-fg sm:px-10">
+          <div className="rounded-2xl bg-surface-available px-5 py-10 text-ink shadow-[0_0_0_1px_var(--color-border-available)] sm:px-10">
             <h2 className="max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">
               Know the conditions. Track your progress. Start when you are ready.
             </h2>
-            <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-sidebar-muted">
+            <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted">
               Qualification requirements are visible before joining. There is no artificial scarcity on this page.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
@@ -353,7 +353,7 @@ function Landing() {
               </Button>
               <SignedIn>
                 <Link to="/app">
-                  <Button size="lg" variant="sidebar">
+                  <Button size="lg" variant="outline">
                     Open dashboard
                   </Button>
                 </Link>
