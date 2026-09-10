@@ -12,6 +12,7 @@ const tones: Record<string, string> = {
   info: "bg-info-soft text-info",
   progress: "bg-progress-soft text-progress",
   package: "bg-package-soft text-package",
+  available: "bg-available-soft text-available",
 };
 
 export function Badge({
