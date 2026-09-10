@@ -159,7 +159,7 @@ export const adminListPayments = createServerFn({ method: "GET" })
     await requireAdmin(context.userId);
     const sql = await getSql();
     const status = data?.status;
-    const rows = await sql<{
+    type PayRow = {
       id: string;
       user_id: string;
       display_name: string;
@@ -172,16 +172,32 @@ export const adminListPayments = createServerFn({ method: "GET" })
       status: string;
       duplicate_suspect: boolean;
       created_at: string;
-    }>`
+      extra: Record<string, string>;
+      user_note: string | null;
+    };
+    if (status) {
+      return sql<PayRow>`
+        select r.id, r.user_id, u.display_name, u.active_id, r.package_id,
+               r.expected_amount_bdt, r.submitted_amount_bdt, r.payment_method,
+               r.transaction_reference, r.status, r.duplicate_suspect, r.created_at,
+               r.extra, r.user_note
+        from payment_requests r
+        join app_users u on u.user_id = r.user_id
+        where r.status = ${status}
+        order by r.created_at desc
+        limit 300
+      `;
+    }
+    return sql<PayRow>`
       select r.id, r.user_id, u.display_name, u.active_id, r.package_id,
              r.expected_amount_bdt, r.submitted_amount_bdt, r.payment_method,
-             r.transaction_reference, r.status, r.duplicate_suspect, r.created_at
+             r.transaction_reference, r.status, r.duplicate_suspect, r.created_at,
+             r.extra, r.user_note
       from payment_requests r
       join app_users u on u.user_id = r.user_id
       order by r.created_at desc
       limit 300
     `;
-    return rows.filter((row) => (status ? row.status === status : true));
   });
 
 export const adminPaymentSummary = createServerFn({ method: "GET" })

@@ -35,7 +35,7 @@ function Settings() {
     <div>
       <PageHeader
         title="Settings"
-        hint="standard_id_value_bdt is locked. Configure receiving accounts under Payment methods."
+        hint="Read-mostly. Package prices, ID counts, and rule version are locked. Configure receiving accounts under Payment methods. Do not change production payment methods unless intended."
       />
       <h2 className="mb-3 text-sm font-semibold">Payment methods</h2>
       {pay.isPending ? (

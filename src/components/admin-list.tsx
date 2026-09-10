@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -14,17 +15,19 @@ export function AdminList<T extends { id?: string }>({
   columns,
   rows,
   empty = "Nothing here yet.",
+  emptyTitle,
   onRow,
+  caption,
 }: {
   columns: Column<T>[];
   rows: T[];
   empty?: string;
+  emptyTitle?: string;
   onRow?: (row: T) => void;
+  caption?: string;
 }) {
   if (rows.length === 0) {
-    return (
-      <Card className="py-10 text-center text-sm text-muted">{empty}</Card>
-    );
+    return <EmptyState title={emptyTitle ?? "Nothing here yet."} body={empty} />;
   }
   return (
     <>
@@ -35,23 +38,29 @@ export function AdminList<T extends { id?: string }>({
             type="button"
             disabled={!onRow}
             onClick={() => onRow?.(row)}
-            className="block w-full rounded-2xl bg-surface p-4 text-left shadow-[var(--shadow-card)]"
+            className={cn(
+              "block w-full rounded-2xl bg-surface p-4 text-left shadow-[var(--shadow-card)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+              !onRow && "cursor-default",
+            )}
           >
-            {columns.filter((col) => !col.hideOnMobile).map((col) => (
-              <div key={col.key} className="flex items-baseline justify-between gap-3 py-0.5">
-                <span className="text-[11px] uppercase tracking-wider text-muted">{col.label}</span>
-                <span className="min-w-0 truncate text-sm">{col.render(row)}</span>
-              </div>
-            ))}
+            {columns
+              .filter((col) => !col.hideOnMobile)
+              .map((col) => (
+                <div key={col.key} className="flex items-baseline justify-between gap-3 py-0.5">
+                  <span className="text-[11px] uppercase tracking-wider text-muted">{col.label}</span>
+                  <span className="min-w-0 truncate text-sm">{col.render(row)}</span>
+                </div>
+              ))}
           </button>
         ))}
       </div>
       <div className="hidden overflow-x-auto rounded-2xl bg-surface shadow-[var(--shadow-card)] lg:block">
         <table className="w-full text-sm">
+          {caption ? <caption className="sr-only">{caption}</caption> : null}
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted">
               {columns.map((col) => (
-                <th key={col.key} className={cn("px-4 py-3 font-medium", col.className)}>
+                <th key={col.key} scope="col" className={cn("px-4 py-3 font-medium", col.className)}>
                   {col.label}
                 </th>
               ))}
@@ -63,6 +72,17 @@ export function AdminList<T extends { id?: string }>({
                 key={row.id ?? i}
                 className={cn("border-b border-border last:border-0", onRow && "cursor-pointer hover:bg-surface-2")}
                 onClick={() => onRow?.(row)}
+                onKeyDown={
+                  onRow
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onRow(row);
+                        }
+                      }
+                    : undefined
+                }
+                tabIndex={onRow ? 0 : undefined}
               >
                 {columns.map((col) => (
                   <td key={col.key} className={cn("px-4 py-3 align-middle", col.className)}>

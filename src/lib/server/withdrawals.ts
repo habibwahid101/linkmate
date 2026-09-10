@@ -99,13 +99,21 @@ export const requestWithdrawal = createServerFn({ method: "POST" })
 
 export const adminListWithdrawals = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
-  .handler(async ({ context }) => {
+  .validator(
+    z
+      .object({
+        status: z.enum(WITHDRAWAL_STATUSES).optional(),
+      })
+      .optional(),
+  )
+  .handler(async ({ context, data }) => {
     await requireAdmin(context.userId);
     const sql = await getSql();
-    return sql<{
+    type Row = {
       id: string;
       owner_user_id: string;
       display_name: string;
+      email: string | null;
       member_id: string;
       amount_bdt: number;
       fee_bdt: number;
@@ -115,13 +123,97 @@ export const adminListWithdrawals = createServerFn({ method: "GET" })
       user_note: string | null;
       admin_note: string | null;
       created_at: string;
-    }>`
-      select w.id, w.owner_user_id, u.display_name, w.member_id, w.amount_bdt, coalesce(w.fee_bdt,0)::int as fee_bdt, w.payout_method,
-             w.payout_details, w.status, w.user_note, w.admin_note, w.created_at
+      reviewed_at: string | null;
+      paid_at: string | null;
+    };
+    if (data?.status) {
+      return sql<Row>`
+        select w.id, w.owner_user_id, u.display_name, u.email, w.member_id, w.amount_bdt,
+               coalesce(w.fee_bdt,0)::int as fee_bdt, w.payout_method, w.payout_details, w.status,
+               w.user_note, w.admin_note, w.created_at, w.reviewed_at, w.paid_at
+        from withdrawal_requests w
+        join app_users u on u.user_id = w.owner_user_id
+        where w.status = ${data.status}
+        order by w.created_at desc limit 200
+      `;
+    }
+    return sql<Row>`
+      select w.id, w.owner_user_id, u.display_name, u.email, w.member_id, w.amount_bdt,
+             coalesce(w.fee_bdt,0)::int as fee_bdt, w.payout_method, w.payout_details, w.status,
+             w.user_note, w.admin_note, w.created_at, w.reviewed_at, w.paid_at
       from withdrawal_requests w
       join app_users u on u.user_id = w.owner_user_id
       order by w.created_at desc limit 200
     `;
+  });
+
+export const adminWithdrawalSummary = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
+    const sql = await getSql();
+    const counts = await sql<{ status: string; n: number }>`
+      select status, count(*)::int as n from withdrawal_requests group by status
+    `;
+    const map = Object.fromEntries(counts.map((c) => [c.status, c.n]));
+    return {
+      pending: (map.PENDING ?? 0) + (map.APPROVED ?? 0) + (map.PROCESSING ?? 0),
+      awaitingPay: (map.APPROVED ?? 0) + (map.PROCESSING ?? 0),
+      paid: map.PAID ?? 0,
+      rejected: map.REJECTED ?? 0,
+    };
+  });
+
+export const adminGetWithdrawal = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator(z.object({ id: z.string().min(1).max(80) }))
+  .handler(async ({ context, data }) => {
+    await requireAdmin(context.userId);
+    const sql = await getSql();
+    const rows = await sql<{
+      id: string;
+      owner_user_id: string;
+      display_name: string;
+      email: string | null;
+      member_id: string;
+      amount_bdt: number;
+      fee_bdt: number;
+      payout_method: string;
+      payout_details: Record<string, string>;
+      status: string;
+      user_note: string | null;
+      admin_note: string | null;
+      created_at: string;
+      reviewed_at: string | null;
+      paid_at: string | null;
+    }>`
+      select w.id, w.owner_user_id, u.display_name, u.email, w.member_id, w.amount_bdt,
+             coalesce(w.fee_bdt,0)::int as fee_bdt, w.payout_method, w.payout_details, w.status,
+             w.user_note, w.admin_note, w.created_at, w.reviewed_at, w.paid_at
+      from withdrawal_requests w
+      join app_users u on u.user_id = w.owner_user_id
+      where w.id = ${data.id}
+    `;
+    const row = rows[0];
+    if (!row) throw new Error("Withdrawal request not found");
+    const audit = await sql<{
+      id: string;
+      actor_user_id: string | null;
+      action: string;
+      detail: string | null;
+      created_at: string;
+    }>`
+      select id, actor_user_id, action, detail, created_at
+      from audit_logs
+      where entity_type = 'withdrawal_requests' and entity_id = ${data.id}
+      order by created_at desc
+      limit 20
+    `;
+    return {
+      ...row,
+      net_bdt: row.amount_bdt - row.fee_bdt,
+      audit,
+    };
   });
 
 export const adminProcessWithdrawal = createServerFn({ method: "POST" })

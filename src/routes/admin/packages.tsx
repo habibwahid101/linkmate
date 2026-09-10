@@ -4,11 +4,18 @@ import { adminGetSettings } from "@/lib/server/admin";
 import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
+import { Card, type CardTone } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatBdt } from "@/lib/money";
 
 export const Route = createFileRoute("/admin/packages")({ component: Packages });
+
+const TONE: Record<string, CardTone> = {
+  builder: "package",
+  turbo: "info",
+  super_turbo: "progress",
+  hyper_turbo: "available",
+};
 
 function Packages() {
   const q = useQuery({ queryKey: ["admin", "settings"], queryFn: () => adminGetSettings() });
@@ -22,7 +29,7 @@ function Packages() {
       />
       <div className="grid gap-3 sm:grid-cols-2">
         {q.data.packages.map((p) => (
-          <Card key={p.id}>
+          <Card key={p.id} tone={TONE[p.id] ?? "package"}>
             <div className="flex items-start justify-between">
               <h2 className="font-semibold">{p.name}</h2>
               <Badge tone={p.locked ? "locked" : "accent"}>{p.locked ? "Locked" : "Editable"}</Badge>

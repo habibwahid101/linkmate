@@ -10,6 +10,15 @@ import { reverseJoin, reconcileWallet } from "@/lib/engine/process";
 import { assertRateLimit } from "@/lib/server/rate-limit";
 import { assertAdminRole } from "@/lib/auth/roles";
 import { assertCanDemoteAdmin, isLockedAdminEmail } from "@/lib/auth/locked-admins";
+import {
+  loadCompactIds,
+  type DirectSponsored,
+  type IdActivityTx,
+  type IdCommission,
+  type LevelJourneyRow,
+} from "@/lib/server/id-views";
+import { buildCurrentProgress, ID_DETAIL_DIRECT_CAP, ID_DETAIL_TX_CAP, summarizeAccount } from "@/lib/id-workspace";
+import { evaluateLandQualification } from "@/lib/qualification";
 
 export { assertAdminRole };
 
@@ -36,6 +45,9 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     const held = await sql<{ v: number }>`select coalesce(sum(amount),0)::int as v from held_commissions`;
     const released = await sql<{ v: number }>`select coalesce(sum(total_released),0)::int as v from wallets`;
     const available = await sql<{ v: number }>`select coalesce(sum(available_balance),0)::int as v from wallets`;
+    const reversed = await sql<{ v: number }>`
+      select coalesce(sum(commission_amount),0)::int as v from commission_entries where status = 'REVERSED'
+    `;
     const completions = await sql<{ level: number; n: number }>`
       select level, count(*)::int as n from level_progress
       where status in ('COMPLETED','RELEASED') group by level order by level
@@ -62,8 +74,34 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     }
 
     const pendingPayments = await sql<{ n: number }>`
-      select count(*)::int as n from payment_requests
-      where status in ('PENDING', 'NEEDS_REVIEW')
+      select count(*)::int as n from payment_requests where status = 'PENDING'
+    `;
+    const needsReviewPayments = await sql<{ n: number }>`
+      select count(*)::int as n from payment_requests where status = 'NEEDS_REVIEW'
+    `;
+    const pendingWithdrawals = await sql<{ n: number }>`
+      select count(*)::int as n from withdrawal_requests
+      where status in ('PENDING', 'APPROVED', 'PROCESSING')
+    `;
+    const qualifiedLand = await sql<{ n: number }>`
+      select count(*)::int as n
+      from member_ids m
+      where m.status = 'active'
+        and exists (
+          select 1 from level_progress lp
+          where lp.member_id = m.id and lp.level = 9 and lp.status in ('COMPLETED','RELEASED')
+        )
+        and (select count(*) from sponsor_relationships sr where sr.sponsor_id = m.id) >= ${LEVELS[0]!.requiredMembers}
+    `;
+    const recentAudit = await sql<{
+      id: string;
+      action: string;
+      entity_type: string;
+      entity_id: string | null;
+      created_at: string;
+    }>`
+      select id, action, entity_type, entity_id, created_at
+      from audit_logs order by created_at desc limit 8
     `;
 
     return {
@@ -74,10 +112,16 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       joiningValue: toInt(joining[0]?.v),
       held: toInt(held[0]?.v),
       released: toInt(released[0]?.v),
+      available: toInt(available[0]?.v),
       walletLiabilities: toInt(available[0]?.v),
+      reversed: toInt(reversed[0]?.v),
       pendingPayments: pendingPayments[0]?.n ?? 0,
+      needsReviewPayments: needsReviewPayments[0]?.n ?? 0,
+      pendingWithdrawals: pendingWithdrawals[0]?.n ?? 0,
+      qualifiedLand: qualifiedLand[0]?.n ?? 0,
       completions,
       recentPurchases,
+      recentAudit,
       levels: LEVELS,
     };
   });
@@ -87,7 +131,33 @@ export const adminListUsers = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireAdmin(context.userId);
     const sql = await getSql();
-    return (await sql<{
+    return (
+      await sql<{
+        user_id: string;
+        display_name: string;
+        email: string | null;
+        role: string;
+        referral_code: string;
+        is_synthetic: boolean;
+        created_at: string;
+        id_count: number;
+      }>`
+      select u.user_id, u.display_name, u.email, u.role, u.referral_code, u.is_synthetic, u.created_at,
+             (select count(*)::int from member_ids m where m.owner_user_id = u.user_id) as id_count
+      from app_users u
+      order by u.created_at desc
+      limit 200
+    `
+    ).map((u) => ({ ...u, locked: isLockedAdminEmail(u.email) }));
+  });
+
+export const adminGetUser = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator(z.object({ userId: z.string().min(1).max(80) }))
+  .handler(async ({ context, data }) => {
+    await requireAdmin(context.userId);
+    const sql = await getSql();
+    const users = await sql<{
       user_id: string;
       display_name: string;
       email: string | null;
@@ -95,14 +165,59 @@ export const adminListUsers = createServerFn({ method: "GET" })
       referral_code: string;
       is_synthetic: boolean;
       created_at: string;
-      id_count: number;
+      active_id: string | null;
     }>`
-      select u.user_id, u.display_name, u.email, u.role, u.referral_code, u.is_synthetic, u.created_at,
-             (select count(*)::int from member_ids m where m.owner_user_id = u.user_id) as id_count
-      from app_users u
-      order by u.created_at desc
-      limit 200
-    `).map((u) => ({ ...u, locked: isLockedAdminEmail(u.email) }));
+      select user_id, display_name, email, role, referral_code, is_synthetic, created_at, active_id
+      from app_users where user_id = ${data.userId}
+    `;
+    const user = users[0];
+    if (!user) throw new Error("Account not found");
+    const ids = await loadCompactIds(sql, data.userId);
+    const purchases = await sql<{
+      id: string;
+      package_id: string;
+      amount_bdt: number;
+      id_count: number;
+      root_id: string | null;
+      payment_status: string;
+      created_at: string;
+    }>`
+      select id, package_id, amount_bdt, id_count, root_id, payment_status, created_at
+      from package_purchases where user_id = ${data.userId}
+      order by created_at desc limit 20
+    `;
+    const payments = await sql<{
+      id: string;
+      package_id: string;
+      expected_amount_bdt: number;
+      payment_method: string;
+      status: string;
+      created_at: string;
+    }>`
+      select id, package_id, expected_amount_bdt, payment_method, status, created_at
+      from payment_requests where user_id = ${data.userId}
+      order by created_at desc limit 20
+    `;
+    const wallets = await sql<{ available: number; released: number }>`
+      select coalesce(sum(available_balance),0)::int as available,
+             coalesce(sum(total_released),0)::int as released
+      from wallets where owner_user_id = ${data.userId}
+    `;
+    const held = await sql<{ v: number }>`
+      select coalesce(sum(amount),0)::int as v from held_commissions where owner_user_id = ${data.userId}
+    `;
+    return {
+      user: { ...user, locked: isLockedAdminEmail(user.email) },
+      ids,
+      account: summarizeAccount(ids),
+      wallet: {
+        available: toInt(wallets[0]?.available),
+        released: toInt(wallets[0]?.released),
+        held: toInt(held[0]?.v),
+      },
+      purchases,
+      payments,
+    };
   });
 
 export const adminListIds = createServerFn({ method: "GET" })
@@ -119,15 +234,200 @@ export const adminListIds = createServerFn({ method: "GET" })
       parent_id: string | null;
       placement_status: string;
       status: string;
+      referral_code: string | null;
+      current_level: number | null;
+      progression_status: string | null;
       created_at: string;
     }>`
       select m.id, m.owner_user_id, u.display_name, m.package_id, m.sponsor_id, m.parent_id,
-             m.placement_status, m.status, m.created_at
+             m.placement_status, m.status, m.referral_code, m.current_level, m.progression_status, m.created_at
       from member_ids m
       join app_users u on u.user_id = m.owner_user_id
       order by m.created_at desc
       limit 300
     `;
+  });
+
+export const adminGetMemberId = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator(z.object({ memberId: z.string().min(1).max(40) }))
+  .handler(async ({ context, data }) => {
+    await requireAdmin(context.userId);
+    const sql = await getSql();
+    const rows = await sql<{
+      id: string;
+      owner_user_id: string;
+      display_name: string;
+      email: string | null;
+      package_id: string;
+      is_root: boolean;
+      origin_kind: string | null;
+      sponsor_id: string | null;
+      parent_id: string | null;
+      placement_status: string;
+      status: string;
+      current_level: number | null;
+      progression_status: string | null;
+      referral_code: string | null;
+      created_at: string;
+    }>`
+      select m.id, m.owner_user_id, u.display_name, u.email, m.package_id, m.is_root, m.origin_kind,
+             m.sponsor_id, m.parent_id, m.placement_status, m.status, m.current_level, m.progression_status,
+             m.referral_code, m.created_at
+      from member_ids m
+      join app_users u on u.user_id = m.owner_user_id
+      where m.id = ${data.memberId}
+    `;
+    const row = rows[0];
+    if (!row) throw new Error("Membership ID not found");
+
+    const journey = await sql<LevelJourneyRow>`
+      select level, generation, required_members, completed_members, remaining_members,
+             accumulated_commission, expected_full_commission, status, completed_at, released_at
+      from level_progress where member_id = ${data.memberId} order by level
+    `;
+    const directCount = await sql<{ n: number }>`
+      select count(*)::int as n from sponsor_relationships where sponsor_id = ${data.memberId}
+    `;
+    const directs = await sql<DirectSponsored>`
+      select m.id as member_id, u.display_name, m.package_id, m.created_at, m.status, m.owner_user_id
+      from sponsor_relationships sr
+      join member_ids m on m.id = sr.sponsored_id
+      join app_users u on u.user_id = m.owner_user_id
+      where sr.sponsor_id = ${data.memberId}
+      order by m.created_at
+      limit ${ID_DETAIL_DIRECT_CAP}
+    `;
+    const network = await sql<{ downline_ids: number; network_depth: number }>`
+      select count(*)::int as downline_ids, coalesce(max(generation),0)::int as network_depth
+      from generation_memberships where beneficiary_id = ${data.memberId}
+    `;
+    const w = await sql<{ available_balance: number; total_released: number }>`
+      select available_balance, total_released from wallets where member_id = ${data.memberId}
+    `;
+    const h = await sql<{ held: number }>`
+      select coalesce(sum(amount),0)::int as held from held_commissions where member_id = ${data.memberId}
+    `;
+    const recentTx = await sql<IdActivityTx>`
+      select id, amount, source, type, level, status, created_at, related_member_id
+      from wallet_transactions where member_id = ${data.memberId}
+      order by created_at desc limit ${ID_DETAIL_TX_CAP}
+    `;
+    const commissions = await sql<IdCommission>`
+      select id, source_id, level, commission_amount, status, held_at, released_at
+      from commission_entries where beneficiary_id = ${data.memberId}
+      order by held_at desc limit ${ID_DETAIL_TX_CAP}
+    `;
+
+    const currentLevel = Number(row.current_level) || 1;
+    const progressionStatus = row.progression_status === "GRADUATED" ? "GRADUATED" : "ACTIVE";
+    const completedLevels = journey.filter((p) => p.status === "RELEASED" || p.status === "COMPLETED").length;
+    const level9Released = journey.some((p) => p.level === 9 && (p.status === "RELEASED" || p.status === "COMPLETED"));
+    const directsN = directCount[0]?.n ?? 0;
+    const qualification = evaluateLandQualification({
+      hasMembership: row.status === "active",
+      directSponsors: directsN,
+      completedLevels,
+      level9Released,
+    });
+    const currentProgress = buildCurrentProgress({
+      currentLevel,
+      progressionStatus,
+      progressRows: journey.map((p) => ({
+        level: p.level,
+        status: p.status,
+        completed: toInt(p.completed_members),
+        required: toInt(p.required_members),
+        remaining: toInt(p.remaining_members),
+      })),
+    });
+
+    return {
+      id: row.id,
+      owner: {
+        userId: row.owner_user_id,
+        displayName: row.display_name,
+        email: row.email,
+      },
+      package_id: row.package_id,
+      is_root: Boolean(row.is_root),
+      origin_kind: row.origin_kind ?? "purchase",
+      sponsor_id: row.sponsor_id,
+      parent_id: row.parent_id,
+      placement_status: row.placement_status,
+      status: row.status,
+      current_level: currentLevel,
+      progression_status: progressionStatus,
+      referral_code: row.referral_code,
+      created_at: row.created_at,
+      currentProgress,
+      journey,
+      directs: {
+        count: directsN,
+        required: LEVELS[0]!.requiredMembers,
+        members: directs,
+        hasMore: directsN > directs.length,
+      },
+      network: {
+        directIds: directsN,
+        downlineIds: network[0]?.downline_ids ?? 0,
+        networkDepth: network[0]?.network_depth ?? 0,
+      },
+      wallet: {
+        held: toInt(h[0]?.held),
+        available: toInt(w[0]?.available_balance),
+        released: toInt(w[0]?.total_released),
+      },
+      qualification,
+      recentTx,
+      commissions,
+    };
+  });
+
+export const adminListQualification = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
+    const sql = await getSql();
+    const rows = await sql<{
+      id: string;
+      owner_user_id: string;
+      display_name: string;
+      package_id: string;
+      status: string;
+      directs: number;
+      completed_levels: number;
+      level9: boolean;
+    }>`
+      select m.id, m.owner_user_id, u.display_name, m.package_id, m.status,
+             (select count(*)::int from sponsor_relationships sr where sr.sponsor_id = m.id) as directs,
+             (select count(*)::int from level_progress lp
+                where lp.member_id = m.id and lp.status in ('COMPLETED','RELEASED')) as completed_levels,
+             exists (
+               select 1 from level_progress lp
+               where lp.member_id = m.id and lp.level = 9 and lp.status in ('COMPLETED','RELEASED')
+             ) as level9
+      from member_ids m
+      join app_users u on u.user_id = m.owner_user_id
+      order by m.created_at desc
+      limit 200
+    `;
+    return rows.map((row) => {
+      const qualification = evaluateLandQualification({
+        hasMembership: row.status === "active",
+        directSponsors: row.directs,
+        completedLevels: row.completed_levels,
+        level9Released: Boolean(row.level9),
+      });
+      return {
+        id: row.id,
+        owner_user_id: row.owner_user_id,
+        display_name: row.display_name,
+        package_id: row.package_id,
+        membershipStatus: row.status,
+        ...qualification,
+      };
+    });
   });
 
 export const adminListPurchases = createServerFn({ method: "GET" })
@@ -206,8 +506,10 @@ export const adminListWallets = createServerFn({ method: "GET" })
       display_name: string;
       available_balance: number;
       total_released: number;
+      held: number;
     }>`
-      select w.member_id, w.owner_user_id, u.display_name, w.available_balance, w.total_released
+      select w.member_id, w.owner_user_id, u.display_name, w.available_balance, w.total_released,
+             coalesce((select sum(amount) from held_commissions h where h.member_id = w.member_id),0)::int as held
       from wallets w
       join app_users u on u.user_id = w.owner_user_id
       order by w.available_balance desc
@@ -425,7 +727,7 @@ export const adminNetwork = createServerFn({ method: "GET" })
       limit 50
     `;
     const focus = data?.memberId ?? roots[0]?.id ?? null;
-    if (!focus) return { roots, focus: null, children: [] as never[], progress: [] as never[] };
+    if (!focus) return { roots, focus: null, children: [] as never[], progress: [] as never[], stats: null };
     const children = await sql<{
       child_id: string;
       parent_id: string;
@@ -451,7 +753,24 @@ export const adminNetwork = createServerFn({ method: "GET" })
       select level, completed_members, required_members, status
       from level_progress where member_id = ${focus} order by level
     `;
-    return { roots, focus, children, progress };
+    const directs = await sql<{ n: number }>`
+      select count(*)::int as n from sponsor_relationships where sponsor_id = ${focus}
+    `;
+    const downline = await sql<{ n: number; depth: number }>`
+      select count(*)::int as n, coalesce(max(generation),0)::int as depth
+      from generation_memberships where beneficiary_id = ${focus}
+    `;
+    return {
+      roots,
+      focus,
+      children,
+      progress,
+      stats: {
+        directIds: directs[0]?.n ?? 0,
+        downlineIds: downline[0]?.n ?? 0,
+        networkDepth: downline[0]?.depth ?? 0,
+      },
+    };
   });
 
 export const adminReports = createServerFn({ method: "GET" })
@@ -463,11 +782,12 @@ export const adminReports = createServerFn({ method: "GET" })
       select package_id, count(*)::int as n, coalesce(sum(amount_bdt),0)::int as value
       from package_purchases group by package_id
     `;
-    const liability = await sql<{ held: number; released: number; available: number }>`
+    const liability = await sql<{ held: number; released: number; available: number; reversed: number }>`
       select
         (select coalesce(sum(amount),0)::int from held_commissions) as held,
         (select coalesce(sum(total_released),0)::int from wallets) as released,
-        (select coalesce(sum(available_balance),0)::int from wallets) as available
+        (select coalesce(sum(available_balance),0)::int from wallets) as available,
+        (select coalesce(sum(commission_amount),0)::int from commission_entries where status = 'REVERSED') as reversed
     `;
     const growth = await sql<{ day: string; n: number }>`
       select to_char(created_at, 'YYYY-MM-DD') as day, count(*)::int as n
