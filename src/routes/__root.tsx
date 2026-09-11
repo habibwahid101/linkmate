@@ -15,8 +15,8 @@ const FONT_HREF =
 const CRITICAL_CSS = [
   ":root{",
   "--color-bg:#f4f1ea;--color-surface:#fffcf7;--color-ink:#1c1916;--color-muted:#58534e;",
-  "--color-accent:#1f4d45;--color-accent-fg:#f4f1ea;--color-accent-hover:#173b35;--color-accent-soft:#e6f0ec;",
-  "--color-border:#e2ddd3;--color-sidebar:#161513;--color-sidebar-fg:#f4f1ea;--color-sidebar-muted:#a8a29a;",
+  "--color-accent:#1f4d45;--color-accent-fg:#f4f1ea;--color-accent-hover:#173b35;--color-accent-soft:#d6e7e1;",
+  "--color-border:#d4cdc1;--color-sidebar:#161513;--color-sidebar-fg:#f4f1ea;--color-sidebar-muted:#a8a29a;",
   "--font-sans:Manrope,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif",
   "}",
   "html{color-scheme:light;-webkit-text-size-adjust:100%;scroll-padding-top:4.75rem}",

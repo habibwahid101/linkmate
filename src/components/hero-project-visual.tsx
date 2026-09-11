@@ -5,7 +5,29 @@ import { cn } from "@/lib/utils";
 const AUTO_MS = 5500;
 const SWIPE_PX = 48;
 
-const SLIDES = [
+type Slide = {
+  id: string;
+  caption: string;
+  alt: string;
+  width: number;
+  height: number;
+  badge: string;
+  note: string;
+  srcJpg: string;
+  srcSetJpg: string;
+  srcSetWebp: string;
+  objectPosition?: string;
+};
+
+function siteSets(stem: string) {
+  return {
+    srcJpg: `/hero/${stem}.jpg`,
+    srcSetJpg: `/hero/${stem}-640.jpg 640w, /hero/${stem}-960.jpg 960w, /hero/${stem}.jpg 1255w`,
+    srcSetWebp: `/hero/${stem}-640.webp 640w, /hero/${stem}-960.webp 960w, /hero/${stem}.webp 1255w`,
+  };
+}
+
+const SLIDES: Slide[] = [
   {
     id: "avenue",
     caption: "Illustrative Development View",
@@ -34,7 +56,73 @@ const SLIDES = [
     srcSetWebp:
       "/hero/illustrative-aerial-640.webp 640w, /hero/illustrative-aerial-960.webp 960w, /hero/illustrative-aerial.webp 1255w",
   },
-] as const;
+  {
+    id: "path",
+    caption: "Site Pathway",
+    alt: "Photograph of a wooded path on the project land",
+    width: 1255,
+    height: 941,
+    badge: "Location",
+    note: "Photograph of the project location.",
+    objectPosition: "42% 52%",
+    ...siteSets("site-path"),
+  },
+  {
+    id: "grove",
+    caption: "Project Landscape",
+    alt: "Photograph of greenery, palms, and open land at the project site",
+    width: 1255,
+    height: 941,
+    badge: "Location",
+    note: "Photograph of the project location.",
+    objectPosition: "55% 48%",
+    ...siteSets("site-grove"),
+  },
+  {
+    id: "field",
+    caption: "Open Land View",
+    alt: "Photograph of agricultural land and a forested hill at the project site",
+    width: 1255,
+    height: 941,
+    badge: "Location",
+    note: "Photograph of the project location.",
+    objectPosition: "50% 42%",
+    ...siteSets("site-field"),
+  },
+  {
+    id: "slope",
+    caption: "Site Terrain",
+    alt: "Photograph of sloping terrain and young trees at the project site",
+    width: 1255,
+    height: 941,
+    badge: "Location",
+    note: "Photograph of the project location.",
+    objectPosition: "42% 38%",
+    ...siteSets("site-slope"),
+  },
+  {
+    id: "house-porch",
+    caption: "On-site Building",
+    alt: "Photograph of an existing building with a porch at the project site",
+    width: 1255,
+    height: 941,
+    badge: "Location",
+    note: "Photograph of the project location.",
+    objectPosition: "62% 42%",
+    ...siteSets("site-house-porch"),
+  },
+  {
+    id: "house-field",
+    caption: "House and Field",
+    alt: "Photograph of a house and open field at the project site",
+    width: 1255,
+    height: 941,
+    badge: "Location",
+    note: "Photograph of the project location.",
+    objectPosition: "50% 42%",
+    ...siteSets("site-house-field"),
+  },
+];
 
 const SIZES = "(min-width: 1024px) 32rem, (min-width: 640px) 36rem, 100vw";
 
@@ -46,7 +134,7 @@ export function HeroProjectVisual() {
   const [loadRest, setLoadRest] = useState(false);
   const pointer = useRef<{ x: number; y: number } | null>(null);
 
-  const slide = SLIDES[index];
+  const slide = SLIDES[index]!;
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -57,7 +145,7 @@ export function HeroProjectVisual() {
   }, []);
 
   useEffect(() => {
-    const t = window.setTimeout(() => setLoadRest(true), 400);
+    const t = window.setTimeout(() => setLoadRest(true), 800);
     return () => window.clearTimeout(t);
   }, []);
 
@@ -118,7 +206,8 @@ export function HeroProjectVisual() {
       >
         <div className="relative aspect-[4/3]">
           {SLIDES.map((item, i) => {
-            if (i > 0 && !loadRest && index !== i) return null;
+            const near = Math.abs(i - index) <= 1 || (index === 0 && i === SLIDES.length - 1) || (index === SLIDES.length - 1 && i === 0);
+            if (i > 0 && !loadRest && !near) return null;
             const active = i === index;
             return (
               <div
@@ -143,7 +232,8 @@ export function HeroProjectVisual() {
                     loading={i === 0 ? "eager" : "lazy"}
                     fetchPriority={i === 0 ? "high" : "low"}
                     draggable={false}
-                    className="h-full w-full max-w-none object-cover object-center"
+                    className="h-full w-full max-w-none object-cover"
+                    style={{ objectPosition: item.objectPosition ?? "center" }}
                   />
                 </picture>
                 <span className="absolute left-3 top-3 rounded-full bg-surface/90 px-2.5 py-1 text-xs font-medium text-muted shadow-[var(--shadow-card)]">
@@ -183,7 +273,7 @@ export function HeroProjectVisual() {
         <p className="mt-1 text-[13px] leading-relaxed text-muted">{slide.note}</p>
       </div>
 
-      <div className="mt-1 flex justify-center" role="tablist" aria-label="Choose project visual">
+      <div className="mt-1 flex flex-wrap justify-center" role="tablist" aria-label="Choose project visual">
         {SLIDES.map((item, i) => (
           <button
             key={item.id}
