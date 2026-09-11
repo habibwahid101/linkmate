@@ -139,9 +139,11 @@ function Landing() {
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
               Link Mate membership · Land benefit · Clear qualification
             </p>
-            <h1 className="mt-4 max-w-xl text-pretty text-4xl font-semibold tracking-tight sm:text-5xl">
-              A clear membership path toward{" "}
-              <span className="text-accent">1 Decimal Land</span>.
+            <h1 className="mt-4 max-w-xl text-3xl font-semibold leading-[1.18] tracking-tight sm:text-4xl lg:text-5xl">
+              <span className="block">A clear membership path</span>
+              <span className="block">
+                Toward <span className="text-land">1 Decimal Land</span>.
+              </span>
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
               Start with 1 Link Mate Membership ID for ৳11,000. Complete the defined qualification
