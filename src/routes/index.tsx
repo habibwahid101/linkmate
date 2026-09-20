@@ -174,9 +174,9 @@ function Landing() {
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
               {t("hero.kicker")}
             </p>
-            <h1 className="mt-4 max-w-xl text-3xl font-semibold leading-[1.18] tracking-tight sm:text-4xl lg:text-5xl">
-              <span className="block">{t("hero.line1")}</span>
-              <span className="block">
+            <h1 className="lm-hero-title mt-4 max-w-xl font-semibold tracking-tight">
+              <span className="block whitespace-nowrap">{t("hero.line1")}</span>
+              <span className="block whitespace-nowrap">
                 {t("hero.toward")} <span className="lm-land-highlight">1 Decimal Land</span>.
               </span>
             </h1>

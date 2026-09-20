@@ -180,8 +180,15 @@ html.lang-bn body {
   font-family: "Noto Sans Bengali", var(--font-sans);
 }
 
+.lm-hero-title {
+  text-wrap: unset;
+  font-size: clamp(1.15rem, 2.4vw + 0.72rem, 3rem);
+  line-height: 1.22;
+}
+
 .lm-land-highlight {
-  display: inline;
+  display: inline-block;
+  white-space: nowrap;
   background: linear-gradient(180deg, #f4e7a8 0%, #e4d07a 100%);
   color: var(--color-highlight-ink);
   padding: 0.04em 0.28em;

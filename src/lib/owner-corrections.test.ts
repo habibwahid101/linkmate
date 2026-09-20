@@ -48,7 +48,9 @@ describe("owner corrections", () => {
 
   it("uses a gold highlight for 1 Decimal Land and the original logo asset", () => {
     const landing = readFileSync(join(ROOT, "src/routes/index.tsx"), "utf8");
+    assert.match(landing, /lm-hero-title/);
     assert.match(landing, /lm-land-highlight/);
+    assert.match(landing, /whitespace-nowrap/);
     assert.match(landing, /hero\.toward/);
     assert.match(landing, /1 Decimal Land/);
     assert.equal(landing.includes("1 Katha Land"), false);
