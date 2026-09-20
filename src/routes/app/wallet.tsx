@@ -9,12 +9,15 @@ import { Money } from "@/components/money";
 import { StatusBadge } from "@/components/status-badge";
 import { MemberWithdrawalPanel } from "@/components/withdrawal-panel";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDateTime, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
+import { LocalDate } from "@/components/local-date";
+import { useT } from "@/lib/i18n";
 import { useState } from "react";
 
 export const Route = createFileRoute("/app/wallet")({ component: Wallet });
 
 function Wallet() {
+  const t = useT();
   const q = useQuery({ queryKey: ["wallet"], queryFn: () => getWallet() });
   const [withdrawId, setWithdrawId] = useState<string | null>(null);
   if (q.isPending) return <DashboardSkeleton />;
@@ -32,26 +35,26 @@ function Wallet() {
   return (
     <div>
       <PageHeader
-        title="Account wallet"
-        hint="Available balance is the account total of released amounts. Held commission is not withdrawable. IDs earn; this account uses the balance."
+        title={t("wallet.title")}
+        hint={t("wallet.hint")}
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card tone="available">
-          <p className="kicker text-accent">Available balance</p>
+          <p className="kicker text-accent">{t("wallet.available")}</p>
           <div className="mt-2">
             <Money amount={available} size="lg" className="text-accent" />
           </div>
           <p className="mt-2 text-[13px] leading-snug text-muted">Account-level withdrawable total of released earnings.</p>
         </Card>
         <Card tone="held">
-          <p className="kicker text-held">Held commission</p>
+          <p className="kicker text-held">{t("wallet.held")}</p>
           <div className="mt-2">
             <Money amount={held} size="lg" className="text-held" />
           </div>
           <p className="mt-2 text-[13px] leading-snug text-muted">Aggregate held across IDs. Not withdrawable.</p>
         </Card>
         <Card tone="success">
-          <p className="kicker text-success">Released earnings</p>
+          <p className="kicker text-success">{t("wallet.released")}</p>
           <div className="mt-2">
             <Money amount={released} size="lg" className="text-success" />
           </div>
@@ -167,7 +170,7 @@ function Wallet() {
                   {tx.member_id}
                   {tx.level ? ` · Level ${tx.level}` : ""}
                 </p>
-                <p className="text-xs text-muted">{formatDateTime(tx.created_at)}</p>
+                <p className="text-xs text-muted"><LocalDate iso={tx.created_at} time /></p>
               </div>
               <div className="text-right">
                 <Money amount={toInt(tx.amount)} size="sm" />

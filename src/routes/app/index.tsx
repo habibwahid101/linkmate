@@ -10,16 +10,42 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { MembershipIdCard, MembershipIdRow } from "@/components/membership-id-card";
+import { AccountAvatar } from "@/components/avatar";
+import { LocalDate } from "@/components/local-date";
 import { formatBdt } from "@/lib/money";
 import { PACKAGES } from "@/lib/rules";
 import { DASHBOARD_ID_PREVIEW, usesCompactList } from "@/lib/id-workspace";
-import { formatDate } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { toast } from "sonner";
 import type { PackageId } from "@/lib/rules";
+import type { AppProfile } from "@/lib/server/profile";
 
 export const Route = createFileRoute("/app/")({ component: Home });
 
+function IdentityCard({ profile }: { profile: AppProfile }) {
+  const t = useT();
+  return (
+    <Card className="mb-4 flex items-center gap-3 p-4 sm:gap-4">
+      <AccountAvatar name={profile.displayName} src={profile.avatarData} size="lg" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{t("dash.holder")}</p>
+        <p className="truncate text-lg font-semibold tracking-tight">{profile.displayName}</p>
+        <p className="mt-0.5 truncate font-mono text-sm text-muted">
+          {t("dash.accountCode")} · {profile.referralCode}
+        </p>
+        <p className="mt-0.5 truncate font-mono text-sm text-accent">
+          {t("dash.membershipId")} · {profile.activeId ?? t("dash.none")}
+        </p>
+      </div>
+      <Link to="/app/profile" className="shrink-0 text-sm font-medium text-accent">
+        {t("profile.photo")}
+      </Link>
+    </Card>
+  );
+}
+
 function Home() {
+  const t = useT();
   const qc = useQueryClient();
   const dash = useQuery({ queryKey: ["dashboard"], queryFn: () => getDashboard() });
   const sample = useMutation({
@@ -40,11 +66,12 @@ function Home() {
     return (
       <div>
         <PageHeader
-          title={`Hello, ${d.profile.displayName.split(" ")[0]}`}
-          hint="Account overview. Membership IDs appear after a package is activated."
+          title={`${t("dash.hello")} ${d.profile.displayName}`}
+          hint={t("dash.emptyHint")}
         />
+        <IdentityCard profile={d.profile} />
         <EmptyState
-          title="No Membership IDs yet"
+          title={t("dash.emptyTitle")}
           body={
             d.flags.demoNetwork
               ? "Choose a package to issue IDs, or load a Turbo sample to inspect hold and release."
@@ -54,7 +81,7 @@ function Home() {
                 ? "Online payment is not available yet. Package details can still be reviewed."
                 : "Choose a package to issue Membership IDs. Each ID progresses and earns independently."
           }
-          action="View packages"
+          action={t("pkg.title")}
           actionTo="/app/packages"
         />
         {d.flags.demoNetwork ? (
@@ -76,39 +103,37 @@ function Home() {
 
   return (
     <div>
-      <PageHeader
-        title="Account overview"
-        hint="This account owns Membership IDs. IDs perform and earn independently. Totals below are across every ID you own."
-      />
+      <PageHeader title={t("dash.title")} hint={t("dash.hint")} />
+      <IdentityCard profile={d.profile} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <LevelKpi
           tone="info"
-          label="Total Membership IDs"
+          label={t("dash.ids")}
           value={<span className="tabular text-xl font-semibold tracking-tight">{d.idCount}</span>}
           hint={pkg ? `${pkg.name} · ${pkg.idCount} issued` : "Owned by this account"}
         />
         <LevelKpi
           tone="available"
-          label="Available balance"
+          label={t("dash.available")}
           value={<Money amount={d.wallet.available} size="lg" className="text-accent" />}
           hint="Account total · withdrawable"
         />
         <LevelKpi
           tone="held"
-          label="Held commission"
+          label={t("dash.held")}
           value={<Money amount={d.wallet.held} size="lg" className="text-held" />}
           hint="Account total · not withdrawable"
         />
         <LevelKpi
           tone="success"
-          label="Released earnings"
+          label={t("dash.released")}
           value={<Money amount={d.wallet.released} size="lg" className="text-success" />}
           hint="Account lifetime released"
         />
         <LevelKpi
           tone="progress"
-          label="Highest active level"
+          label={t("dash.highest")}
           value={
             <span className="tabular text-xl font-semibold tracking-tight">
               {d.highestActiveLevel ? `Level ${d.highestActiveLevel}` : "—"}
@@ -118,31 +143,35 @@ function Home() {
         />
         <LevelKpi
           tone="progress"
-          label="IDs in progress"
+          label={t("dash.inProgress")}
           value={<span className="tabular text-xl font-semibold tracking-tight">{d.idsInProgress}</span>}
           hint={d.graduatedCount ? `${d.graduatedCount} graduated` : "Not yet graduated"}
         />
         <LevelKpi
           tone="package"
-          label="Latest package"
+          label={t("dash.latest")}
           value={<span className="text-xl font-semibold tracking-tight">{pkg?.name ?? "—"}</span>}
           hint={pkg ? formatBdt(pkg.amountBdt) : undefined}
         />
         <LevelKpi
           tone="info"
-          label="Account"
-          value={<span className="truncate text-lg font-semibold tracking-tight">{d.profile.displayName.split(" ")[0]}</span>}
-          hint="Login identity · not an ID"
+          label={t("dash.activeId")}
+          value={
+            <span className="truncate font-mono text-lg font-semibold tracking-tight">
+              {d.profile.activeId ?? t("dash.none")}
+            </span>
+          }
+          hint={t("dash.membershipId")}
         />
       </div>
 
       <div className="mt-6 flex items-end justify-between gap-3">
         <div>
-          <CardTitle>My Membership IDs</CardTitle>
-          <p className="mt-1 text-[15px] leading-relaxed text-muted">Open an ID to see its progress, referral, earnings, and network.</p>
+          <CardTitle>{t("dash.myIds")}</CardTitle>
+          <p className="mt-1 text-[15px] leading-relaxed text-muted">{t("dash.myIdsHint")}</p>
         </div>
         <Link to="/app/ids" className="shrink-0 text-sm font-medium text-accent">
-          Manage IDs
+          {t("dash.manage")}
         </Link>
       </div>
 
@@ -154,7 +183,7 @@ function Home() {
           <p className="text-center text-sm text-muted">
             Showing {DASHBOARD_ID_PREVIEW} of {d.ids.length}.{" "}
             <Link to="/app/ids" className="font-medium text-accent">
-              View all Membership IDs
+              {t("dash.myIds")}
             </Link>
           </p>
         ) : null}
@@ -162,9 +191,9 @@ function Home() {
 
       <div className="mt-6">
         <div className="mb-3 flex items-center justify-between">
-          <CardTitle>Recent account releases</CardTitle>
+          <CardTitle>{t("dash.releases")}</CardTitle>
           <Link to="/app/wallet" className="text-sm font-medium text-accent">
-            Wallet
+            {t("dash.wallet")}
           </Link>
         </div>
         <Card tone="success">
@@ -181,7 +210,7 @@ function Home() {
                       {tx.member_id}
                       {tx.level ? ` · Level ${tx.level}` : ""}
                     </p>
-                    <p className="text-xs text-muted">{formatDate(tx.created_at)}</p>
+                    <LocalDate className="text-xs text-muted" iso={tx.created_at} />
                   </div>
                   <Money amount={tx.amount} size="sm" />
                 </li>

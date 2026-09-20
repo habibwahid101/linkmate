@@ -9,6 +9,7 @@ import { LevelCard } from "@/components/level-card";
 import { IdSwitcher, IdScopedLinks } from "@/components/id-switcher";
 import { parseMemberIdSearch, isGraduated } from "@/lib/id-workspace";
 import { Card } from "@/components/ui/card";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/app/levels")({
   validateSearch: parseMemberIdSearch,
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/app/levels")({
 });
 
 function Levels() {
+  const t = useT();
   const { id } = Route.useSearch();
   const ids = useQuery({ queryKey: ["ids"], queryFn: () => listMyIds() });
   const selected = id ?? ids.data?.[0]?.id;
@@ -30,7 +32,7 @@ function Levels() {
   if (!q.data?.activeId) {
     return (
       <div>
-        <PageHeader title="Level progress" />
+        <PageHeader title={t("levels.memberTitle")} />
         <EmptyState
           title="No levels yet"
           body="Level progress appears after you have a membership ID. Each ID has its own L1–L9 journey."
@@ -44,7 +46,7 @@ function Levels() {
   return (
     <div>
       <PageHeader
-        title="Level progress"
+        title={t("levels.memberTitle")}
         hint={ids.data ? <IdSwitcher ids={ids.data} selectedId={q.data.activeId} onSelectPath="/app/levels" /> : q.data.activeId}
       />
       {graduated ? (

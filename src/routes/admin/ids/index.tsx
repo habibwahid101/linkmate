@@ -8,8 +8,9 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { AdminList } from "@/components/admin-list";
 import { AdminSearch } from "@/components/admin-filters";
 import { StatusBadge } from "@/components/status-badge";
-import { formatDate, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
 import { ADMIN_EMPTY } from "@/lib/admin-status";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/ids/")({ component: Ids });
 
@@ -54,7 +55,7 @@ function Ids() {
           { key: "sp", label: "Sponsor", hideOnMobile: true, render: (r) => <span className="font-mono text-xs">{r.sponsor_id ?? "—"}</span> },
           { key: "place", label: "Placement", hideOnMobile: true, render: (r) => <StatusBadge status={r.placement_status} /> },
           { key: "st", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
-          { key: "date", label: "Created", hideOnMobile: true, render: (r) => formatDate(r.created_at) },
+          { key: "date", label: "Created", hideOnMobile: true, render: (r) => <LocalDate iso={r.created_at} /> },
         ]}
       />
     </div>

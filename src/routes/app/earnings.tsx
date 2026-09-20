@@ -12,6 +12,7 @@ import { parseMemberIdSearch } from "@/lib/id-workspace";
 import { packageLabel } from "@/lib/format";
 import { Money } from "@/components/money";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/app/earnings")({
   validateSearch: parseMemberIdSearch,
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/app/earnings")({
 });
 
 function Earnings() {
+  const t = useT();
   const { id } = Route.useSearch();
   const q = useQuery({ queryKey: ["earnings"], queryFn: () => getEarningsByLevel() });
   if (q.isPending) return <DashboardSkeleton />;
@@ -27,10 +29,10 @@ function Earnings() {
   if (empty) {
     return (
       <div>
-        <PageHeader title="Earnings" hint="Account totals plus earnings attributed to each Membership ID." />
+        <PageHeader title={t("earn.title")} hint={t("earn.hint")} />
         <EmptyState
-          title="No commission yet"
-          body="Earnings appear as your IDs generate held and released commission. Each ID keeps its own attribution."
+          title={t("earn.empty")}
+          body={t("earn.emptyBody")}
           action="My Membership IDs"
           actionTo="/app/ids"
         />
@@ -41,7 +43,7 @@ function Earnings() {
   return (
     <div>
       <PageHeader
-        title="Earnings"
+        title={t("earn.title")}
         hint="Held stays pending until the level completes on that ID. Released is in the account wallet."
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

@@ -10,9 +10,10 @@ import { AdminSearch, FilterChips } from "@/components/admin-filters";
 import { Card, type CardTone } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDate } from "@/lib/format";
+
 import { ADMIN_EMPTY } from "@/lib/admin-status";
 import type { WithdrawalStatus } from "@/lib/server/withdrawals";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/withdrawals/")({ component: Queue });
 
@@ -82,7 +83,7 @@ function Queue() {
           { key: "net", label: "Net payout", render: (r) => formatBdt(toInt(r.amount_bdt) - toInt(r.fee_bdt)) },
           { key: "st", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
           { key: "m", label: "Method", hideOnMobile: true, render: (r) => r.payout_method },
-          { key: "dt", label: "Requested", hideOnMobile: true, render: (r) => formatDate(r.created_at) },
+          { key: "dt", label: "Requested", hideOnMobile: true, render: (r) => <LocalDate iso={r.created_at} /> },
         ]}
       />
     </div>

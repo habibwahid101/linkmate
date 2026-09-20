@@ -17,6 +17,7 @@ export type AppProfile = {
   referralCode: string;
   activeId: string | null;
   createdAt: string;
+  avatarData: string | null;
 };
 
 function mapProfile(row: {
@@ -29,6 +30,7 @@ function mapProfile(row: {
   referral_code: string;
   active_id: string | null;
   created_at: string;
+  avatar_data?: string | null;
 }): AppProfile {
   return {
     userId: row.user_id,
@@ -40,6 +42,7 @@ function mapProfile(row: {
     referralCode: row.referral_code,
     activeId: row.active_id,
     createdAt: row.created_at,
+    avatarData: row.avatar_data ?? null,
   };
 }
 
@@ -50,6 +53,16 @@ export async function ensureProfileRow(
 ): Promise<AppProfile> {
   const { ensureAppUserForId } = await import("./app-user");
   const row = await ensureAppUserForId(userId, { name: displayName, email });
+  const sql = await getSql();
+  let avatarData: string | null = null;
+  try {
+    const extra = await sql<{ avatar_data: string | null }>`
+      select avatar_data from app_users where user_id = ${row.userId}
+    `;
+    avatarData = extra[0]?.avatar_data ?? null;
+  } catch {
+    avatarData = null;
+  }
   return mapProfile({
     user_id: row.userId,
     display_name: row.displayName,
@@ -60,6 +73,7 @@ export async function ensureProfileRow(
     referral_code: row.referralCode,
     active_id: row.activeId,
     created_at: row.createdAt,
+    avatar_data: avatarData,
   });
 }
 
@@ -75,6 +89,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     z.object({
       displayName: z.string().min(1).max(80).optional(),
       phone: z.string().max(20).optional(),
+      avatarData: z.string().max(180_000).nullable().optional(),
     }),
   )
   .handler(async ({ context, data }) => {
@@ -85,6 +100,14 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     }
     if (data.phone !== undefined) {
       await sql`update app_users set phone = ${data.phone} where user_id = ${context.userId}`;
+    }
+    if (data.avatarData === null) {
+      await sql`update app_users set avatar_data = null where user_id = ${context.userId}`;
+    } else if (data.avatarData) {
+      if (!/^data:image\/(jpeg|png|webp);base64,/i.test(data.avatarData)) {
+        throw new Error("Use a JPEG, PNG, or WebP image");
+      }
+      await sql`update app_users set avatar_data = ${data.avatarData} where user_id = ${context.userId}`;
     }
     return ensureProfileRow(context.userId, "Member", null);
   });

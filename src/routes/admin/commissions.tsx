@@ -11,10 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDateTime } from "@/lib/format";
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { ADMIN_EMPTY } from "@/lib/admin-status";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/commissions")({ component: Commissions });
 
@@ -92,7 +93,7 @@ function Commissions() {
           { key: "lv", label: "Level", render: (r) => `L${r.level}` },
           { key: "amt", label: "Amount", render: (r) => formatBdt(toInt(r.commission_amount)) },
           { key: "st", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
-          { key: "date", label: "Held", hideOnMobile: true, render: (r) => formatDateTime(r.held_at) },
+          { key: "date", label: "Held", hideOnMobile: true, render: (r) => <LocalDate iso={r.held_at} time /> },
         ]}
       />
     </div>

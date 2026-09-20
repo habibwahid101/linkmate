@@ -5,11 +5,13 @@ import { Input, Label, PasswordInput } from "@/components/ui/input";
 import { GROK_PROVIDERS, authClient, authEnabled, grokBrokerEnabled, signIn } from "@/lib/auth/client";
 import { useState } from "react";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
 function Login() {
   const { user, isPending } = useCurrentUserState();
+  const t = useT();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,22 +34,22 @@ function Login() {
       const msg = err instanceof Error ? err.message : "";
       setError(
         msg.includes("Too many")
-          ? "Too many attempts. Try again in a few minutes."
-          : "Email or password is incorrect.",
+          ? t("auth.tooMany")
+          : t("auth.bad"),
       );
       setBusy(false);
     }
   }
 
   return (
-    <AuthFrame title="Sign in" subtitle="Use the email and password for your Link Mate account.">
+    <AuthFrame title={t("auth.loginTitle")} subtitle={t("auth.loginSub")}>
       {!authEnabled ? (
         <p className="text-sm text-muted">Sign-in is disabled.</p>
       ) : (
         <>
           <form onSubmit={onSubmit} className="space-y-3">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -60,10 +62,10 @@ function Login() {
             <div>
               <div className="mb-1.5 flex items-center justify-between">
                 <Label htmlFor="password" className="mb-0">
-                  Password
+                  {t("auth.password")}
                 </Label>
                 <Link to="/forgot-password" className="text-xs text-muted hover:text-ink">
-                  Forgot password
+                  {t("auth.forgot")}
                 </Link>
               </div>
               <PasswordInput
@@ -80,7 +82,7 @@ function Login() {
               </p>
             ) : null}
             <Button type="submit" className="w-full" disabled={busy}>
-              {busy ? "Signing in…" : "Sign in"}
+              {busy ? t("auth.signing") : t("auth.signin")}
             </Button>
           </form>
           {grokBrokerEnabled ? (
@@ -106,9 +108,9 @@ function Login() {
             </>
           ) : null}
           <p className="mt-6 text-center text-sm text-muted">
-            New to Link Mate?{" "}
+            {t("auth.new")}{" "}
             <Link to="/signup" className="font-medium text-ink underline-offset-4 hover:underline">
-              Create an account
+              {t("auth.create")}
             </Link>
           </p>
         </>

@@ -17,10 +17,12 @@ import {
   type IdSort,
 } from "@/lib/id-workspace";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/app/ids/")({ component: Ids });
 
 function Ids() {
+  const t = useT();
   const ids = useQuery({ queryKey: ["ids"], queryFn: () => listMyIds() });
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<IdFilter>("all");
@@ -36,7 +38,7 @@ function Ids() {
   if (ids.data.length === 0) {
     return (
       <div>
-        <PageHeader title="My Membership IDs" hint="Each ID is an independent business unit." />
+        <PageHeader title={t("ids.title")} hint={t("ids.hint")} />
         <EmptyState
           title="No Membership IDs yet"
           body="Choose a package to issue your first membership ID. Progress, referrals, and earnings will appear here."
@@ -52,7 +54,7 @@ function Ids() {
   return (
     <div>
       <PageHeader
-        title="My Membership IDs"
+        title={t("ids.title")}
         hint={`${ids.data.length} ID${ids.data.length === 1 ? "" : "s"} on this account. Open one to manage progress, referral, earnings, and network.`}
       />
 

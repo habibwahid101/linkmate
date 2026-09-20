@@ -7,8 +7,9 @@ import { QueryError } from "@/components/query-error";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { AdminList } from "@/components/admin-list";
 import { AdminSearch } from "@/components/admin-filters";
-import { formatDateTime } from "@/lib/format";
+
 import { ADMIN_EMPTY } from "@/lib/admin-status";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/audit")({ component: Audit });
 
@@ -39,7 +40,7 @@ function Audit() {
           { key: "who", label: "Actor", render: (r) => <span className="font-mono text-xs">{r.actor_user_id ?? "system"}</span> },
           { key: "ent", label: "Entity", render: (r) => `${r.entity_type} ${r.entity_id ?? ""}` },
           { key: "det", label: "Detail", hideOnMobile: true, render: (r) => r.detail ?? "—" },
-          { key: "date", label: "When", hideOnMobile: true, render: (r) => formatDateTime(r.created_at) },
+          { key: "date", label: "When", hideOnMobile: true, render: (r) => <LocalDate iso={r.created_at} time /> },
         ]}
       />
     </div>

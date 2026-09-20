@@ -1,32 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
-export function LogoMark({ className, invert = false }: { className?: string; invert?: boolean }) {
+export function LogoMark({ className }: { className?: string; invert?: boolean }) {
   return (
-    <svg
-      viewBox="0 0 32 32"
-      width={32}
+    <img
+      src="/logo-mark.png"
+      srcSet="/logo-mark.png 1x, /logo-mark@2x.png 2x"
+      alt=""
+      width={40}
       height={32}
-      className={cn("size-8", className)}
-      style={{ width: 32, height: 32, flexShrink: 0 }}
-      aria-hidden="true"
-    >
-      <rect
-        width="32"
-        height="32"
-        rx="8"
-        fill={invert ? "#F3F1EC" : "#1F4D45"}
-      />
-      <circle cx="10" cy="16" r="2.2" fill={invert ? "#1F4D45" : "#F3F1EC"} />
-      <circle cx="22" cy="10" r="2.2" fill={invert ? "#1F4D45" : "#F3F1EC"} />
-      <circle cx="22" cy="22" r="2.2" fill={invert ? "#1F4D45" : "#F3F1EC"} />
-      <path
-        d="M12 16h8M20.2 11.6l-8.4 3.6M20.2 20.4l-8.4-3.6"
-        stroke={invert ? "#1F4D45" : "#F3F1EC"}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
+      draggable={false}
+      className={cn("h-8 w-auto max-h-8 shrink-0 object-contain sm:h-9 sm:max-h-9", className)}
+      style={{ height: 32, width: "auto", maxHeight: 36 }}
+    />
   );
 }
 
@@ -38,8 +24,8 @@ export function Wordmark({
   compact?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <LogoMark invert={invert} className="size-8 shrink-0" />
+    <div className="flex items-center gap-2">
+      <LogoMark className="shrink-0" />
       {compact ? null : (
         <span
           className={cn(

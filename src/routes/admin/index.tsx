@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { getAdminOverview } from "@/lib/server/admin";
 import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
@@ -8,9 +8,10 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { Card, type CardTone } from "@/components/ui/card";
 import { Money } from "@/components/money";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDate, formatDateTime, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
 import { PACKAGES } from "@/lib/rules";
 import { EmptyState } from "@/components/empty-state";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/")({ component: Overview });
 
@@ -148,7 +149,7 @@ function Overview() {
             <Card key={p.id} className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium">{packageLabel(p.package_id)}</p>
-                <p className="text-xs text-muted">{formatDate(p.created_at)}</p>
+                <p className="text-xs text-muted"><LocalDate iso={p.created_at} /></p>
               </div>
               <span className="tabular whitespace-nowrap text-sm font-semibold">{formatBdt(toInt(p.amount_bdt))}</span>
             </Card>
@@ -174,7 +175,7 @@ function Overview() {
                   {a.entity_type} {a.entity_id ?? ""}
                 </p>
               </div>
-              <span className="whitespace-nowrap text-xs text-muted">{formatDateTime(a.created_at)}</span>
+              <span className="whitespace-nowrap text-xs text-muted"><LocalDate iso={a.created_at} time /></span>
             </Card>
           ))
         )}

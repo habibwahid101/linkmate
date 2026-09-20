@@ -8,8 +8,9 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { AdminList } from "@/components/admin-list";
 import { AdminSearch } from "@/components/admin-filters";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/format";
+
 import { ADMIN_EMPTY } from "@/lib/admin-status";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/users/")({ component: Users });
 
@@ -63,7 +64,7 @@ function Users() {
             render: (r) =>
               r.is_synthetic ? <Badge tone="locked">Simulated</Badge> : <Badge tone="info">Account</Badge>,
           },
-          { key: "date", label: "Joined", hideOnMobile: true, render: (r) => formatDate(r.created_at) },
+          { key: "date", label: "Joined", hideOnMobile: true, render: (r) => <LocalDate iso={r.created_at} /> },
         ]}
       />
     </div>

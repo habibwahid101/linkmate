@@ -9,8 +9,9 @@ import { AdminList } from "@/components/admin-list";
 import { AdminSearch, FilterChips } from "@/components/admin-filters";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDateTime } from "@/lib/format";
+
 import { ADMIN_EMPTY } from "@/lib/admin-status";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/transactions")({ component: Tx });
 
@@ -57,7 +58,7 @@ function Tx() {
           { key: "amt", label: "Amount", render: (r) => formatBdt(toInt(r.amount)) },
           { key: "src", label: "Source", hideOnMobile: true, render: (r) => r.source },
           { key: "st", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
-          { key: "date", label: "Date", hideOnMobile: true, render: (r) => formatDateTime(r.created_at) },
+          { key: "date", label: "Date", hideOnMobile: true, render: (r) => <LocalDate iso={r.created_at} time /> },
         ]}
       />
     </div>

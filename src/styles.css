@@ -44,6 +44,8 @@
   --color-surface-progress: #e3dcee;
   --color-border-progress: #bfb3d6;
   --color-land: #3e2670;
+  --color-highlight: #ead889;
+  --color-highlight-ink: #2a2416;
 
   --color-package: #7a5238;
   --color-package-soft: #f0e3d6;
@@ -155,4 +157,53 @@
 
 .safe-top {
   padding-top: env(safe-area-inset-top);
+}
+
+html.lang-bn,
+html.lang-bn body {
+  font-family: "Noto Sans Bengali", var(--font-sans);
+}
+
+.lm-land-highlight {
+  display: inline;
+  background: linear-gradient(180deg, #f4e7a8 0%, #e4d07a 100%);
+  color: var(--color-highlight-ink);
+  padding: 0.04em 0.28em;
+  border-radius: 0.28em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  font-weight: 650;
+}
+
+.lm-brand-mark {
+  animation: lm-brand-in 0.8s var(--ease-out) both, lm-brand-glow 7s ease-in-out 0.8s infinite;
+}
+
+@keyframes lm-brand-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lm-brand-glow {
+  0%,
+  100% {
+    color: var(--color-accent);
+    letter-spacing: 0.04em;
+  }
+  50% {
+    color: #2f7468;
+    letter-spacing: 0.055em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lm-brand-mark {
+    animation: none;
+  }
 }

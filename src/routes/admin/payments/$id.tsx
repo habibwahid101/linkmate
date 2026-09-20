@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -16,11 +17,12 @@ import { Input, Label } from "@/components/ui/input";
 import { Modal } from "@/components/modal";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt } from "@/lib/money";
-import { formatDateTime, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
 import { PAYMENT_METHOD_LABEL } from "@/lib/payments";
 import { toast } from "sonner";
 import { publicErrorMessage } from "@/lib/public-error";
 import { cn } from "@/lib/utils";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/payments/$id")({ component: Detail });
 
@@ -69,7 +71,7 @@ function Detail() {
         <Row label="Submitted amount" value={formatBdt(p.submittedAmountBdt)} />
         <Row label="Method" value={PAYMENT_METHOD_LABEL[p.method]} />
         <Row label="Transaction / reference" value={p.transactionReference ?? "—"} />
-        <Row label="Submitted" value={formatDateTime(p.createdAt)} />
+        <Row label="Submitted" value={<LocalDate iso={p.createdAt} time />} />
         {p.extra.receivedBy ? <Row label="Paid to" value={p.extra.receivedBy} /> : null}
         {p.extra.transferDate ? <Row label="Transfer date" value={p.extra.transferDate} /> : null}
         {p.extra.senderBank ? <Row label="Sender bank" value={p.extra.senderBank} /> : null}
@@ -128,7 +130,7 @@ function Detail() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className="text-sm text-muted">{label}</span>

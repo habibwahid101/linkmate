@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { adminGetMemberId } from "@/lib/server/admin";
@@ -11,9 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/money";
 import { ProgressBar } from "@/components/progress-bar";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDate, formatDateTime, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
 import { levelRequirementCopy, originLabel, progressFraction } from "@/lib/id-workspace";
 import { cn } from "@/lib/utils";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/ids/$memberId")({ component: IdDetail });
 
@@ -47,7 +49,7 @@ function IdDetail() {
         <Row label="Placement parent" value={d.parent_id ?? "—"} />
         <Row label="Placement" value={d.placement_status} />
         <Row label="Current level" value={`Level ${d.current_level}`} />
-        <Row label="Created" value={formatDate(d.created_at)} />
+        <Row label="Created" value={<LocalDate iso={d.created_at} />} />
       </Card>
       <Link
         to="/admin/users/$userId"
@@ -176,7 +178,7 @@ function IdDetail() {
             <Card key={tx.id} className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium">{tx.type}</p>
-                <p className="text-xs text-muted">{formatDateTime(tx.created_at)}</p>
+                <p className="text-xs text-muted"><LocalDate iso={tx.created_at} time /></p>
               </div>
               <div className="text-right">
                 <p className="tabular text-sm font-semibold">{formatBdt(toInt(tx.amount))}</p>
@@ -199,7 +201,7 @@ function IdDetail() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className="text-sm text-muted">{label}</span>

@@ -125,6 +125,12 @@ describe("migration safety", () => {
     );
     assert.equal(user.rows[0]?.user_id, "u-restore");
 
+    const avatarCol = await pg.query<{ column_name: string }>(
+      `select column_name from information_schema.columns
+       where table_name = 'app_users' and column_name = 'avatar_data'`,
+    );
+    assert.equal(avatarCol.rows[0]?.column_name, "avatar_data");
+
     for (const table of LEDGER_TABLES) {
       const exists = await pg.query<{ exists: boolean }>(
         "select to_regclass($1) is not null as exists",

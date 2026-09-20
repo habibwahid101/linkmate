@@ -3,13 +3,14 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { queryClient } from "@/lib/query";
+import { LocaleProvider } from "@/lib/i18n";
 import { Toaster } from "sonner";
 import "../styles.css";
 
 const APP_NAME = "Link Mate";
 
 const FONT_HREF =
-  "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap";
+  "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap";
 
 /** Unlayered canvas + @layer base resets so Tailwind utilities still win after load. */
 const CRITICAL_CSS = [
@@ -76,13 +77,15 @@ function Root() {
         <PreviewHostBridge />
         <AuthProvider>
           <QueryClientProvider client={queryClient}>
-            <Outlet />
-            <Toaster
-              position="top-center"
-              toastOptions={{
-                className: "font-sans",
-              }}
-            />
+            <LocaleProvider>
+              <Outlet />
+              <Toaster
+                position="top-center"
+                toastOptions={{
+                  className: "font-sans",
+                }}
+              />
+            </LocaleProvider>
           </QueryClientProvider>
         </AuthProvider>
         <Scripts />

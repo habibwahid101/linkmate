@@ -12,7 +12,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { ProgressBar } from "@/components/progress-bar";
 import { Modal } from "@/components/modal";
 import { IdSwitcher, IdScopedLinks } from "@/components/id-switcher";
-import { formatDate, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
+import { LocalDate } from "@/components/local-date";
+import { useT } from "@/lib/i18n";
 import { parseMemberIdSearch, progressNounShort } from "@/lib/id-workspace";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -24,6 +26,7 @@ export const Route = createFileRoute("/app/team")({
 });
 
 function Team() {
+  const t = useT();
   const qc = useQueryClient();
   const { id } = Route.useSearch();
   const ids = useQuery({ queryKey: ["ids"], queryFn: () => listMyIds() });
@@ -58,7 +61,7 @@ function Team() {
   if (!team.data.activeId) {
     return (
       <div>
-        <PageHeader title="Network" />
+        <PageHeader title={t("net.title")} />
         <EmptyState
           title="No network yet"
           body="Direct and downline IDs appear here for the Membership ID you open. Choose a package to issue your first ID."
@@ -80,7 +83,7 @@ function Team() {
   return (
     <div>
       <PageHeader
-        title="Network"
+        title={t("net.title")}
         hint={
           ids.data ? (
             <IdSwitcher ids={ids.data} selectedId={team.data.activeId} onSelectPath="/app/team" />
@@ -121,7 +124,7 @@ function Team() {
                   <p className="truncate text-sm font-medium">{m.display_name}</p>
                   <p className="font-mono text-xs text-muted">{m.member_id}</p>
                   <p className="text-xs text-muted">
-                    {packageLabel(m.package_id)} · {formatDate(m.created_at)}
+                    {packageLabel(m.package_id)} · <LocalDate iso={m.created_at} />
                   </p>
                 </div>
                 <StatusBadge status={m.status} />
@@ -186,7 +189,7 @@ function Team() {
                               <p className="truncate text-sm font-medium">{m.display_name}</p>
                               <p className="font-mono text-xs text-muted">{m.member_id}</p>
                               <p className="mt-0.5 text-xs text-muted">
-                                {packageLabel(m.package_id)} · {formatDate(m.created_at)}
+                                {packageLabel(m.package_id)} · <LocalDate iso={m.created_at} />
                               </p>
                               <p className="font-mono text-xs text-muted">Sponsor {m.sponsor_id ?? "—"}</p>
                             </div>

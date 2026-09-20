@@ -10,9 +10,10 @@ import { AdminSearch, FilterChips } from "@/components/admin-filters";
 import { Card, type CardTone } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDate, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
 import { PAYMENT_METHOD_LABEL, type PaymentMethod, type PaymentStatus } from "@/lib/payments";
 import { ADMIN_EMPTY } from "@/lib/admin-status";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/payments/")({ component: Queue });
 
@@ -79,7 +80,7 @@ function Queue() {
           { key: "m", label: "Method", render: (r) => PAYMENT_METHOD_LABEL[r.payment_method as PaymentMethod] },
           { key: "tx", label: "Reference", render: (r) => r.transaction_reference ?? r.extra?.receivedBy ?? "—" },
           { key: "mid", label: "Member ID", hideOnMobile: true, render: (r) => r.active_id ?? "—" },
-          { key: "dt", label: "Submitted", hideOnMobile: true, render: (r) => formatDate(r.created_at) },
+          { key: "dt", label: "Submitted", hideOnMobile: true, render: (r) => <LocalDate iso={r.created_at} /> },
         ]}
       />
     </div>

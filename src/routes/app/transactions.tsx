@@ -7,7 +7,7 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { Money } from "@/components/money";
-import { formatDateTime } from "@/lib/format";
+import { LocalDate } from "@/components/local-date";
 import { toInt } from "@/lib/money";
 import { EmptyState } from "@/components/empty-state";
 
@@ -40,7 +40,7 @@ function Transactions() {
                     {tx.related_member_id ? ` · ${tx.related_member_id}` : ""}
                     {tx.level != null ? ` · Level ${tx.level}` : ""}
                   </p>
-                  <p className="text-xs text-muted">{formatDateTime(tx.created_at)}</p>
+                  <p className="text-xs text-muted"><LocalDate iso={tx.created_at} time /></p>
                 </div>
                 <div className="text-right">
                   <Money amount={toInt(tx.amount)} size="sm" />
@@ -70,7 +70,7 @@ function Transactions() {
                   <p className="font-mono text-xs text-muted">
                     {c.beneficiary_id} ← {c.source_id}
                   </p>
-                  <p className="text-xs text-muted">{formatDateTime(c.held_at)}</p>
+                  <p className="text-xs text-muted"><LocalDate iso={c.held_at} time /></p>
                 </div>
                 <div className="text-right">
                   <Money amount={toInt(c.commission_amount)} size="sm" />

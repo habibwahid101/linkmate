@@ -8,9 +8,11 @@ import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt } from "@/lib/money";
-import { formatDateTime, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
+import { LocalDate } from "@/components/local-date";
 import { PAYMENT_METHOD_LABEL } from "@/lib/payments";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 export const Route = createFileRoute("/app/payments/$id")({ component: PaymentStatus });
 
@@ -32,7 +34,7 @@ function PaymentStatus() {
         <Row label="Package" value={packageLabel(p.packageId)} />
         <Row label="Amount" value={formatBdt(p.expectedAmountBdt)} />
         <Row label="Payment method" value={PAYMENT_METHOD_LABEL[p.method]} />
-        <Row label="Submitted at" value={formatDateTime(p.createdAt)} />
+        <Row label="Submitted at" value={<LocalDate iso={p.createdAt} time />} />
         {p.transactionReference ? <Row label="Transaction / reference" value={p.transactionReference} /> : null}
         {p.extra.receivedBy ? <Row label="Paid to" value={p.extra.receivedBy} /> : null}
         {p.extra.transferDate ? <Row label="Transfer date" value={p.extra.transferDate} /> : null}
@@ -70,7 +72,7 @@ function PaymentStatus() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className="text-sm text-muted">{label}</span>

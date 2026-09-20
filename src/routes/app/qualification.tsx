@@ -13,6 +13,7 @@ import { IdSwitcher, IdScopedLinks } from "@/components/id-switcher";
 import { evaluateLandQualification } from "@/lib/qualification";
 import { LEVELS } from "@/lib/rules";
 import { parseMemberIdSearch, progressNounShort } from "@/lib/id-workspace";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/app/qualification")({
   validateSearch: parseMemberIdSearch,
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/app/qualification")({
 });
 
 function Qualification() {
+  const t = useT();
   const { id } = Route.useSearch();
   const ids = useQuery({ queryKey: ["ids"], queryFn: () => listMyIds() });
   const selected = id ?? ids.data?.[0]?.id;
@@ -33,7 +35,7 @@ function Qualification() {
   if (!selected) {
     return (
       <div>
-        <PageHeader title="Land Qualification" hint="Tracked per Membership ID after membership is issued." />
+        <PageHeader title={t("land.memberTitle")} hint={t("land.memberHint")} />
         <EmptyState
           title="No membership yet"
           body="Activate an ID to track sponsor-3 and Level-9 qualification for the 1 Decimal Land benefit."
@@ -57,7 +59,7 @@ function Qualification() {
   return (
     <div>
       <PageHeader
-        title="Land Qualification"
+        title={t("land.memberTitle")}
         hint={
           ids.data ? (
             <IdSwitcher ids={ids.data} selectedId={d.id} onSelectPath="/app/qualification" />

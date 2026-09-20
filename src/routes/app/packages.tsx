@@ -11,13 +11,15 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { Card } from "@/components/ui/card";
 import { formatBdt } from "@/lib/money";
-import { formatDate } from "@/lib/format";
+import { LocalDate } from "@/components/local-date";
+import { useT } from "@/lib/i18n";
 import { PAYMENT_METHOD_LABEL, type PaymentMethod } from "@/lib/payments";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/packages")({ component: Packages });
 
 function Packages() {
+  const t = useT();
   const nav = useNavigate();
   const dash = useQuery({ queryKey: ["dashboard"], queryFn: () => getDashboard() });
   const pays = useQuery({ queryKey: ["my-payments"], queryFn: () => listMyPayments() });
@@ -32,8 +34,8 @@ function Packages() {
   return (
     <div>
       <PageHeader
-        title="Packages"
-        hint="Pay by bKash, Nagad, Bank, or Cash. Membership IDs are issued only after an administrator verifies the payment."
+        title={t("pkg.title")}
+        hint={t("pkg.hint")}
       />
       <div className="mb-4">
         <QualificationReminder />
@@ -72,7 +74,7 @@ function Packages() {
                   <div>
                     <p className="font-medium">{PACKAGE_LIST.find((x) => x.id === p.packageId)?.name}</p>
                     <p className="text-sm text-muted">
-                      {formatBdt(p.expectedAmountBdt)} · {PAYMENT_METHOD_LABEL[p.method as PaymentMethod]} · {formatDate(p.createdAt)}
+                      {formatBdt(p.expectedAmountBdt)} · {PAYMENT_METHOD_LABEL[p.method as PaymentMethod]} · <LocalDate iso={p.createdAt} />
                     </p>
                   </div>
                   <StatusBadge status={p.status} />

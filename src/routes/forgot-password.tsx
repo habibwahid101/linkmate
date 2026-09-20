@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { authClient } from "@/lib/auth/client";
 import { useState } from "react";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/forgot-password")({ component: Forgot });
 
 function Forgot() {
+  const t = useT();
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -37,20 +39,20 @@ function Forgot() {
 
   return (
     <AuthFrame
-      title="Reset password"
-      subtitle="We will email a reset link if that address has an account. Email delivery requires Amazon SES."
+      title={t("auth.resetTitle")}
+      subtitle={t("auth.resetSub")}
     >
       {done ? (
         <p className="text-sm text-muted">
-          If an account exists for that email, a reset link will be sent when email is configured.{" "}
+          {t("auth.sent")}{" "}
           <Link to="/login" className="font-medium text-ink underline">
-            Back to sign in
+            {t("auth.signin")}
           </Link>
         </p>
       ) : (
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("auth.email")}</Label>
             <Input
               id="email"
               type="email"
@@ -66,11 +68,11 @@ function Forgot() {
             </p>
           ) : null}
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Sending…" : "Send reset link"}
+            {busy ? t("auth.send") : t("auth.send")}
           </Button>
           <p className="text-center text-sm text-muted">
             <Link to="/login" className="underline-offset-4 hover:underline">
-              Back to sign in
+              {t("auth.signin")}
             </Link>
           </p>
         </form>

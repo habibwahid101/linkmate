@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminGetUser, adminSetRole } from "@/lib/server/admin";
@@ -10,11 +11,12 @@ import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/money";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDate, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
 import { toast } from "sonner";
 import { publicErrorMessage } from "@/lib/public-error";
 import { cn } from "@/lib/utils";
 import { evaluateLandQualification } from "@/lib/qualification";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/users/$userId")({ component: UserDetail });
 
@@ -45,7 +47,7 @@ function UserDetail() {
         <Row label="Role" value={user.locked ? `${user.role} · locked` : user.role} />
         <Row label="Account referral" value={user.referral_code} />
         <Row label="Status" value={user.is_synthetic ? "Simulated" : "Member account"} />
-        <Row label="Joined" value={formatDate(user.created_at)} />
+        <Row label="Joined" value={<LocalDate iso={user.created_at} />} />
         <Row label="Owned IDs" value={String(ids.length)} />
       </Card>
       {!user.locked ? (
@@ -131,7 +133,7 @@ function UserDetail() {
               <div>
                 <p className="text-sm font-medium">{packageLabel(p.package_id)}</p>
                 <p className="text-xs text-muted">
-                  {p.id_count} IDs · {formatDate(p.created_at)}
+                  {p.id_count} IDs · <LocalDate iso={p.created_at} />
                 </p>
               </div>
               <div className="text-right">
@@ -153,7 +155,7 @@ function UserDetail() {
               <Card className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium">{packageLabel(p.package_id)}</p>
-                  <p className="text-xs text-muted">{formatDate(p.created_at)}</p>
+                  <p className="text-xs text-muted"><LocalDate iso={p.created_at} /></p>
                 </div>
                 <StatusBadge status={p.status} />
               </Card>
@@ -169,7 +171,7 @@ function UserDetail() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className="text-sm text-muted">{label}</span>

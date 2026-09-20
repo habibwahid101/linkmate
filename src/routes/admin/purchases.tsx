@@ -9,8 +9,9 @@ import { AdminList } from "@/components/admin-list";
 import { AdminSearch } from "@/components/admin-filters";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDate, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
 import { ADMIN_EMPTY } from "@/lib/admin-status";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/purchases")({ component: Purchases });
 
@@ -43,7 +44,7 @@ function Purchases() {
           { key: "ids", label: "IDs created", render: (r) => r.id_count },
           { key: "root", label: "Root ID", hideOnMobile: true, render: (r) => <span className="font-mono text-xs">{r.root_id ?? "—"}</span> },
           { key: "st", label: "Payment", render: (r) => <StatusBadge status={r.payment_status} /> },
-          { key: "date", label: "Date", hideOnMobile: true, render: (r) => formatDate(r.created_at) },
+          { key: "date", label: "Date", hideOnMobile: true, render: (r) => <LocalDate iso={r.created_at} /> },
         ]}
       />
     </div>

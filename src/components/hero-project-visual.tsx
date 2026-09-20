@@ -122,7 +122,20 @@ const SLIDES: Slide[] = [
     objectPosition: "50% 42%",
     ...siteSets("site-house-field"),
   },
+  {
+    id: "cottage",
+    caption: "Hillside Cottage",
+    alt: "Photograph of a cottage, trees, and hillside at the project site",
+    width: 1255,
+    height: 941,
+    badge: "Location",
+    note: "Photograph of the project location.",
+    objectPosition: "38% 42%",
+    ...siteSets("site-cottage"),
+  },
 ];
+
+export const HERO_SLIDE_IDS = SLIDES.map((s) => s.id);
 
 const SIZES = "(min-width: 1024px) 32rem, (min-width: 640px) 36rem, 100vw";
 
@@ -273,7 +286,11 @@ export function HeroProjectVisual() {
         <p className="mt-1 text-[13px] leading-relaxed text-muted">{slide.note}</p>
       </div>
 
-      <div className="mt-1 flex flex-wrap justify-center" role="tablist" aria-label="Choose project visual">
+      <div
+        className="mt-1 flex flex-nowrap items-center justify-center overflow-hidden"
+        role="tablist"
+        aria-label="Choose project visual"
+      >
         {SLIDES.map((item, i) => (
           <button
             key={item.id}
@@ -281,18 +298,22 @@ export function HeroProjectVisual() {
             role="tab"
             aria-selected={i === index}
             aria-label={item.caption}
-            className="grid size-11 place-items-center"
+            className="grid h-9 w-[22px] shrink-0 place-items-center sm:h-11 sm:w-8"
             onClick={() => goTo(i, true)}
           >
             <span
               className={cn(
-                "h-2 rounded-full transition-[width,background-color] duration-200 ease-out",
-                i === index ? "w-6 bg-accent" : "w-2 bg-border",
+                "h-1.5 rounded-full transition-[width,background-color] duration-200 ease-out sm:h-2",
+                i === index ? "w-4 bg-accent sm:w-5" : "w-1.5 bg-border sm:w-2",
               )}
             />
           </button>
         ))}
       </div>
+
+      <p className="lm-brand-mark mt-3 text-center text-[17px] font-bold tracking-[0.04em] text-accent sm:text-xl">
+        Linkmate Global
+      </p>
     </div>
   );
 }

@@ -17,34 +17,38 @@ import {
   Wallet,
 } from "lucide-react";
 import { BrandLink } from "@/components/logo";
-import { cn, initials } from "@/lib/utils";
+import { AccountAvatar } from "@/components/avatar";
+import { LocaleSwitch } from "@/components/locale-switch";
+import { cn } from "@/lib/utils";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
+import { useT } from "@/lib/i18n";
 import { useState, type ReactNode } from "react";
+import type { AppProfile } from "@/lib/server/profile";
 
 const desktopNav = [
-  { to: "/app", label: "Dashboard", icon: Home },
-  { to: "/app/ids", label: "My IDs", icon: IdCard },
-  { to: "/app/team", label: "Network", icon: Users },
-  { to: "/app/levels", label: "Level Progress", icon: BarChart3 },
-  { to: "/app/packages", label: "Packages", icon: Layers },
-  { to: "/app/payments", label: "Payments", icon: Receipt },
-  { to: "/app/wallet", label: "Wallet", icon: Wallet },
-  { to: "/app/earnings", label: "Earnings", icon: Banknote },
-  { to: "/app/invite", label: "Invite", icon: Share2 },
-  { to: "/app/notifications", label: "Notifications", icon: Bell },
-  { to: "/app/qualification", label: "Land Qualification", icon: Landmark },
-  { to: "/app/profile", label: "Profile", icon: UserRound },
-  { to: "/app/settings", label: "Settings", icon: Settings },
-];
+  { to: "/app", key: "shell.dash", icon: Home },
+  { to: "/app/ids", key: "shell.ids", icon: IdCard },
+  { to: "/app/team", key: "shell.network", icon: Users },
+  { to: "/app/levels", key: "shell.levels", icon: BarChart3 },
+  { to: "/app/packages", key: "shell.packages", icon: Layers },
+  { to: "/app/payments", key: "shell.payments", icon: Receipt },
+  { to: "/app/wallet", key: "shell.wallet", icon: Wallet },
+  { to: "/app/earnings", key: "shell.earnings", icon: Banknote },
+  { to: "/app/invite", key: "shell.invite", icon: Share2 },
+  { to: "/app/notifications", key: "shell.notes", icon: Bell },
+  { to: "/app/qualification", key: "shell.land", icon: Landmark },
+  { to: "/app/profile", key: "shell.profile", icon: UserRound },
+  { to: "/app/settings", key: "shell.settings", icon: Settings },
+] as const;
 
 const mobileNav = [
-  { to: "/app", label: "Home", icon: Home },
-  { to: "/app/ids", label: "My IDs", icon: IdCard },
-  { to: "/app/packages", label: "Packages", icon: Layers },
-  { to: "/app/wallet", label: "Wallet", icon: Wallet },
-  { to: "/app/profile", label: "Profile", icon: UserRound },
-];
+  { to: "/app", key: "shell.home", icon: Home },
+  { to: "/app/ids", key: "shell.ids", icon: IdCard },
+  { to: "/app/packages", key: "shell.packages", icon: Layers },
+  { to: "/app/wallet", key: "shell.wallet", icon: Wallet },
+  { to: "/app/profile", key: "shell.profile", icon: UserRound },
+] as const;
 
 function isActive(pathname: string, to: string) {
   if (to === "/app") return pathname === "/app" || pathname === "/app/";
@@ -55,14 +59,18 @@ export function AppShell({
   children,
   unread = 0,
   isAdmin = false,
+  profile,
 }: {
   children: ReactNode;
   unread?: number;
   isAdmin?: boolean;
+  profile?: AppProfile | null;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const user = useCurrentUser();
+  const t = useT();
   const [signingOut, setSigningOut] = useState(false);
+  const displayName = profile?.displayName || user?.displayName || "Member";
 
   return (
     <div className="min-h-dvh bg-bg text-ink">
@@ -86,7 +94,7 @@ export function AppShell({
                 )}
               >
                 <Icon className="size-5 shrink-0" strokeWidth={active ? 2 : 1.75} />
-                {item.label}
+                {t(item.key)}
               </Link>
             );
           })}
@@ -102,11 +110,9 @@ export function AppShell({
         </nav>
         <div className="shrink-0 border-t border-white/8 p-4">
           <div className="flex items-center gap-3">
-            <div className="grid size-9 place-items-center rounded-full bg-white/10 text-xs font-semibold">
-              {initials(user?.displayName)}
-            </div>
+            <AccountAvatar name={displayName} src={profile?.avatarData} size="sm" invert />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{user?.displayName ?? "Member"}</p>
+              <p className="truncate text-sm font-medium">{displayName}</p>
               <p className="truncate text-[13px] text-sidebar-muted">{user?.primaryEmail}</p>
             </div>
             <button
@@ -131,9 +137,10 @@ export function AppShell({
             <BrandLink compact />
           </div>
           <div className="hidden text-[15px] text-muted lg:block">
-            Account overview · each Membership ID is independent
+            {t("shell.hint")}
           </div>
           <div className="flex items-center gap-1">
+            <LocaleSwitch compact />
             {isAdmin ? (
               <Link
                 to="/admin"
@@ -157,7 +164,7 @@ export function AppShell({
               to="/app/invite"
               className="hidden h-11 items-center rounded-full bg-accent px-3.5 text-sm font-medium text-accent-fg sm:inline-flex"
             >
-              Invite
+              {t("shell.invite")}
             </Link>
           </div>
         </header>
@@ -185,7 +192,7 @@ export function AppShell({
                   )}
                 >
                   <Icon className="size-5" strokeWidth={active ? 2 : 1.75} />
-                  {item.label}
+                  {t(item.key)}
                 </Link>
               </li>
             );

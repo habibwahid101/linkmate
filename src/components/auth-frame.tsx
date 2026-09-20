@@ -1,4 +1,6 @@
 import { BrandLink } from "@/components/logo";
+import { LocaleSwitch } from "@/components/locale-switch";
+import { useT } from "@/lib/i18n";
 import type { ReactNode } from "react";
 
 export function AuthFrame({
@@ -10,23 +12,29 @@ export function AuthFrame({
   subtitle: string;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="min-h-dvh bg-bg lg:grid lg:grid-cols-2">
       <aside className="relative hidden flex-col justify-between bg-surface-available p-10 text-ink lg:flex">
         <BrandLink />
         <div className="max-w-sm">
           <p className="text-3xl font-semibold tracking-tight text-balance">
-            Membership you can read at a glance.
+            {t("auth.asideTitle")}
           </p>
           <p className="mt-4 text-[15px] leading-relaxed text-muted">
-            Packages, independent Membership IDs, and a wallet that only releases when a level is complete.
+            {t("auth.asideBody")}
           </p>
         </div>
-        <p className="text-[13px] text-muted">Held until complete. Then released in full.</p>
+        <p className="text-[13px] text-muted">{t("auth.asideFoot")}</p>
       </aside>
       <main className="flex min-h-dvh flex-col px-5 py-8 sm:px-8">
-        <div className="lg:hidden">
-          <BrandLink />
+        <div className="flex items-center justify-between gap-3">
+          <div className="lg:hidden">
+            <BrandLink />
+          </div>
+          <div className="ml-auto">
+            <LocaleSwitch compact />
+          </div>
         </div>
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>

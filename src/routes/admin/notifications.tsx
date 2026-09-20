@@ -5,9 +5,10 @@ import { PageHeader } from "@/components/page-header";
 import { QueryError } from "@/components/query-error";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { AdminList } from "@/components/admin-list";
-import { formatDateTime } from "@/lib/format";
+
 import { Badge } from "@/components/ui/badge";
 import { ADMIN_EMPTY } from "@/lib/admin-status";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/notifications")({ component: Notes });
 
@@ -32,7 +33,7 @@ function Notes() {
             label: "Read",
             render: (r) => <Badge tone={r.read ? "locked" : "info"}>{r.read ? "Read" : "Unread"}</Badge>,
           },
-          { key: "date", label: "Date", hideOnMobile: true, render: (r) => formatDateTime(r.created_at) },
+          { key: "date", label: "Date", hideOnMobile: true, render: (r) => <LocalDate iso={r.created_at} time /> },
         ]}
       />
     </div>

@@ -1,15 +1,22 @@
-export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+export type DateLocale = "en" | "bn";
+
+function localeTag(locale?: DateLocale): string | undefined {
+  if (locale === "bn") return "bn-BD";
+  return undefined;
 }
 
-export function formatDateTime(iso: string | null | undefined): string {
+export function formatDate(iso: string | null | undefined, locale?: DateLocale): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("en-GB", {
+  return d.toLocaleDateString(localeTag(locale), { day: "numeric", month: "short", year: "numeric" });
+}
+
+export function formatDateTime(iso: string | null | undefined, locale?: DateLocale): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(localeTag(locale), {
     day: "numeric",
     month: "short",
     year: "numeric",

@@ -29,7 +29,11 @@ function AppLayout() {
   if (!authPending && !user) return <RedirectToSignIn />;
 
   return (
-    <AppShell unread={shell.data?.unread ?? 0} isAdmin={shell.data?.profile.role === "admin"}>
+    <AppShell
+      unread={shell.data?.unread ?? 0}
+      isAdmin={shell.data?.profile.role === "admin"}
+      profile={shell.data?.profile}
+    >
       {shouldShowQueryError(shell) && user ? (
         <QueryError error={shell.error} retry={() => shell.refetch()} />
       ) : hold || !shell.data ? (

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -11,10 +12,11 @@ import { Input, Label } from "@/components/ui/input";
 import { Modal } from "@/components/modal";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDateTime } from "@/lib/format";
+
 import { toast } from "sonner";
 import { publicErrorMessage } from "@/lib/public-error";
 import { cn } from "@/lib/utils";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/withdrawals/$id")({ component: Detail });
 
@@ -66,9 +68,9 @@ function Detail() {
         <Row label="Method" value={w.payout_method} />
         <Row label="Payout account" value={String(details.account ?? details.payoutAccount ?? "—")} />
         <Row label="Account name" value={String(details.name ?? details.payoutName ?? "—")} />
-        <Row label="Requested at" value={formatDateTime(w.created_at)} />
-        {w.reviewed_at ? <Row label="Reviewed" value={formatDateTime(w.reviewed_at)} /> : null}
-        {w.paid_at ? <Row label="Paid" value={formatDateTime(w.paid_at)} /> : null}
+        <Row label="Requested at" value={<LocalDate iso={w.created_at} time />} />
+        {w.reviewed_at ? <Row label="Reviewed" value={<LocalDate iso={w.reviewed_at} time />} /> : null}
+        {w.paid_at ? <Row label="Paid" value={<LocalDate iso={w.paid_at} time />} /> : null}
         {w.user_note ? <Row label="Member note" value={w.user_note} /> : null}
         {w.admin_note ? <Row label="Admin note" value={w.admin_note} /> : null}
       </Card>
@@ -105,7 +107,7 @@ function Detail() {
                 <p className="text-sm font-medium">{a.action}</p>
                 <p className="text-xs text-muted">{a.detail ?? "—"}</p>
               </div>
-              <span className="whitespace-nowrap text-xs text-muted">{formatDateTime(a.created_at)}</span>
+              <span className="whitespace-nowrap text-xs text-muted"><LocalDate iso={a.created_at} time /></span>
             </Card>
           ))
         )}
@@ -164,7 +166,7 @@ function Detail() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className="text-sm text-muted">{label}</span>

@@ -11,6 +11,7 @@ import { CopyButton } from "@/components/copy-button";
 import { QrCode } from "@/components/qr-code";
 import { IdSwitcher, IdScopedLinks } from "@/components/id-switcher";
 import { parseMemberIdSearch } from "@/lib/id-workspace";
+import { useT } from "@/lib/i18n";
 import { useEffect, useMemo, useState } from "react";
 
 export const Route = createFileRoute("/app/invite")({
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/app/invite")({
 });
 
 function Invite() {
+  const t = useT();
   const { id } = Route.useSearch();
   const ids = useQuery({ queryKey: ["ids"], queryFn: () => listMyIds() });
   const selected = id ?? ids.data?.[0]?.id;
@@ -44,7 +46,7 @@ function Invite() {
   if (!q.data.selected) {
     return (
       <div>
-        <PageHeader title="Invite" hint="Each Membership ID has its own referral code." />
+        <PageHeader title={t("invite.title")} hint={t("invite.hint")} />
         <EmptyState
           title="Activate a Membership ID to start inviting"
           body="Invite links become operational only after a Membership ID is issued. Choose which ID you want to share from My IDs."
@@ -61,7 +63,7 @@ function Invite() {
   return (
     <div>
       <PageHeader
-        title="Invite"
+        title={t("invite.title")}
         hint={
           ids.data && ids.data.length > 0 ? (
             <IdSwitcher ids={ids.data} selectedId={sel.memberId} onSelectPath="/app/invite" />

@@ -13,7 +13,8 @@ import { Money } from "@/components/money";
 import { CopyButton } from "@/components/copy-button";
 import { LevelCard, LevelJourney } from "@/components/level-card";
 import { IdSwitcher, IdScopedLinks } from "@/components/id-switcher";
-import { formatDate, formatDateTime, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
+import { LocalDate } from "@/components/local-date";
 import {
   MEMBERSHIP_ID_NOT_FOUND,
   isGraduated,
@@ -140,7 +141,7 @@ function IdDashboard() {
                     <p className="truncate text-sm font-medium">{m.display_name}</p>
                     <p className="font-mono text-xs text-muted">{m.member_id}</p>
                     <p className="text-xs text-muted">
-                      {packageLabel(m.package_id)} · {formatDate(m.created_at)}
+                      {packageLabel(m.package_id)} · <LocalDate iso={m.created_at} />
                     </p>
                   </div>
                   <StatusBadge status={m.status} />
@@ -189,7 +190,7 @@ function IdDashboard() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Level {c.level}</p>
                   <p className="font-mono text-xs text-muted">From {c.source_id}</p>
-                  <p className="text-xs text-muted">{formatDateTime(c.held_at)}</p>
+                  <p className="text-xs text-muted"><LocalDate iso={c.held_at} time /></p>
                 </div>
                 <div className="text-right">
                   <Money amount={c.commission_amount} size="sm" />

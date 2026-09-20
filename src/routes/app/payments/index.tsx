@@ -8,7 +8,8 @@ import { EmptyState } from "@/components/empty-state";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt } from "@/lib/money";
-import { formatDate, packageLabel } from "@/lib/format";
+import { packageLabel } from "@/lib/format";
+import { LocalDate } from "@/components/local-date";
 import { PAYMENT_METHOD_LABEL, type PaymentMethod } from "@/lib/payments";
 
 export const Route = createFileRoute("/app/payments/")({ component: History });
@@ -34,7 +35,7 @@ function History() {
                       {formatBdt(p.expectedAmountBdt)} · {PAYMENT_METHOD_LABEL[p.method as PaymentMethod]}
                     </p>
                     <p className="mt-1 font-mono text-xs text-muted">{p.transactionReference || p.id.slice(0, 8)}</p>
-                    <p className="mt-1 text-xs text-muted">{formatDate(p.createdAt)}</p>
+                    <p className="mt-1 text-xs text-muted"><LocalDate iso={p.createdAt} /></p>
                   </div>
                   <StatusBadge status={p.status} />
                 </div>

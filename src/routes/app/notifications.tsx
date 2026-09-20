@@ -6,12 +6,14 @@ import { QueryError } from "@/components/query-error";
 import { EmptyState } from "@/components/empty-state";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { formatDateTime } from "@/lib/format";
+import { LocalDate } from "@/components/local-date";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/notifications")({ component: Notifications });
 
 function Notifications() {
+  const t = useT();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["notifications"], queryFn: () => listNotifications() });
   const mark = useMutation({
@@ -28,11 +30,11 @@ function Notifications() {
   return (
     <div>
       <PageHeader
-        title="Notifications"
+        title={t("notes.title")}
         action={
           q.data.some((n) => !n.read) ? (
             <Button size="sm" variant="ghost" onClick={() => mark.mutate(undefined)}>
-              Mark all read
+              {t("notes.mark")}
             </Button>
           ) : null
         }
@@ -56,7 +58,7 @@ function Notifications() {
               >
                 <p className="text-sm font-semibold">{n.title}</p>
                 <p className="mt-1 text-sm text-muted">{n.body}</p>
-                <p className="mt-2 text-xs text-subtle">{formatDateTime(n.created_at)}</p>
+                <p className="mt-2 text-xs text-subtle"><LocalDate iso={n.created_at} time /></p>
               </button>
             </li>
           ))}

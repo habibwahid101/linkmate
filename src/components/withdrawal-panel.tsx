@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt } from "@/lib/money";
-import { formatDateTime } from "@/lib/format";
+import { LocalDate } from "@/components/local-date";
 import { quoteWithdrawal } from "@/lib/withdrawals/policy";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -109,7 +109,7 @@ export function MemberWithdrawalPanel({
               <div key={w.id} className="flex items-center justify-between gap-3 text-sm">
                 <div>
                   <p className="font-medium">{formatBdt(w.amount_bdt)} · {w.payout_method} · net {formatBdt(w.amount_bdt - (w.fee_bdt ?? 0))}</p>
-                  <p className="text-xs text-muted">{formatDateTime(w.created_at)}</p>
+                  <p className="text-xs text-muted"><LocalDate iso={w.created_at} time /></p>
                 </div>
                 <StatusBadge status={w.status} />
               </div>

@@ -7,8 +7,9 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { AdminList } from "@/components/admin-list";
 import { Card } from "@/components/ui/card";
 import { formatBdt, toInt } from "@/lib/money";
-import { formatDateTime } from "@/lib/format";
+
 import { ADMIN_EMPTY } from "@/lib/admin-status";
+import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/held")({ component: Held });
 
@@ -39,7 +40,7 @@ function Held() {
           { key: "src", label: "Source", render: (r) => <span className="font-mono text-xs">{r.source_id}</span> },
           { key: "lv", label: "Level", render: (r) => `L${r.level}` },
           { key: "amt", label: "Amount", render: (r) => formatBdt(toInt(r.commission_amount)) },
-          { key: "date", label: "Held at", hideOnMobile: true, render: (r) => formatDateTime(r.held_at) },
+          { key: "date", label: "Held at", hideOnMobile: true, render: (r) => <LocalDate iso={r.held_at} time /> },
         ]}
       />
     </div>
