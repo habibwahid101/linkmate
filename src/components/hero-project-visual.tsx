@@ -311,7 +311,7 @@ export function HeroProjectVisual() {
         ))}
       </div>
 
-      <p className="lm-brand-mark" aria-label="Link Mate Global">
+      <p className="lm-brand-mark whitespace-nowrap" aria-label="Link Mate Global">
         <span>Link</span> <span>Mate</span> <span>Global</span>
       </p>
     </div>

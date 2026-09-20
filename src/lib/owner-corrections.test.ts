@@ -27,6 +27,14 @@ describe("owner corrections", () => {
     assert.match(src, /<span>Link<\/span>/);
     assert.match(src, /<span>Mate<\/span>/);
     assert.match(src, /<span>Global<\/span>/);
+    assert.match(src, /lm-brand-mark/);
+    const css = readFileSync(join(ROOT, "src/styles.css"), "utf8");
+    assert.match(css, /\.lm-brand-mark\s*\{[^}]*white-space:\s*nowrap/s);
+    assert.match(css, /@keyframes lm-brand-flow/);
+    assert.match(css, /color:\s*#00a0c0/);
+    assert.match(css, /color:\s*#1f4d45/);
+    assert.match(css, /color:\s*#c9a227/);
+    assert.match(css, /color:\s*#14087a/);
   });
 
   it("formats dates in the runtime locale without rewriting the stored timestamp", () => {
