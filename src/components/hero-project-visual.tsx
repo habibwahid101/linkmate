@@ -311,8 +311,8 @@ export function HeroProjectVisual() {
         ))}
       </div>
 
-      <p className="lm-brand-mark mt-3 text-center text-[17px] font-bold tracking-[0.04em] text-accent sm:text-xl">
-        Linkmate Global
+      <p className="lm-brand-mark mt-3 text-center text-[17px] font-bold tracking-[0.04em] sm:text-xl">
+        <span>Link</span> <span>Mate</span> <span>Global</span>
       </p>
     </div>
   );

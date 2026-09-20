@@ -24,7 +24,9 @@ describe("owner corrections", () => {
     ]);
     assert.match(src, /site-cottage/);
     assert.match(src, /flex-nowrap/);
-    assert.match(src, /Linkmate Global/);
+    assert.match(src, /<span>Link<\/span>/);
+    assert.match(src, /<span>Mate<\/span>/);
+    assert.match(src, /<span>Global<\/span>/);
   });
 
   it("formats dates in the runtime locale without rewriting the stored timestamp", () => {
