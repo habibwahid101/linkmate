@@ -6,12 +6,11 @@ export function LogoMark({ className }: { className?: string; invert?: boolean }
     <img
       src="/logo-mark.png"
       srcSet="/logo-mark.png 1x, /logo-mark@2x.png 2x"
-      alt=""
-      width={40}
-      height={32}
+      alt="Link Mate"
+      width={66}
+      height={48}
       draggable={false}
-      className={cn("h-8 w-auto max-h-8 shrink-0 object-contain sm:h-9 sm:max-h-9", className)}
-      style={{ height: 32, width: "auto", maxHeight: 36 }}
+      className={cn("lm-logo", className)}
     />
   );
 }
@@ -24,12 +23,12 @@ export function Wordmark({
   compact?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <LogoMark className="shrink-0" />
+    <div className="flex shrink-0 items-center gap-2 overflow-visible">
+      <LogoMark />
       {compact ? null : (
         <span
           className={cn(
-            "text-[15px] font-semibold tracking-tight",
+            "hidden whitespace-nowrap text-[15px] font-semibold tracking-tight min-[360px]:inline",
             invert ? "text-sidebar-fg" : "text-ink",
           )}
         >
@@ -54,7 +53,7 @@ export function BrandLink({
     <Link
       to="/"
       aria-label="Link Mate home"
-      className={cn("inline-flex min-w-0 shrink-0 items-center", className)}
+      className={cn("inline-flex shrink-0 items-center overflow-visible", className)}
     >
       <Wordmark invert={invert} compact={compact} />
     </Link>

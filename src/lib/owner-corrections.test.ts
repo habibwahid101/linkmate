@@ -51,7 +51,11 @@ describe("owner corrections", () => {
     assert.match(landing, /1 Decimal Land/);
     assert.equal(landing.includes("1 Katha Land"), false);
     assert.match(landing, /LocaleSwitch/);
+    assert.match(landing, /hidden shrink-0 lg:inline-flex/);
+    assert.match(landing, /w-full/);
     const logo = readFileSync(join(ROOT, "src/components/logo.tsx"), "utf8");
     assert.match(logo, /logo-mark\.png/);
+    assert.match(logo, /lm-logo/);
+    assert.match(logo, /shrink-0/);
   });
 });

@@ -61,8 +61,8 @@ function Landing() {
       >
         Skip to content
       </a>
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-bg/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-3 min-[375px]:px-4 sm:gap-3 sm:px-6">
+      <header className="sticky top-0 z-40 overflow-visible border-b border-border/70 bg-bg/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 overflow-visible px-3 min-[375px]:px-4 sm:gap-3 sm:px-6">
           <BrandLink />
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Page">
             {NAV.map((item) => (
@@ -80,31 +80,25 @@ function Landing() {
             <SignedOut>
               <Link
                 to="/login"
-                className="hidden h-11 shrink-0 items-center whitespace-nowrap px-2 text-sm font-medium text-ink/70 hover:text-ink min-[400px]:inline-flex min-[375px]:px-2.5 sm:px-3"
+                className="hidden h-11 shrink-0 items-center whitespace-nowrap px-2 text-sm font-medium text-ink/70 hover:text-ink lg:inline-flex lg:px-3"
               >
                 {t("nav.login")}
               </Link>
-              <Button size="sm" className="shrink-0" onClick={() => setBook(true)}>
+              <Button size="sm" className="hidden shrink-0 lg:inline-flex" onClick={() => setBook(true)}>
                 {t("nav.book")}
               </Button>
             </SignedOut>
             <SignedIn>
-              <Link
-                to="/app"
-                className="inline-flex h-11 shrink-0 items-center whitespace-nowrap px-2 text-sm font-medium text-ink/70 hover:text-ink min-[375px]:px-2.5 lg:hidden"
-              >
-                {t("nav.dashboard")}
-              </Link>
               <Link to="/app" className="hidden lg:inline-flex">
                 <Button size="sm" variant="outline">
                   {t("nav.openDashboard")}
                 </Button>
               </Link>
-              <Button size="sm" className="shrink-0" onClick={() => setBook(true)}>
+              <Button size="sm" className="hidden shrink-0 lg:inline-flex" onClick={() => setBook(true)}>
                 {t("nav.book")}
               </Button>
             </SignedIn>
-            {isPending ? <div className="h-9 w-16 animate-pulse rounded-[10px] bg-surface-2 min-[375px]:w-20" /> : null}
+            {isPending ? <div className="hidden h-9 w-20 animate-pulse rounded-[10px] bg-surface-2 lg:block" /> : null}
             <button
               type="button"
               className="grid size-11 shrink-0 place-items-center rounded-[12px] hover:bg-surface-2 lg:hidden"
@@ -131,12 +125,45 @@ function Landing() {
             <SignedOut>
               <Link
                 to="/login"
-                className="flex h-11 items-center text-sm font-medium min-[400px]:hidden"
+                className="flex h-11 items-center text-sm font-medium text-ink/70"
                 onClick={() => setMenu(false)}
               >
                 {t("nav.login")}
               </Link>
+              <div className="py-2">
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    setMenu(false);
+                    setBook(true);
+                  }}
+                >
+                  {t("nav.book")}
+                </Button>
+              </div>
             </SignedOut>
+            <SignedIn>
+              <Link
+                to="/app"
+                className="flex h-11 items-center text-sm font-medium text-ink/70"
+                onClick={() => setMenu(false)}
+              >
+                {t("nav.dashboard")}
+              </Link>
+              <div className="py-2">
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    setMenu(false);
+                    setBook(true);
+                  }}
+                >
+                  {t("nav.book")}
+                </Button>
+              </div>
+            </SignedIn>
           </nav>
         ) : null}
       </header>

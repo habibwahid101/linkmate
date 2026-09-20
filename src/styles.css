@@ -159,6 +159,21 @@
   padding-top: env(safe-area-inset-top);
 }
 
+img.lm-logo {
+  max-width: none;
+  width: auto;
+  height: 2.5rem;
+  object-fit: contain;
+  object-position: left center;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  img.lm-logo {
+    height: 2.75rem;
+  }
+}
+
 html.lang-bn,
 html.lang-bn body {
   font-family: "Noto Sans Bengali", var(--font-sans);
