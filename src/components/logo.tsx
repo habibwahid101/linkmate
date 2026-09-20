@@ -7,7 +7,7 @@ export function LogoMark({ className }: { className?: string; invert?: boolean }
       src="/logo-mark.png"
       srcSet="/logo-mark.png 1x, /logo-mark@2x.png 2x"
       alt="Link Mate"
-      width={66}
+      width={48}
       height={48}
       draggable={false}
       className={cn("lm-logo", className)}

@@ -28,7 +28,7 @@ const CRITICAL_CSS = [
   "button,input,select,textarea{font:inherit}",
   "button{-webkit-appearance:none;appearance:none}",
   "img,svg,video,canvas{max-width:100%;height:auto;display:block}",
-  "img.lm-logo{max-width:none;height:2.5rem;width:auto;object-fit:contain;flex-shrink:0}",
+  "img.lm-logo{max-width:none;width:2.75rem;height:2.75rem;object-fit:contain;flex-shrink:0}",
   "}",
 ].join("");
 
