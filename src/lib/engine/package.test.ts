@@ -68,6 +68,7 @@ async function makeSql(): Promise<Sql> {
   await pg.exec(readFileSync(join(ROOT, "migrations/0003_hardening.sql"), "utf8"));
   await pg.exec(readFileSync(join(ROOT, "migrations/0005_manual_payments.sql"), "utf8"));
   await pg.exec(readFileSync(join(ROOT, "migrations/0010_id_based_engine.sql"), "utf8"));
+  await pg.exec(readFileSync(join(ROOT, "migrations/0012_sponsor_designations.sql"), "utf8"));
   return wrap(pg);
 }
 

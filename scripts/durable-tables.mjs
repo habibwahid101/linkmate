@@ -15,6 +15,7 @@ export const DURABLE_TABLES = [
   "user_packages",
   "member_ids",
   "sponsor_relationships",
+  "sponsor_designation_credits",
   "placement_relationships",
   "generation_memberships",
   "membership_activation_events",

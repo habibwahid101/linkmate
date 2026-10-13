@@ -140,6 +140,7 @@ describe("admin payment reject does not create IDs", () => {
     await pg.exec(readFileSync(join(ROOT, "migrations/0003_hardening.sql"), "utf8"));
     await pg.exec(readFileSync(join(ROOT, "migrations/0005_manual_payments.sql"), "utf8"));
     await pg.exec(readFileSync(join(ROOT, "migrations/0010_id_based_engine.sql"), "utf8"));
+    await pg.exec(readFileSync(join(ROOT, "migrations/0012_sponsor_designations.sql"), "utf8"));
     const bind = (client: { query: typeof pg.query }): Sql => {
       return (async <T>(strings: TemplateStringsArray, ...values: unknown[]) => {
         let text = strings[0] ?? "";

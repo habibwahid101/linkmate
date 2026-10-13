@@ -1,0 +1,77 @@
+import type { Sql } from "./activation.ts";
+
+/** Display-only. These thresholds do not pay commission or change Level 1. */
+export const DESIGNATIONS = [
+  { id: "sales_executive", label: "Sales Executive", minDirects: 3 },
+  { id: "platinum_executive", label: "Platinum Executive", minDirects: 9 },
+  { id: "assistant_manager", label: "Assistant Manager", minDirects: 18 },
+  { id: "manager", label: "Manager", minDirects: 35 },
+  { id: "general_manager", label: "General Manager", minDirects: 87 },
+  { id: "project_director", label: "Project Director", minDirects: 222 },
+] as const;
+
+export type Designation = (typeof DESIGNATIONS)[number];
+
+export function designationForCount(count: number): Designation | null {
+  const n = Math.max(0, Math.floor(count));
+  let best: Designation | null = null;
+  for (const row of DESIGNATIONS) {
+    if (n >= row.minDirects) best = row;
+  }
+  return best;
+}
+
+export function nextDesignation(count: number): Designation | null {
+  const n = Math.max(0, Math.floor(count));
+  return DESIGNATIONS.find((row) => n < row.minDirects) ?? null;
+}
+
+/** Credit the personal sponsor of an activated external root. Internals never count. */
+export async function recordDesignationCredit(sql: Sql, sourceId: string): Promise<void> {
+  const rows = await sql<{
+    sponsor_id: string;
+    sponsor_owner_user_id: string;
+  }>`
+    select m.sponsor_id, s.owner_user_id as sponsor_owner_user_id
+    from member_ids m
+    join member_ids s on s.id = m.sponsor_id
+    where m.id = ${sourceId}
+      and m.sponsor_id is not null
+      and (
+        m.origin_kind in ('purchase_root', 'attach')
+        or (m.origin_kind = 'purchase' and m.is_root)
+      )
+  `;
+  const row = rows[0];
+  if (!row?.sponsor_id) return;
+  await sql`
+    insert into sponsor_designation_credits (
+      id, sponsor_id, sponsored_id, sponsor_owner_user_id
+    ) values (
+      ${"desig:" + sourceId}, ${row.sponsor_id}, ${sourceId}, ${row.sponsor_owner_user_id}
+    )
+    on conflict (sponsored_id) do update
+      set voided_at = null,
+          void_reason = null
+      where sponsor_designation_credits.sponsor_id = excluded.sponsor_id
+        and sponsor_designation_credits.voided_at is not null
+  `;
+}
+
+/** Admin reversal of the activation removes the credit. Inactivity does not call this. */
+export async function voidDesignationCredit(sql: Sql, sourceId: string, reason: string): Promise<void> {
+  await sql`
+    update sponsor_designation_credits
+    set voided_at = now(), void_reason = ${reason}
+    where sponsored_id = ${sourceId} and voided_at is null
+  `;
+}
+
+export async function countDesignationCredits(sql: Sql, sponsorId: string): Promise<number> {
+  const rows = await sql<{ n: number }>`
+    select count(*)::int as n
+    from sponsor_designation_credits
+    where sponsor_id = ${sponsorId} and voided_at is null
+  `;
+  return Number(rows[0]?.n ?? 0);
+}

@@ -1,5 +1,6 @@
 import { toInt } from "../money.ts";
 import { LEVELS } from "../rules.ts";
+import { designationForCount, nextDesignation } from "../engine/designations.ts";
 import {
   MEMBERSHIP_ID_NOT_FOUND,
   NETWORK_MEMBER_CAP,
@@ -241,6 +242,12 @@ export type MembershipIdDetail = {
   currentProgress: CurrentProgress;
   journey: LevelJourneyRow[];
   directs: { count: number; required: number; members: DirectSponsored[]; hasMore: boolean };
+  designation: {
+    count: number;
+    label: string | null;
+    nextLabel: string | null;
+    nextAt: number | null;
+  };
   wallet: { held: number; available: number; released: number };
   recentTx: IdActivityTx[];
   commissions: IdCommission[];
@@ -283,6 +290,11 @@ export async function loadMembershipIdDetail(
   const directCount = await sql<{ n: number }>`
     select count(*)::int as n from sponsor_relationships where sponsor_id = ${memberId}
   `;
+  const designationCount = await sql<{ n: number }>`
+    select count(*)::int as n
+    from sponsor_designation_credits
+    where sponsor_id = ${memberId} and voided_at is null
+  `;
   const directs = await sql<DirectSponsored>`
     select m.id as member_id, u.display_name, m.package_id, m.created_at, m.status, m.owner_user_id
     from sponsor_relationships sr
@@ -313,6 +325,9 @@ export async function loadMembershipIdDetail(
 
   const currentLevel = Number(row.current_level) || 1;
   const progressionStatus = row.progression_status === "GRADUATED" ? "GRADUATED" : "ACTIVE";
+  const personalReferrals = Number(designationCount[0]?.n ?? 0);
+  const currentDesignation = designationForCount(personalReferrals);
+  const upcomingDesignation = nextDesignation(personalReferrals);
   const currentProgress = buildCurrentProgress({
     currentLevel,
     progressionStatus,
@@ -345,6 +360,12 @@ export async function loadMembershipIdDetail(
       required: LEVELS[0]!.requiredMembers,
       members: directs,
       hasMore: (directCount[0]?.n ?? 0) > directs.length,
+    },
+    designation: {
+      count: personalReferrals,
+      label: currentDesignation?.label ?? null,
+      nextLabel: upcomingDesignation?.label ?? null,
+      nextAt: upcomingDesignation?.minDirects ?? null,
     },
     wallet: {
       held: toInt(h[0]?.held),

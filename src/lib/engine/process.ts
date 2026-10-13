@@ -3,6 +3,7 @@ import { planPackagePlacement } from "./placement.ts";
 import { formatMemberId, makeReferralCode, uid } from "./ids.ts";
 import {
   assertAcyclicSponsor,
+  assertAcyclicPlacement,
   ensureLevelRows,
   ensureWallet,
   processMembershipIdActivation,
@@ -95,6 +96,7 @@ async function insertMemberId(
   },
 ) {
   await assertAcyclicSponsor(sql, opts.id, opts.sponsorId);
+  await assertAcyclicPlacement(sql, opts.id, opts.parentId);
   let lastErr: unknown;
   for (let attempt = 0; attempt < 8; attempt++) {
     const referralCode = await uniqueReferralCode(

@@ -78,6 +78,21 @@ function IdDashboard() {
       <IdHeader detail={d} link={link} graduated={graduated} />
 
       <section className="mt-4">
+        <Card tone="package">
+          <CardKicker tone="package">Direct-sponsor designation</CardKicker>
+          <p className="mt-1 text-lg font-semibold">{d.designation.label ?? "No designation yet"}</p>
+          <p className="mt-1 text-[15px] leading-relaxed text-muted">
+            {d.designation.count} activated personal referral{d.designation.count === 1 ? "" : "s"}.
+            {d.designation.nextLabel && d.designation.nextAt != null
+              ? ` Next title is ${d.designation.nextLabel} at ${d.designation.nextAt}.`
+              : " Highest title reached."}
+            {" "}
+            This title does not change Level 1, commission, or land qualification. Package-created internal IDs are not counted.
+          </p>
+        </Card>
+      </section>
+
+      <section className="mt-4">
         <Card tone={graduated ? "success" : "progress"}>
           {graduated ? (
             <>

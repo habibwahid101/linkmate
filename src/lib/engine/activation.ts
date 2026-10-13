@@ -7,6 +7,7 @@ import {
   getLevel,
 } from "../rules.ts";
 import { uid } from "./ids.ts";
+import { recordDesignationCredit, voidDesignationCredit } from "./designations.ts";
 import {
   activationEventId,
   joinEventId,
@@ -117,6 +118,37 @@ export async function assertAcyclicSponsor(
 ): Promise<void> {
   if (await wouldCreateSponsorCycle(sql, childId, sponsorId)) {
     throw new Error("Sponsor cycle not allowed");
+  }
+}
+
+export async function wouldCreatePlacementCycle(
+  sql: Sql,
+  childId: string,
+  parentId: string | null,
+): Promise<boolean> {
+  if (!parentId) return false;
+  if (parentId === childId) return true;
+  const seen = new Set<string>([childId]);
+  let nodeId: string | null = parentId;
+  let hops = 0;
+  while (nodeId && hops < ANCESTRY_HOP_GUARD) {
+    if (seen.has(nodeId)) return true;
+    seen.add(nodeId);
+    const ancestor = await loadMember(sql, nodeId);
+    if (!ancestor) break;
+    nodeId = ancestor.parent_id;
+    hops += 1;
+  }
+  return false;
+}
+
+export async function assertAcyclicPlacement(
+  sql: Sql,
+  childId: string,
+  parentId: string | null,
+): Promise<void> {
+  if (await wouldCreatePlacementCycle(sql, childId, parentId)) {
+    throw new Error("Placement cycle not allowed");
   }
 }
 
@@ -466,6 +498,7 @@ export async function processMembershipIdActivation(
     `;
     await applyActivationImpact(sql, source, joiningAmount, hop, opts.failAfter, appliedCount);
   }
+  await recordDesignationCredit(sql, source.id);
   return { sourceId: newId, replay, impacts: appliedCount.n };
 }
 
@@ -641,6 +674,7 @@ export async function reverseJoin(
   await sql`delete from membership_activation_events where member_id = ${opts.sourceId}`;
   await sql`delete from generation_memberships where member_id = ${opts.sourceId}`;
   await sql`delete from sponsor_relationships where sponsored_id = ${opts.sourceId}`;
+  await voidDesignationCredit(sql, opts.sourceId, opts.reason);
 
   for (const id of affected) {
     const member = await loadMember(sql, id);
