@@ -142,6 +142,72 @@ export async function wouldCreatePlacementCycle(
   return false;
 }
 
+type CompanyShare = {
+  percent: number;
+  beneficiaries: string[];
+  exempt: Set<string>;
+};
+
+function parseIdList(value: string | undefined): string[] {
+  return String(value ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+export async function readCompanyShare(sql: Sql): Promise<CompanyShare> {
+  const rows = await sql<{ key: string; value: string | null }>`
+    select key, value from app_settings
+    where key in (
+      'company_share_percent',
+      'company_share_member_ids',
+      'company_level_exempt_member_ids'
+    )
+  `;
+  const map = new Map(rows.map((row) => [row.key, String(row.value ?? "").trim()]));
+  const percent = Number(map.get("company_share_percent") || "0");
+  const safePercent = Number.isFinite(percent) && percent > 0 && percent <= 100 ? percent : 0;
+  return {
+    percent: safePercent,
+    beneficiaries: parseIdList(map.get("company_share_member_ids")),
+    exempt: new Set(parseIdList(map.get("company_level_exempt_member_ids"))),
+  };
+}
+
+/** Immediate wallet credit. Not held, and not a level release. */
+export async function applyCompanyShare(
+  sql: Sql,
+  sourceId: string,
+  joiningAmount: number,
+  share: CompanyShare,
+): Promise<void> {
+  if (share.percent <= 0 || share.beneficiaries.length === 0) return;
+  if (share.beneficiaries.includes(sourceId)) return;
+  const amount = Math.round((joiningAmount * share.percent) / 100);
+  if (amount <= 0) return;
+  for (const beneficiaryId of share.beneficiaries) {
+    const beneficiary = await loadMember(sql, beneficiaryId);
+    if (!beneficiary) continue;
+    await ensureWallet(sql, beneficiary.id, beneficiary.owner_user_id);
+    await sql`
+      insert into wallet_transactions (
+        id, member_id, owner_user_id, type, amount, source, related_member_id, status
+      ) values (
+        ${"company:" + sourceId + ":" + beneficiary.id},
+        ${beneficiary.id},
+        ${beneficiary.owner_user_id},
+        'COMPANY_SHARE',
+        ${amount},
+        ${"Company share " + share.percent + "%"},
+        ${sourceId},
+        'posted'
+      )
+      on conflict (id) do nothing
+    `;
+    await reconcileWallet(sql, beneficiary.id);
+  }
+}
+
 export async function placementCutoverActive(sql: Sql): Promise<boolean> {
   const rows = await sql<{ value: string | null }>`
     select value from app_settings where key = 'placement_rules_cutover_at'
@@ -741,8 +807,10 @@ export async function processMembershipIdActivation(
 
   const hops =
     model === "placement" ? await walkPlacementAncestry(sql, newId) : await walkSponsorAncestry(sql, newId);
+  const share = await readCompanyShare(sql);
   const appliedCount = { n: 0 };
   for (const hop of hops) {
+    if (share.exempt.has(hop.ancestorId)) continue;
     await sql`
       insert into generation_memberships (id, beneficiary_id, member_id, generation)
       values (${uid()}, ${hop.ancestorId}, ${source.id}, ${hop.generation})
@@ -752,6 +820,7 @@ export async function processMembershipIdActivation(
   }
   if (model === "placement") {
     for (const hop of hops) {
+      if (share.exempt.has(hop.ancestorId)) continue;
       const ancestor = await loadMember(sql, hop.ancestorId);
       const level = Number(ancestor?.current_level ?? 1);
       if (ancestor && ancestor.progression_status !== "GRADUATED" && level >= 1 && level <= 9) {
@@ -760,6 +829,7 @@ export async function processMembershipIdActivation(
     }
   }
   await recordDesignationCredit(sql, source.id);
+  await applyCompanyShare(sql, source.id, joiningAmount, share);
   return { sourceId: newId, replay, impacts: appliedCount.n };
 }
 

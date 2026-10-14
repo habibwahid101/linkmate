@@ -674,3 +674,85 @@ test("Q. Placement completion releases frozen legacy held and new placement held
   assert.equal((await commissions(sql, a.rootId)).length, 0);
 });
 
+test("R. company share is immediate, once, and exempt IDs get no level income", async () => {
+  const sql = await makeSql();
+  await insertUser(sql, "u-co", "Company");
+  await insertUser(sql, "u-buy", "Buyer");
+  const a = await createIdsForPurchase(sql, {
+    userId: "u-co", packageId: "builder", purchaseId: "p-a", externalSponsorId: null,
+  });
+  await sql`
+    insert into app_settings (key, value)
+    values ('company_level_exempt_member_ids', ${a.rootId})
+    on conflict (key) do update set value = excluded.value
+  `;
+  const b = await createIdsForPurchase(sql, {
+    userId: "u-co", packageId: "builder", purchaseId: "p-b", externalSponsorId: a.rootId,
+  });
+  await sql`
+    update app_settings set value = ${a.rootId + "," + b.rootId}
+    where key = 'company_level_exempt_member_ids'
+  `;
+  const c = await createIdsForPurchase(sql, {
+    userId: "u-co", packageId: "builder", purchaseId: "p-c", externalSponsorId: b.rootId,
+  });
+  assert.equal((await progress(sql, a.rootId, 1)).completed_members, 0);
+  assert.equal((await progress(sql, b.rootId, 1)).completed_members, 0);
+  assert.equal((await commissions(sql, a.rootId)).length, 0);
+  assert.equal((await commissions(sql, b.rootId)).length, 0);
+
+  const ids = [a.rootId, b.rootId, c.rootId].join(",");
+  await sql`
+    insert into app_settings (key, value) values
+      ('company_share_percent', '1'),
+      ('company_share_member_ids', ${ids})
+    on conflict (key) do update set value = excluded.value
+  `;
+  const buyer = await createIdsForPurchase(sql, {
+    userId: "u-buy", packageId: "builder", purchaseId: "p-buy", externalSponsorId: c.rootId,
+  });
+  for (const id of [a.rootId, b.rootId, c.rootId]) {
+    const w = await wallet(sql, id);
+    assert.equal(w.available, 110);
+    assert.equal(w.released, 0);
+  }
+  assert.equal((await progress(sql, a.rootId, 1)).completed_members, 0);
+  assert.equal((await progress(sql, b.rootId, 1)).completed_members, 0);
+  assert.equal((await progress(sql, c.rootId, 1)).completed_members, 1);
+  assert.equal((await wallet(sql, c.rootId)).held, 880);
+  assert.equal((await commissions(sql, a.rootId)).length, 0);
+  assert.equal((await commissions(sql, b.rootId)).length, 0);
+
+  await processMembershipIdActivation(sql, buyer.rootId);
+  for (const id of [a.rootId, b.rootId, c.rootId]) {
+    assert.equal((await wallet(sql, id)).available, 110);
+  }
+  const rows = await sql<{ n: number }>`
+    select count(*)::int as n from wallet_transactions where type = 'COMPANY_SHARE'
+  `;
+  assert.equal(rows[0]?.n, 3);
+});
+
+test("S. every package ID pays the company share once", async () => {
+  const sql = await makeSql();
+  await insertUser(sql, "u-co", "Company");
+  const root = await createIdsForPurchase(sql, {
+    userId: "u-co", packageId: "builder", purchaseId: "p-root", externalSponsorId: null,
+  });
+  await sql`
+    insert into app_settings (key, value)
+    values ('company_share_percent', '1'), ('company_share_member_ids', ${root.rootId})
+    on conflict (key) do update set value = excluded.value
+  `;
+  const turbo = await createIdsForPurchase(sql, {
+    userId: "u-co", packageId: "turbo", purchaseId: "p-turbo", externalSponsorId: root.rootId,
+  });
+  assert.equal(turbo.ids.length, 4);
+  assert.equal((await wallet(sql, root.rootId)).available, 440);
+  const rows = await sql<{ n: number }>`
+    select count(*)::int as n from wallet_transactions
+    where member_id = ${root.rootId} and type = 'COMPANY_SHARE'
+  `;
+  assert.equal(rows[0]?.n, 4);
+});
+
