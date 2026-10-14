@@ -1,0 +1,81 @@
+name: Inventory business data
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION: ap-south-1
+      EC2_INSTANCE_ID: i-0d5882a956e4d3981
+      TF_GITHUB_DEPLOY_ROLE_ARN: arn:aws:iam::364410974458:role/linkmate-prod-github-deploy
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        id: assume
+        continue-on-error: true
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+      - name: Assume Terraform GitHub deploy role
+        if: steps.assume.outcome != 'success'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.TF_GITHUB_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+      - name: Inventory only
+        run: |
+          set -euo pipefail
+          INSTANCE="$EC2_INSTANCE_ID"
+          B64=$(printf '%s' 'import pg from "pg";
+import { inventory } from "./scripts/reset-test-business.mjs";
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
+const client = await pool.connect();
+try {
+  const inv = await inventory(client);
+  const cutover = await client.query("select value from app_settings where key = '\''placement_rules_cutover_at'\''");
+  console.log(JSON.stringify({
+    gate: inv.gate,
+    blockers: inv.blockers,
+    admin_count: inv.admin_count,
+    keep_found: inv.keep_found.length,
+    missing_admins: inv.missing_admins.length,
+    extra_admins: inv.extra_admins.length,
+    non_admin_users: inv.non_admin_users,
+    tables: inv.tables,
+    possible_real_customer_payments: inv.possible_real_customer_payments,
+    previous_reset_at: inv.previous_reset_at,
+    cutover: cutover.rows[0]?.value ?? ""
+  }));
+} finally {
+  client.release();
+  await pool.end();
+}' | base64 -w 0)
+          CMD=$(aws ssm send-command \
+            --instance-ids "$INSTANCE" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Link Mate business inventory" \
+            --parameters "commands=[
+              \"set -euo pipefail\",
+              \"echo $B64 | base64 -d | docker exec -i linkmate node --input-type=module\"
+            ]" \
+            --query "Command.CommandId" --output text)
+          echo "Waiting for SSM $CMD"
+          for i in $(seq 1 24); do
+            STATUS=$(aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
+            echo "status=$STATUS"
+            if [ "$STATUS" = "Success" ] || [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+              aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query "[Status,StandardOutputContent,StandardErrorContent]" --output text
+              [ "$STATUS" = "Success" ]
+              exit $?
+            fi
+            sleep 5
+          done
+          echo "SSM timed out"
+          exit 1
