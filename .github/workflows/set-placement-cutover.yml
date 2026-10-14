@@ -34,23 +34,22 @@ jobs:
           role-to-assume: ${{ env.TF_GITHUB_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
-      - name: Check disk after prune
+      - name: Create Jabed chain without company pay
         run: |
           set -euo pipefail
-          aws ssm get-command-invocation \
-            --command-id b3e5bdf4-7b45-4100-a10b-706e4cf5e50f \
-            --instance-id "$EC2_INSTANCE_ID" \
-            --query "[Status,StandardOutputContent,StandardErrorContent]" \
-            --output text || true
           INSTANCE="$EC2_INSTANCE_ID"
+          B64=$(base64 -w 0 scripts/create-jabed-chain.mjs)
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Check Link Mate disk" \
-            --parameters 'commands=["df -h /","docker inspect --format=\"{{.State.Status}} {{.Config.Image}}\" linkmate"]' \
+            --comment "Create Jabed chain with company share off" \
+            --parameters "commands=[
+              \"set -euo pipefail\",
+              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=CREATE-JABED-CHAIN linkmate node --input-type=module\"
+            ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
-          for i in $(seq 1 12); do
+          for i in $(seq 1 24); do
             STATUS=$(aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
             echo "status=$STATUS"
             if [ "$STATUS" = "Success" ] || [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
@@ -60,4 +59,5 @@ jobs:
             fi
             sleep 5
           done
+          echo "SSM timed out"
           exit 1
