@@ -151,7 +151,11 @@ export async function savePaymentMethod(
   await audit(sql, adminUserId, "payment.settings", patch.method, next.enabled ? "enabled" : "disabled");
 }
 
-async function resolveSponsor(sql: Sql, referralCode: string | undefined): Promise<string | null> {
+async function resolveSponsor(
+  sql: Sql,
+  referralCode: string | undefined,
+  kind: "sponsor" | "placement" = "sponsor",
+): Promise<string | null> {
   const code = referralCode?.trim().toUpperCase();
   if (!code) return null;
   const byMemberCode = await sql<{ id: string }>`
@@ -173,7 +177,12 @@ async function resolveSponsor(sql: Sql, referralCode: string | undefined): Promi
     `;
     return first[0]?.id ?? null;
   }
-  throw new Error("Invalid referral code");
+  throw new Error(kind === "placement" ? "Invalid placement code" : "Invalid referral code");
+}
+
+function placementCodeFrom(extra: Record<string, string> | undefined): string | undefined {
+  const code = extra?.placementCode?.trim().toUpperCase();
+  return code || undefined;
 }
 
 export async function submitPaymentRequest(sql: Sql, input: SubmitPaymentInput): Promise<PaymentRequestRow> {
@@ -194,6 +203,12 @@ export async function submitPaymentRequest(sql: Sql, input: SubmitPaymentInput):
   if (input.referralCode?.trim()) {
     await resolveSponsor(sql, input.referralCode);
   }
+  const extraFields = { ...(input.extra ?? {}) };
+  const placementCode = placementCodeFrom(extraFields);
+  if (placementCode) {
+    await resolveSponsor(sql, placementCode, "placement");
+    extraFields.placementCode = placementCode;
+  }
 
   let duplicateSuspect = false;
   if (norm) {
@@ -208,7 +223,7 @@ export async function submitPaymentRequest(sql: Sql, input: SubmitPaymentInput):
   }
 
   const id = uid();
-  const extra = JSON.stringify(input.extra ?? {});
+  const extra = JSON.stringify(extraFields);
   await sql`
     insert into payment_requests (
       id, user_id, package_id, expected_amount_bdt, submitted_amount_bdt,
@@ -270,6 +285,10 @@ async function fulfill(
 ): Promise<{ purchaseId: string; rootId: string; ids: string[] }> {
   const pkg = PACKAGES[req.package_id];
   const sponsorMemberId = await resolveSponsor(sql, req.referral_code ?? undefined);
+  const placementCode = placementCodeFrom(req.extra);
+  const placementMemberId = placementCode
+    ? await resolveSponsor(sql, placementCode, "placement")
+    : sponsorMemberId;
   const purchaseId = uid();
   const paymentId = uid();
   await sql`
@@ -294,6 +313,7 @@ async function fulfill(
     packageId: req.package_id,
     purchaseId,
     externalSponsorId: sponsorMemberId,
+    placementParentId: placementMemberId,
   });
   const profile = await sql<{ active_id: string | null }>`
     select active_id from app_users where user_id = ${req.user_id}

@@ -42,7 +42,9 @@ function Pay() {
   const [step, setStep] = useState<"confirm" | "method" | "details">("confirm");
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [code, setCode] = useState("");
+  const [placement, setPlacement] = useState("");
   const [sponsorName, setSponsorName] = useState<string | null>(null);
+  const [placementName, setPlacementName] = useState<string | null>(null);
   const [txn, setTxn] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -54,6 +56,8 @@ function Pay() {
   useEffect(() => {
     const stored = window.localStorage.getItem("lm-ref");
     if (stored) setCode(stored.toUpperCase());
+    const place = window.localStorage.getItem("lm-place");
+    if (place) setPlacement(place.toUpperCase());
   }, []);
 
   useEffect(() => {
@@ -67,6 +71,18 @@ function Pay() {
     }, 250);
     return () => clearTimeout(t);
   }, [code]);
+
+  useEffect(() => {
+    const c = placement.trim();
+    if (c.length < 4) {
+      setPlacementName(null);
+      return;
+    }
+    const t = setTimeout(() => {
+      void lookupReferral({ data: { code: c } }).then((r) => setPlacementName(r.valid ? r.name : null));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [placement]);
 
   const submit = useMutation({
     mutationFn: () =>
@@ -82,11 +98,13 @@ function Pay() {
             ...(transferDate ? { transferDate } : {}),
             ...(senderBank ? { senderBank } : {}),
             ...(paidTo ? { receivedBy: paidTo } : {}),
+            ...(placement.trim() ? { placementCode: placement.trim().toUpperCase() } : {}),
           },
         },
       }),
     onSuccess: (res) => {
       if (code.trim()) window.localStorage.setItem("lm-ref", code.trim().toUpperCase());
+      if (placement.trim()) window.localStorage.setItem("lm-place", placement.trim().toUpperCase());
       void nav({ to: "/app/payments/$id", params: { id: res.id } });
     },
     onError: (e) => setError(publicErrorMessage(e)),
@@ -122,12 +140,21 @@ function Pay() {
           <Row label="Payment status" value="Not submitted" />
           <p className="text-sm leading-relaxed text-muted">{pkg.structureSummary}</p>
           <div>
-            <Label htmlFor="ref">Referral code (optional)</Label>
+            <Label htmlFor="ref">Sponsor code (optional)</Label>
             <Input id="ref" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} autoCapitalize="characters" />
             {sponsorName ? (
-              <p className="mt-1.5 text-xs text-success">Sponsor: {sponsorName}. They earn from your first ID only.</p>
+              <p className="mt-1.5 text-xs text-success">Sponsor: {sponsorName}. Designation only, no commission.</p>
             ) : (
-              <p className="mt-1.5 text-xs text-muted">Leave blank if you have no sponsor.</p>
+              <p className="mt-1.5 text-xs text-muted">Leave blank if this is the first ID.</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="place">Placement code (optional)</Label>
+            <Input id="place" value={placement} onChange={(e) => setPlacement(e.target.value.toUpperCase())} autoCapitalize="characters" />
+            {placementName ? (
+              <p className="mt-1.5 text-xs text-success">Placement: {placementName}. Level count and commission follow this ID.</p>
+            ) : (
+              <p className="mt-1.5 text-xs text-muted">Leave blank to place under the sponsor.</p>
             )}
           </div>
           <Button className="w-full" onClick={() => { setAmount(String(pkg.amountBdt)); setStep("method"); }}>

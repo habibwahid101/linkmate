@@ -227,6 +227,7 @@ export const purchasePackage = createServerFn({ method: "POST" })
     z.object({
       packageId: packageIdSchema,
       referralCode: z.string().optional(),
+      placementCode: z.string().optional(),
       idempotencyKey: z.string().min(8).max(80),
     }),
   )
@@ -275,6 +276,13 @@ export const purchasePackage = createServerFn({ method: "POST" })
       const sponsor = await resolveSponsorMember(sql, code);
       if (!sponsor) throw new Error("Invalid referral code");
       sponsorMemberId = sponsor.memberId;
+    }
+    let placementMemberId = sponsorMemberId;
+    const place = data.placementCode?.trim().toUpperCase();
+    if (place) {
+      const placed = await resolveSponsorMember(sql, place);
+      if (!placed) throw new Error("Invalid placement code");
+      placementMemberId = placed.memberId;
     }
 
     const purchaseId = uid();
@@ -326,6 +334,7 @@ export const purchasePackage = createServerFn({ method: "POST" })
       packageId: data.packageId,
       purchaseId,
       externalSponsorId: sponsorMemberId,
+      placementParentId: placementMemberId,
     });
 
     if (!profile.activeId) {

@@ -15,6 +15,7 @@ function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [referral, setReferral] = useState("");
+  const [placement, setPlacement] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -22,6 +23,8 @@ function Signup() {
     const fromUrl = search?.get("ref");
     const stored = window.localStorage.getItem("lm-ref");
     setReferral((fromUrl || stored || "").toUpperCase());
+    const place = search?.get("place") || window.localStorage.getItem("lm-place") || "";
+    setPlacement(place.toUpperCase());
     const pkg = search?.get("pkg");
     if (pkg) window.localStorage.setItem("lm-pkg", pkg);
   }, []);
@@ -32,6 +35,9 @@ function Signup() {
     setBusy(true);
     try {
       if (referral) window.localStorage.setItem("lm-ref", referral.toUpperCase());
+      else window.localStorage.removeItem("lm-ref");
+      if (placement) window.localStorage.setItem("lm-place", placement.toUpperCase());
+      else window.localStorage.removeItem("lm-place");
       const { error: err } = await authClient.signUp.email({
         email,
         password,
@@ -77,7 +83,7 @@ function Signup() {
           />
         </div>
         <div>
-          <Label htmlFor="ref">{t("auth.referral")}</Label>
+          <Label htmlFor="ref">{t("auth.sponsor")}</Label>
           <Input
             id="ref"
             value={referral}
@@ -85,6 +91,17 @@ function Signup() {
             placeholder="e.g. RAFI4K"
             autoCapitalize="characters"
           />
+        </div>
+        <div>
+          <Label htmlFor="place">{t("auth.placement")}</Label>
+          <Input
+            id="place"
+            value={placement}
+            onChange={(e) => setPlacement(e.target.value.toUpperCase())}
+            placeholder="e.g. LM-100001"
+            autoCapitalize="characters"
+          />
+          <p className="mt-1.5 text-xs text-muted">{t("auth.placementHint")}</p>
         </div>
         {error ? (
           <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
@@ -111,6 +128,7 @@ function Signup() {
                 className="w-full"
                 onClick={() => {
                   if (referral) window.localStorage.setItem("lm-ref", referral.toUpperCase());
+                  if (placement) window.localStorage.setItem("lm-place", placement.toUpperCase());
                   void signIn(p.providerId, { callbackURL: "/app" });
                 }}
               >

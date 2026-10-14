@@ -247,6 +247,68 @@ describe("manual payment engine", () => {
     assert.equal(child[0]?.sponsor_id, sponsor.rootId);
   });
 
+  it("approval places under a different ID while the sponsor only gets designation", async () => {
+    const { sql } = await makeSql();
+    await configureMethods(sql);
+    await insertUser(sql, "sponsor", "Sponsor");
+    await insertUser(sql, "placer", "Placer");
+    await insertUser(sql, "buyer", "Buyer");
+    const sponsorPay = await submitPaymentRequest(sql, {
+      userId: "sponsor",
+      packageId: "builder",
+      method: "CASH",
+      submittedAmountBdt: 11000,
+    });
+    const placerPay = await submitPaymentRequest(sql, {
+      userId: "placer",
+      packageId: "builder",
+      method: "CASH",
+      submittedAmountBdt: 11000,
+    });
+    const sponsor = await approvePayment(sql, { requestId: sponsorPay.id, adminUserId: "admin1" });
+    const placer = await approvePayment(sql, { requestId: placerPay.id, adminUserId: "admin1" });
+    await sql`
+      insert into app_settings (key, value)
+      values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
+      on conflict (key) do update set value = excluded.value
+    `;
+    const sponsorCode = await sql<{ referral_code: string }>`
+      select referral_code from member_ids where id = ${sponsor.rootId}
+    `;
+    const placeCode = await sql<{ referral_code: string }>`
+      select referral_code from member_ids where id = ${placer.rootId}
+    `;
+    const req = await submitPaymentRequest(sql, {
+      userId: "buyer",
+      packageId: "builder",
+      method: "CASH",
+      submittedAmountBdt: 11000,
+      referralCode: sponsorCode[0]!.referral_code,
+      extra: { placementCode: placeCode[0]!.referral_code },
+    });
+    const result = await approvePayment(sql, { requestId: req.id, adminUserId: "admin1" });
+    const child = await sql<{ sponsor_id: string; parent_id: string }>`
+      select sponsor_id, parent_id from member_ids where id = ${result.rootId}
+    `;
+    assert.equal(child[0]?.sponsor_id, sponsor.rootId);
+    assert.equal(child[0]?.parent_id, placer.rootId);
+    const sponsorPayRows = await sql<{ n: number }>`
+      select count(*)::int as n from commission_entries where beneficiary_id = ${sponsor.rootId}
+    `;
+    const placePayRows = await sql<{ n: number; amount: number }>`
+      select count(*)::int as n, coalesce(sum(commission_amount), 0)::int as amount
+      from commission_entries where beneficiary_id = ${placer.rootId} and source_id = ${result.rootId}
+    `;
+    assert.equal(sponsorPayRows[0]?.n, 0);
+    assert.equal(placePayRows[0]?.n, 1);
+    assert.equal(Number(placePayRows[0]?.amount), 880);
+    const credits = await sql<{ n: number }>`
+      select count(*)::int as n from sponsor_designation_credits
+      where sponsor_id = ${sponsor.rootId} and voided_at is null
+    `;
+    assert.equal(credits[0]?.n, 1);
+  });
+
   it("rejected and needs-review payments create no IDs or commissions", async () => {
     const { sql } = await makeSql();
     await configureMethods(sql);
