@@ -34,18 +34,18 @@ jobs:
           role-to-assume: ${{ env.TF_GITHUB_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
-      - name: Create Jabed chain without company pay
+      - name: Enable company share for future IDs
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
-          B64=$(base64 -w 0 scripts/create-jabed-chain.mjs)
+          B64=$(base64 -w 0 scripts/enable-company-share.mjs)
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Create Jabed chain with company share off" \
+            --comment "Enable Link Mate company share" \
             --parameters "commands=[
               \"set -euo pipefail\",
-              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=CREATE-JABED-CHAIN linkmate node --input-type=module\"
+              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=ENABLE-COMPANY-SHARE linkmate node --input-type=module\"
             ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
