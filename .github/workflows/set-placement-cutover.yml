@@ -34,19 +34,15 @@ jobs:
           role-to-assume: ${{ env.TF_GITHUB_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
-      - name: Inventory business rows
+      - name: Free unused Docker images
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
-          B64=$(base64 -w 0 scripts/apply-owner-wipe.mjs)
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Link Mate owner wipe keep two admins" \
-            --parameters "commands=[
-              \"set -euo pipefail\",
-              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=LINKMATE-RESET-TEST-BUSINESS linkmate node --input-type=module\"
-            ]" \
+            --comment "Prune unused Link Mate images" \
+            --parameters 'commands=["set -euo pipefail","docker inspect --format=\"{{.State.Status}} {{.Config.Image}}\" linkmate","docker image prune -af","docker builder prune -af || true","df -h /"]' \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
           for i in $(seq 1 24); do
