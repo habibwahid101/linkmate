@@ -21,6 +21,7 @@ let lastPg: PGlite | undefined;
 
 type Sql = {
   <T = Record<string, unknown>>(strings: TemplateStringsArray, ...values: unknown[]): Promise<T[]>;
+  withTransaction?: <T>(fn: (sql: Sql) => Promise<T>) => Promise<T>;
 };
 
 function wrap(pg: PGlite): Sql {
@@ -48,7 +49,7 @@ async function makeSql(): Promise<Sql> {
   const sql = wrap(pg);
   sql.withTransaction = async (fn) =>
     pg.transaction(async (tx) => {
-      const inner = wrap(tx as PGlite);
+      const inner = wrap(tx as unknown as PGlite);
       inner.withTransaction = async (nested) => nested(inner);
       return fn(inner);
     });
