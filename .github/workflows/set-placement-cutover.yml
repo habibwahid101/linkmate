@@ -19,6 +19,7 @@ jobs:
       EC2_INSTANCE_ID: i-0d5882a956e4d3981
       TF_GITHUB_DEPLOY_ROLE_ARN: arn:aws:iam::364410974458:role/linkmate-prod-github-deploy
     steps:
+      - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
         id: assume
         continue-on-error: true
@@ -37,13 +38,15 @@ jobs:
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
+          B64=$(tail -n +2 scripts/set-placement-cutover.mjs | base64 -w 0)
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
             --comment "Set Link Mate placement cutover timestamp" \
             --parameters "commands=[
               \"set -euo pipefail\",
-              \"docker exec -e CONFIRM=SET_PLACEMENT_CUTOVER linkmate node scripts/set-placement-cutover.mjs\"
+              \"docker inspect --format='{{.State.Status}} {{.Config.Image}}' linkmate\",
+              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=SET_PLACEMENT_CUTOVER linkmate node --input-type=module\"
             ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
