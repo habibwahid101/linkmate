@@ -38,14 +38,14 @@ jobs:
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
-          B64=$(base64 -w 0 scripts/inventory-summary.mjs)
+          B64=$(base64 -w 0 scripts/apply-owner-wipe.mjs)
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Link Mate business inventory" \
+            --comment "Link Mate owner wipe keep two admins" \
             --parameters "commands=[
               \"set -euo pipefail\",
-              \"echo $B64 | base64 -d | docker exec -i -w /app/scripts linkmate node --input-type=module\"
+              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=LINKMATE-RESET-TEST-BUSINESS linkmate node --input-type=module\"
             ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
