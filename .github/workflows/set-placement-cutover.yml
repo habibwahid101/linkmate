@@ -34,18 +34,23 @@ jobs:
           role-to-assume: ${{ env.TF_GITHUB_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
-      - name: Free unused Docker images
+      - name: Check disk after prune
         run: |
           set -euo pipefail
+          aws ssm get-command-invocation \
+            --command-id 2682e130-fea6-4c27-abd5-88a0ab6106be \
+            --instance-id "$EC2_INSTANCE_ID" \
+            --query "[Status,StandardOutputContent,StandardErrorContent]" \
+            --output text || true
           INSTANCE="$EC2_INSTANCE_ID"
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Prune unused Link Mate images" \
-            --parameters 'commands=["set -euo pipefail","docker inspect --format=\"{{.State.Status}} {{.Config.Image}}\" linkmate","docker image prune -af","docker builder prune -af || true","df -h /"]' \
+            --comment "Check Link Mate disk" \
+            --parameters 'commands=["df -h /","docker inspect --format=\"{{.State.Status}} {{.Config.Image}}\" linkmate"]' \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
-          for i in $(seq 1 24); do
+          for i in $(seq 1 12); do
             STATUS=$(aws ssm get-command-invocation --command-id "$CMD" --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)
             echo "status=$STATUS"
             if [ "$STATUS" = "Success" ] || [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
@@ -55,5 +60,4 @@ jobs:
             fi
             sleep 5
           done
-          echo "SSM timed out"
           exit 1
