@@ -4,9 +4,11 @@ import { formatMemberId, makeReferralCode, uid } from "./ids.ts";
 import {
   assertAcyclicSponsor,
   assertAcyclicPlacement,
+  assertPlacementParentAllowed,
   ensureLevelRows,
   ensureWallet,
   processMembershipIdActivation,
+  placementCutoverActive,
   processNewId,
   reconcileGenerationAncestry,
   reconcileWallet,
@@ -130,6 +132,8 @@ export type CreateIdsOpts = {
   packageId: PackageId;
   purchaseId: string;
   externalSponsorId: string | null;
+  /** Ignored when omitted. A different parent is rejected until cutover. */
+  placementParentId?: string | null;
   /** Test-only: throw after N member rows are inserted. */
   failAfterCreated?: number;
 };
@@ -146,6 +150,13 @@ async function orchestratePurchaseIds(
   opts: CreateIdsOpts,
 ): Promise<{ rootId: string; ids: string[] }> {
   const expected = PACKAGES[opts.packageId].idCount;
+  const rootParent =
+    opts.placementParentId !== undefined ? opts.placementParentId : opts.externalSponsorId;
+  assertPlacementParentAllowed(
+    opts.externalSponsorId,
+    rootParent,
+    await placementCutoverActive(sql),
+  );
   const existing = await loadExistingPurchaseIds(sql, opts.purchaseId);
   if (existing.length > 0) {
     if (existing.length !== expected) {
@@ -168,7 +179,7 @@ async function orchestratePurchaseIds(
     const p = plan[i]!;
     const id = codes[i]!;
     const parentId = p.isRoot
-      ? opts.externalSponsorId
+      ? rootParent
       : p.parentIndex != null
         ? codes[p.parentIndex]!
         : null;
@@ -247,6 +258,11 @@ export async function attachExternalMember(
     parentMemberId: string;
   },
 ): Promise<string> {
+  assertPlacementParentAllowed(
+    opts.sponsorMemberId,
+    opts.parentMemberId,
+    await placementCutoverActive(sql),
+  );
   const newId = await nextMemberCode(sql);
   await insertMemberId(sql, {
     id: newId,

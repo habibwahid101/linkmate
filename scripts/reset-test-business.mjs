@@ -68,6 +68,9 @@ export async function inventory(client) {
       ? await count(client, "select count(*)::int as n from user_packages")
       : 0,
     sponsor_relationships: await count(client, "select count(*)::int as n from sponsor_relationships"),
+    sponsor_designation_credits: (await tableExists(client, "sponsor_designation_credits"))
+      ? await count(client, "select count(*)::int as n from sponsor_designation_credits")
+      : 0,
     placement_relationships: await count(client, "select count(*)::int as n from placement_relationships"),
     generation_memberships: await count(client, "select count(*)::int as n from generation_memberships"),
     membership_activation_events: (await tableExists(client, "membership_activation_events"))
@@ -199,6 +202,7 @@ export async function applyReset(client, inv, env = process.env) {
     ["membership_activation_events", `delete from membership_activation_events`],
     ["placement_relationships", `delete from placement_relationships`],
     ["sponsor_relationships", `delete from sponsor_relationships`],
+    ["sponsor_designation_credits", `delete from sponsor_designation_credits`],
     ["notifications", `delete from notifications`],
     ["payment_requests", `delete from payment_requests`],
     ["payments", `delete from payments`],
@@ -308,6 +312,7 @@ export async function runResetCli({ apply = false, env = process.env } = {}) {
       console.log(JSON.stringify(after, null, 2));
       const leftover =
         after.tables.member_ids ||
+        after.tables.sponsor_designation_credits ||
         after.tables.package_purchases ||
         after.non_admin_users ||
         after.admin_count !== 2;

@@ -44,7 +44,15 @@ async function makeSql(): Promise<Sql> {
   await pg.exec(readFileSync(join(ROOT, "migrations/0003_hardening.sql"), "utf8"));
   await pg.exec(readFileSync(join(ROOT, "migrations/0010_id_based_engine.sql"), "utf8"));
   await pg.exec(readFileSync(join(ROOT, "migrations/0012_sponsor_designations.sql"), "utf8"));
-  return wrap(pg);
+  await pg.exec(readFileSync(join(ROOT, "migrations/0013_placement_cutover_prep.sql"), "utf8"));
+  const sql = wrap(pg);
+  sql.withTransaction = async (fn) =>
+    pg.transaction(async (tx) => {
+      const inner = wrap(tx as PGlite);
+      inner.withTransaction = async (nested) => nested(inner);
+      return fn(inner);
+    });
+  return sql;
 }
 
 async function insertUser(sql: Sql, userId: string, name: string) {
@@ -439,3 +447,229 @@ test("L. Mid-processing failure then retry yields one correct result", async () 
     select count(*)::int as n from commission_entries where source_id = ${childId}`;
   assert.equal(from[0]!.n, 2);
 });
+
+test("M. Empty cutover stamps sponsor ancestry and rejects a different placement parent", async () => {
+  const sql = await makeSql();
+  await insertUser(sql, "u-a", "A");
+  await insertUser(sql, "u-b", "B");
+  await insertUser(sql, "u-c", "C");
+  const a = await createIdsForPurchase(sql, {
+    userId: "u-a", packageId: "builder", purchaseId: "p-a", externalSponsorId: null,
+  });
+  const b = await createIdsForPurchase(sql, {
+    userId: "u-b", packageId: "builder", purchaseId: "p-b", externalSponsorId: null,
+  });
+  const before = await sql<{ n: number }>`select count(*)::int as n from member_ids`;
+  await assert.rejects(
+    () => attachExternalMember(sql, {
+      ownerUserId: "u-c",
+      displayName: "C",
+      email: null,
+      packageId: "builder",
+      sponsorMemberId: a.rootId,
+      parentMemberId: b.rootId,
+    }),
+    /Placement parent must match the sponsor until cutover/,
+  );
+  const after = await sql<{ n: number }>`select count(*)::int as n from member_ids`;
+  assert.equal(after[0]?.n, before[0]?.n);
+  assert.equal((await wallet(sql, a.rootId)).held, 0);
+  assert.equal((await wallet(sql, b.rootId)).held, 0);
+
+  const child = await addDirect(sql, "u-d", a.rootId, "D");
+  const event = await sql<{ ancestry_model: string }>`
+    select ancestry_model from membership_activation_events where member_id = ${child}`;
+  assert.equal(event[0]?.ancestry_model, "sponsor");
+  const rows = await commissions(sql, a.rootId);
+  assert.equal(rows.length, 1);
+  assert.equal(Number(rows[0]!.commission_amount), 880);
+  const stamped = await sql<{ ancestry_model: string }>`
+    select ancestry_model from commission_entries where source_id = ${child}`;
+  assert.equal(stamped[0]?.ancestry_model, "sponsor");
+
+  await processMembershipIdActivation(sql, child);
+  const again = await commissions(sql, a.rootId);
+  assert.equal(again.length, 1);
+  assert.equal((await wallet(sql, a.rootId)).held, 880);
+});
+
+test("N. After cutover a different placement parent is paid and the sponsor is not", async () => {
+  const sql = await makeSql();
+  await insertUser(sql, "u-a", "A");
+  await insertUser(sql, "u-b", "B");
+  await insertUser(sql, "u-c", "C");
+  const a = await createIdsForPurchase(sql, {
+    userId: "u-a", packageId: "builder", purchaseId: "p-a", externalSponsorId: null,
+  });
+  const b = await createIdsForPurchase(sql, {
+    userId: "u-b", packageId: "builder", purchaseId: "p-b", externalSponsorId: null,
+  });
+  await sql`
+    insert into app_settings (key, value)
+    values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
+    on conflict (key) do update set value = excluded.value
+  `;
+  const child = await attachExternalMember(sql, {
+    ownerUserId: "u-c",
+    displayName: "C",
+    email: null,
+    packageId: "builder",
+    sponsorMemberId: a.rootId,
+    parentMemberId: b.rootId,
+  });
+  const event = await sql<{ ancestry_model: string }>`
+    select ancestry_model from membership_activation_events where member_id = ${child}`;
+  assert.equal(event[0]?.ancestry_model, "placement");
+  assert.equal((await commissions(sql, a.rootId)).length, 0);
+  const paid = await commissions(sql, b.rootId);
+  assert.equal(paid.length, 1);
+  assert.equal(Number(paid[0]!.commission_amount), 880);
+  assert.equal((await wallet(sql, b.rootId)).held, 880);
+  assert.equal((await wallet(sql, b.rootId)).available, 0);
+  assert.equal((await progress(sql, a.rootId, 1)).completed_members, 0);
+  assert.equal((await progress(sql, b.rootId, 1)).completed_members, 0);
+  const placed = await sql<{ n: number }>`
+    select placement_completed_members as n from level_progress
+    where member_id = ${b.rootId} and level = 1`;
+  assert.equal(Number(placed[0]?.n), 1);
+  const credits = await sql<{ n: number }>`
+    select count(*)::int as n from sponsor_designation_credits
+    where sponsor_id = ${a.rootId} and voided_at is null`;
+  assert.equal(credits[0]?.n, 1);
+});
+
+test("O. Three placement children release 2640 once and do not move the frozen count", async () => {
+  const sql = await makeSql();
+  await insertUser(sql, "u-a", "A");
+  await insertUser(sql, "u-b", "B");
+  const a = await createIdsForPurchase(sql, {
+    userId: "u-a", packageId: "builder", purchaseId: "p-a", externalSponsorId: null,
+  });
+  const b = await createIdsForPurchase(sql, {
+    userId: "u-b", packageId: "builder", purchaseId: "p-b", externalSponsorId: null,
+  });
+  await sql`
+    insert into app_settings (key, value)
+    values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
+    on conflict (key) do update set value = excluded.value
+  `;
+  for (let i = 0; i < 3; i += 1) {
+    await insertUser(sql, `u-c${i}`, `C${i}`);
+    await attachExternalMember(sql, {
+      ownerUserId: `u-c${i}`,
+      displayName: `C${i}`,
+      email: null,
+      packageId: "builder",
+      sponsorMemberId: a.rootId,
+      parentMemberId: b.rootId,
+    });
+  }
+  assert.equal((await progress(sql, b.rootId, 1)).completed_members, 0);
+  assert.equal((await progress(sql, b.rootId, 1)).status, "RELEASED");
+  const placement = await sql<{ n: number }>`
+    select placement_completed_members as n from level_progress where member_id = ${b.rootId} and level = 1`;
+  assert.equal(Number(placement[0]?.n), 3);
+  const w = await wallet(sql, b.rootId);
+  assert.equal(w.available, 2640);
+  assert.equal(w.released, 2640);
+  assert.equal(w.held, 0);
+  const txs = await sql<{ id: string; amount: number }>`
+    select id, amount from wallet_transactions where member_id = ${b.rootId} order by id`;
+  assert.equal(txs.length, 1);
+  assert.equal(txs[0]?.id, `release:${b.rootId}:1:placement`);
+  assert.equal(Number(txs[0]?.amount), 2640);
+  assert.equal((await commissions(sql, a.rootId)).length, 0);
+  const level = await memberState(sql, b.rootId);
+  assert.equal(level.current_level, 2);
+});
+
+test("P. A sponsor-stamped activation stays on the sponsor walk after cutover", async () => {
+  const sql = await makeSql();
+  await insertUser(sql, "u-s", "S");
+  await insertUser(sql, "u-b", "B");
+  const s = await createIdsForPurchase(sql, {
+    userId: "u-s", packageId: "builder", purchaseId: "p-s", externalSponsorId: null,
+  });
+  const b = await createIdsForPurchase(sql, {
+    userId: "u-b", packageId: "builder", purchaseId: "p-b", externalSponsorId: null,
+  });
+  const child = await addDirect(sql, "u-d", s.rootId, "D");
+  assert.equal((await progress(sql, s.rootId, 1)).completed_members, 1);
+  await sql`
+    insert into app_settings (key, value)
+    values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
+    on conflict (key) do update set value = excluded.value
+  `;
+  await processMembershipIdActivation(sql, child);
+  const stored = await sql<{ ancestry_model: string }>`
+    select ancestry_model from membership_activation_events where member_id = ${child}`;
+  assert.equal(stored[0]?.ancestry_model, "sponsor");
+  assert.equal((await commissions(sql, s.rootId)).length, 1);
+  assert.equal((await wallet(sql, s.rootId)).held, 880);
+  assert.equal((await progress(sql, s.rootId, 1)).completed_members, 1);
+  const placement = await sql<{ n: number }>`
+    select placement_completed_members as n from level_progress where member_id = ${s.rootId} and level = 1`;
+  assert.equal(Number(placement[0]?.n), 0);
+
+  await insertUser(sql, "u-e", "E");
+  await attachExternalMember(sql, {
+    ownerUserId: "u-e",
+    displayName: "E",
+    email: null,
+    packageId: "builder",
+    sponsorMemberId: s.rootId,
+    parentMemberId: b.rootId,
+  });
+  assert.equal((await commissions(sql, s.rootId)).length, 1);
+  assert.equal((await commissions(sql, b.rootId)).length, 1);
+  assert.equal((await progress(sql, s.rootId, 1)).completed_members, 1);
+});
+
+test("Q. Placement completion releases frozen legacy held and new placement held together", async () => {
+  const sql = await makeSql();
+  await insertUser(sql, "u-s", "S");
+  await insertUser(sql, "u-a", "A");
+  const s = await createIdsForPurchase(sql, {
+    userId: "u-s", packageId: "builder", purchaseId: "p-s", externalSponsorId: null,
+  });
+  const a = await createIdsForPurchase(sql, {
+    userId: "u-a", packageId: "builder", purchaseId: "p-a", externalSponsorId: null,
+  });
+  await addDirect(sql, "u-d1", s.rootId, "D1");
+  await addDirect(sql, "u-d2", s.rootId, "D2");
+  assert.equal((await wallet(sql, s.rootId)).held, 1760);
+  assert.equal((await progress(sql, s.rootId, 1)).completed_members, 2);
+  await sql`
+    insert into app_settings (key, value)
+    values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
+    on conflict (key) do update set value = excluded.value
+  `;
+  for (let i = 0; i < 3; i += 1) {
+    await insertUser(sql, `u-p${i}`, `P${i}`);
+    await attachExternalMember(sql, {
+      ownerUserId: `u-p${i}`,
+      displayName: `P${i}`,
+      email: null,
+      packageId: "builder",
+      sponsorMemberId: a.rootId,
+      parentMemberId: s.rootId,
+    });
+  }
+  assert.equal((await progress(sql, s.rootId, 1)).completed_members, 2);
+  assert.equal((await progress(sql, s.rootId, 1)).status, "RELEASED");
+  const w = await wallet(sql, s.rootId);
+  assert.equal(w.held, 0);
+  assert.equal(w.available, 4400);
+  assert.equal(w.released, 4400);
+  const txs = await sql<{ id: string; amount: number }>`
+    select id, amount from wallet_transactions where member_id = ${s.rootId} order by id`;
+  assert.deepEqual(
+    txs.map((t) => ({ id: t.id, amount: Number(t.amount) })),
+    [
+      { id: `legacy-release:${s.rootId}:1`, amount: 1760 },
+      { id: `release:${s.rootId}:1:placement`, amount: 2640 },
+    ],
+  );
+  assert.equal((await commissions(sql, a.rootId)).length, 0);
+});
+

@@ -120,7 +120,7 @@ function IdDashboard() {
       <section className="mt-6">
         <CardTitle>Level journey</CardTitle>
         <p className="mt-1 text-[15px] leading-relaxed text-muted">
-          Level 1 needs 3 direct sponsored IDs. Levels 2–9 count eligible downline IDs — not generation depth.
+          Level 1 still shows the frozen sponsor-tree count. Placement progress is separate and starts at 0. This does not change commission or land qualification.
         </p>
         <div className="mt-3">
           <LevelJourney rows={d.journey} graduated={graduated} />

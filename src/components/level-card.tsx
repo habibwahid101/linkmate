@@ -14,6 +14,7 @@ export type LevelRow = {
   generation: number;
   required_members: number;
   completed_members: number;
+  placement_completed_members?: number;
   remaining_members: number;
   accumulated_commission: number;
   expected_full_commission: number;
@@ -66,6 +67,12 @@ export function LevelCard({ row, compact = false }: { row: LevelRow; compact?: b
           max={row.required_members}
           tone={barTone(row.status)}
         />
+        {row.status === "IN_PROGRESS" ? (
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            Legacy sponsor progress {row.completed_members}/{row.required_members}, frozen.
+            Placement progress {row.placement_completed_members ?? 0}/{row.required_members}.
+          </p>
+        ) : null}
       </div>
       {compact ? null : (
         <div className="flex items-end justify-between border-t border-border/70 pt-3">

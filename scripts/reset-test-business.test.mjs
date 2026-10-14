@@ -29,7 +29,8 @@ async function makeClient() {
     "migrations/0006_withdrawals.sql",
     "migrations/0007_referral_lock_withdraw_fee.sql",
     "migrations/0008_owner_payout_policy.sql",
-    "migrations/0009_owner_locked_decisions.sql",
+    "migrations/0010_id_based_engine.sql",
+    "migrations/0012_sponsor_designations.sql",
   ]) {
     await pg.exec(readFileSync(join(ROOT, file), "utf8"));
   }
@@ -61,6 +62,11 @@ describe("reset-test-business", () => {
        values ('p1','m1','builder',11000,1)`,
     );
     await client.query(
+      `insert into sponsor_designation_credits (
+         id, sponsor_id, sponsored_id, sponsor_owner_user_id
+       ) values ('desig:LM-100001','LM-100001','LM-100002','m1')`,
+    );
+    await client.query(
       `insert into wallets (member_id, owner_user_id, available_balance, total_released)
        values ('LM-100001','m1',500,500)`,
     );
@@ -76,6 +82,7 @@ describe("reset-test-business", () => {
 
     const deleted = await applyReset(client, before, { CONFIRM: "LINKMATE-RESET-TEST-BUSINESS" });
     assert.equal(deleted.member_ids, 1);
+    assert.equal(deleted.sponsor_designation_credits, 1);
     assert.equal(deleted.dropped_non_admin_users, 1);
 
     const after = await inventory(client);
@@ -86,6 +93,7 @@ describe("reset-test-business", () => {
     );
     assert.equal(after.non_admin_users, 0);
     assert.equal(after.tables.member_ids, 0);
+    assert.equal(after.tables.sponsor_designation_credits, 0);
     assert.equal(after.tables.package_purchases, 0);
     assert.equal(after.tables.wallets, 0);
     assert.equal(after.tables.packages, 4);

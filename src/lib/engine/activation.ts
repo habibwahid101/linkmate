@@ -142,6 +142,28 @@ export async function wouldCreatePlacementCycle(
   return false;
 }
 
+export async function placementCutoverActive(sql: Sql): Promise<boolean> {
+  const rows = await sql<{ value: string | null }>`
+    select value from app_settings where key = 'placement_rules_cutover_at'
+  `;
+  const raw = String(rows[0]?.value ?? "").trim();
+  if (!raw) return false;
+  const at = Date.parse(raw);
+  return !Number.isNaN(at) && at <= Date.now();
+}
+
+/** Before cutover, sponsor and placement parent must be the same ID. */
+export function assertPlacementParentAllowed(
+  sponsorId: string | null,
+  parentId: string | null,
+  cutoverActive: boolean,
+): void {
+  if (cutoverActive) return;
+  if ((sponsorId ?? null) !== (parentId ?? null)) {
+    throw new Error("Placement parent must match the sponsor until cutover");
+  }
+}
+
 export async function assertAcyclicPlacement(
   sql: Sql,
   childId: string,
@@ -167,6 +189,26 @@ export async function walkSponsorAncestry(sql: Sql, memberId: string): Promise<S
     const ancestor = await loadMember(sql, nodeId);
     if (!ancestor) break;
     nodeId = ancestor.sponsor_id;
+    dist += 1;
+  }
+  return hops;
+}
+
+/** Placement-tree walk. Used only for activations stamped placement. */
+export async function walkPlacementAncestry(sql: Sql, memberId: string): Promise<SponsorHop[]> {
+  const source = await loadMember(sql, memberId);
+  if (!source?.parent_id) return [];
+  const hops: SponsorHop[] = [];
+  const seen = new Set<string>([memberId]);
+  let nodeId: string | null = source.parent_id;
+  let dist = 1;
+  while (nodeId && dist <= ANCESTRY_HOP_GUARD) {
+    if (seen.has(nodeId)) break;
+    seen.add(nodeId);
+    hops.push({ ancestorId: nodeId, generation: dist });
+    const ancestor = await loadMember(sql, nodeId);
+    if (!ancestor) break;
+    nodeId = ancestor.parent_id;
     dist += 1;
   }
   return hops;
@@ -236,9 +278,15 @@ async function releaseLevel(sql: Sql, beneficiary: MemberRow, level: number) {
     update commission_entries
     set status = 'RELEASED', released_at = now(), wallet_transaction_id = ${txId}
     where beneficiary_id = ${beneficiary.id} and level = ${level} and status = 'HELD'
+      and ancestry_model = 'sponsor'
     returning id, commission_amount
   `;
   if (claimed.length === 0) {
+    const pending = await sql<{ n: number }>`
+      select count(*)::int as n from commission_entries
+      where beneficiary_id = ${beneficiary.id} and level = ${level} and status = 'HELD'
+    `;
+    if (Number(pending[0]?.n ?? 0) > 0) return 0;
     await sql`
       update level_progress
       set status = 'RELEASED', released_at = coalesce(released_at, now())
@@ -262,10 +310,15 @@ async function releaseLevel(sql: Sql, beneficiary: MemberRow, level: number) {
 
   await reconcileWallet(sql, beneficiary.id);
 
+  const left = await sql<{ amount: number }>`
+    select coalesce(sum(commission_amount), 0)::int as amount
+    from commission_entries
+    where beneficiary_id = ${beneficiary.id} and level = ${level} and status = 'HELD'
+  `;
   await sql`
     insert into held_commissions (member_id, owner_user_id, level, amount)
-    values (${beneficiary.id}, ${beneficiary.owner_user_id}, ${level}, 0)
-    on conflict (member_id, level) do update set amount = 0
+    values (${beneficiary.id}, ${beneficiary.owner_user_id}, ${level}, ${Number(left[0]?.amount ?? 0)})
+    on conflict (member_id, level) do update set amount = excluded.amount
   `;
 
   await sql`
@@ -319,6 +372,170 @@ async function advanceAfterCompletion(sql: Sql, beneficiary: MemberRow, complete
   `;
 }
 
+export type PlacementReleaseFailAt =
+  | "before-placement-claim"
+  | "after-placement-claim"
+  | "after-placement-wallet"
+  | "before-legacy-wallet"
+  | "reconcile"
+  | "advance";
+
+/**
+ * S-Wait settlement. Runs only after cutover, and only when the placement
+ * counter has already reached the level requirement. Sponsor-tree completion
+ * still uses releaseLevel. One database transaction posts both wallet rows
+ * or neither.
+ */
+export async function settleOpenPlacementLevel(
+  sql: Sql,
+  memberId: string,
+  level: number,
+  opts: { failAt?: PlacementReleaseFailAt } = {},
+): Promise<{ released: boolean }> {
+  if (!(await placementCutoverActive(sql))) return { released: false };
+  const ready = await sql<{
+    placement_completed_members: number;
+    required_members: number;
+    status: string;
+  }>`
+    select placement_completed_members, required_members, status
+    from level_progress where member_id = ${memberId} and level = ${level}
+  `;
+  const gate = ready[0];
+  if (!gate || gate.status === "RELEASED" || gate.status === "LOCKED") return { released: false };
+  if (Number(gate.placement_completed_members) < Number(gate.required_members)) return { released: false };
+  if (typeof sql.withTransaction !== "function") {
+    throw new Error("Placement release requires a database transaction");
+  }
+  return sql.withTransaction((tx) => settleOpenPlacementLevelTx(tx, memberId, level, opts));
+}
+
+async function settleOpenPlacementLevelTx(
+  sql: Sql,
+  memberId: string,
+  level: number,
+  opts: { failAt?: PlacementReleaseFailAt },
+): Promise<{ released: boolean }> {
+  if (!(await placementCutoverActive(sql))) return { released: false };
+  const fail = (at: PlacementReleaseFailAt) => {
+    if (opts.failAt === at) throw new Error("RELEASE_TEST_FAILURE");
+  };
+
+  const locked = await sql<MemberRow>`
+    select id, owner_user_id, parent_id, sponsor_id, joining_amount_bdt, purchase_id, is_root,
+           current_level, progression_status
+    from member_ids where id = ${memberId}
+    for update
+  `;
+  const beneficiary = locked[0];
+  if (!beneficiary) return { released: false };
+
+  const prog = await sql<{
+    placement_completed_members: number;
+    required_members: number;
+    completed_members: number;
+    status: string;
+  }>`
+    select placement_completed_members, required_members, completed_members, status
+    from level_progress
+    where member_id = ${memberId} and level = ${level}
+    for update
+  `;
+  const row = prog[0];
+  if (!row) return { released: false };
+  if (row.status === "RELEASED" || row.status === "LOCKED") return { released: false };
+  if (Number(row.placement_completed_members) < Number(row.required_members)) return { released: false };
+
+  fail("before-placement-claim");
+
+  const placementTxId = `release:${memberId}:${level}:placement`;
+  const legacyTxId = `legacy-release:${memberId}:${level}`;
+  const generation = getLevel(level).generation;
+
+  const placementClaimed = await sql<{ id: string; commission_amount: number }>`
+    update commission_entries
+    set status = 'RELEASED', released_at = now(), wallet_transaction_id = ${placementTxId}
+    where beneficiary_id = ${memberId} and level = ${level}
+      and status = 'HELD' and ancestry_model = 'placement'
+    returning id, commission_amount
+  `;
+  fail("after-placement-claim");
+
+  if (placementClaimed.length > 0) {
+    const placementTotal = placementClaimed.reduce((s, r) => s + Number(r.commission_amount), 0);
+    await sql`
+      insert into wallet_transactions (
+        id, member_id, owner_user_id, type, amount, source, level, generation, status
+      ) values (
+        ${placementTxId}, ${beneficiary.id}, ${beneficiary.owner_user_id},
+        'RELEASE', ${placementTotal}, ${"Level " + level + " placement completion"},
+        ${level}, ${generation}, 'posted'
+      )
+      on conflict (id) do nothing
+    `;
+  }
+  fail("after-placement-wallet");
+
+  const legacyClaimed = await sql<{ id: string; commission_amount: number }>`
+    update commission_entries
+    set status = 'RELEASED', released_at = now(), wallet_transaction_id = ${legacyTxId}
+    where beneficiary_id = ${memberId} and level = ${level}
+      and status = 'HELD' and ancestry_model = 'sponsor'
+    returning id, commission_amount
+  `;
+  if (legacyClaimed.length > 0) {
+    const legacyTotal = legacyClaimed.reduce((s, r) => s + Number(r.commission_amount), 0);
+    fail("before-legacy-wallet");
+    await sql`
+      insert into wallet_transactions (
+        id, member_id, owner_user_id, type, amount, source, level, generation, status
+      ) values (
+        ${legacyTxId}, ${beneficiary.id}, ${beneficiary.owner_user_id},
+        'RELEASE', ${legacyTotal}, ${"Level " + level + " legacy sponsor hold"},
+        ${level}, ${generation}, 'posted'
+      )
+      on conflict (id) do nothing
+    `;
+  }
+
+  const held = await sql<{ amount: number }>`
+    select coalesce(sum(commission_amount), 0)::int as amount
+    from commission_entries
+    where beneficiary_id = ${memberId} and level = ${level} and status = 'HELD'
+  `;
+  const heldLeft = Number(held[0]?.amount ?? 0);
+  await sql`
+    insert into held_commissions (member_id, owner_user_id, level, amount)
+    values (${memberId}, ${beneficiary.owner_user_id}, ${level}, ${heldLeft})
+    on conflict (member_id, level) do update set amount = excluded.amount
+  `;
+
+  fail("reconcile");
+  await reconcileWallet(sql, memberId);
+
+  const claimed = placementClaimed.length + legacyClaimed.length;
+  if (claimed === 0) return { released: false };
+
+  fail("advance");
+  await sql`
+    update level_progress
+    set status = 'RELEASED',
+        released_at = coalesce(released_at, now()),
+        completed_at = coalesce(completed_at, now())
+    where member_id = ${memberId} and level = ${level}
+  `;
+  await advanceAfterCompletion(sql, beneficiary, level);
+  await audit(
+    sql,
+    "system",
+    "commission.release.placement",
+    "level_progress",
+    memberId,
+    `Placement settlement for ${memberId} level ${level}`,
+  );
+  return { released: true };
+}
+
 type ImpactResult = { applied: boolean; completedLevel: number | null };
 
 async function applyActivationImpact(
@@ -326,8 +543,9 @@ async function applyActivationImpact(
   source: MemberRow,
   joiningAmount: number,
   hop: SponsorHop,
-  failAfter?: number,
-  appliedCount?: { n: number },
+  failAfter: number | undefined,
+  appliedCount: { n: number } | undefined,
+  model: "sponsor" | "placement",
 ): Promise<ImpactResult> {
   return withMemberLock(hop.ancestorId, async () => {
     const locked = await sql<MemberRow>`
@@ -342,7 +560,8 @@ async function applyActivationImpact(
 
     const currentLevel = Number(beneficiary.current_level ?? 1);
     if (currentLevel < 1 || currentLevel > 9) return { applied: false, completedLevel: null };
-    const isDirect = source.sponsor_id === beneficiary.id;
+    const isDirect =
+      model === "placement" ? source.parent_id === beneficiary.id : source.sponsor_id === beneficiary.id;
     if (currentLevel === 1 && !isDirect) return { applied: false, completedLevel: null };
 
     const eventPk = activationEventId(source.id);
@@ -354,12 +573,12 @@ async function applyActivationImpact(
       insert into commission_entries (
         id, event_id, beneficiary_user_id, beneficiary_id, source_user_id, source_id,
         source_joining_amount, generation, level, commission_rate, commission_amount,
-        status, rule_version
+        status, rule_version, ancestry_model
       ) values (
         ${uid()}, ${commEventId}, ${beneficiary.owner_user_id}, ${beneficiary.id},
         ${source.owner_user_id}, ${source.id}, ${joiningAmount},
         ${hop.generation}, ${currentLevel}, ${levelRule.rate}, ${amount},
-        'HELD', ${RULE_VERSION}
+        'HELD', ${RULE_VERSION}, ${model}
       )
       on conflict (event_id) do nothing
       returning id
@@ -387,10 +606,11 @@ async function applyActivationImpact(
 
     const prog = await sql<{
       completed_members: number;
+      placement_completed_members: number;
       required_members: number;
       status: string;
     }>`
-      select completed_members, required_members, status
+      select completed_members, placement_completed_members, required_members, status
       from level_progress
       where member_id = ${beneficiary.id} and level = ${currentLevel}
       for update
@@ -398,8 +618,10 @@ async function applyActivationImpact(
     const row = prog[0];
     if (!row || row.status === "RELEASED") return { applied: true, completedLevel: null };
 
-    const nextCount = Number(row.completed_members) + 1;
     const required = Number(row.required_members);
+    const priorCount =
+      model === "placement" ? Number(row.placement_completed_members) : Number(row.completed_members);
+    const nextCount = priorCount + 1;
     const remaining = Math.max(0, required - nextCount);
     const ledger = await sql<{ amount: number }>`
       select coalesce(sum(commission_amount), 0)::int as amount
@@ -408,6 +630,24 @@ async function applyActivationImpact(
         and status in ('HELD', 'RELEASED')
     `;
     const accumulated = Number(ledger[0]?.amount ?? 0);
+
+    if (model === "placement") {
+      await sql`
+        update level_progress set
+          placement_completed_members = ${nextCount},
+          accumulated_commission = ${accumulated},
+          status = 'IN_PROGRESS'
+        where member_id = ${beneficiary.id} and level = ${currentLevel}
+      `;
+      if (appliedCount) appliedCount.n += 1;
+      if (failAfter != null && appliedCount && appliedCount.n >= failAfter) {
+        throw new Error("ACTIVATION_TEST_FAILURE");
+      }
+      if (nextCount >= required) {
+        await settleOpenPlacementLevel(sql, beneficiary.id, currentLevel);
+      }
+      return { applied: true, completedLevel: nextCount >= required ? currentLevel : null };
+    }
 
     if (nextCount < required) {
       await sql`
@@ -443,8 +683,10 @@ async function applyActivationImpact(
         completed_at = coalesce(completed_at, now())
       where member_id = ${beneficiary.id} and level = ${currentLevel}
     `;
-    await releaseLevel(sql, beneficiary, currentLevel);
-    await advanceAfterCompletion(sql, beneficiary, currentLevel);
+    if (!(await placementCutoverActive(sql))) {
+      await releaseLevel(sql, beneficiary, currentLevel);
+      await advanceAfterCompletion(sql, beneficiary, currentLevel);
+    }
     if (appliedCount) appliedCount.n += 1;
     if (failAfter != null && appliedCount && appliedCount.n >= failAfter) {
       throw new Error("ACTIVATION_TEST_FAILURE");
@@ -477,18 +719,28 @@ export async function processMembershipIdActivation(
     where id = ${source.id}
   `;
 
+  const cutover = await placementCutoverActive(sql);
   const claimed = await sql<{ id: string }>`
     insert into membership_activation_events (
-      id, member_id, owner_user_id, sponsor_id, joining_amount_bdt
+      id, member_id, owner_user_id, sponsor_id, joining_amount_bdt, ancestry_model
     ) values (
-      ${eventPk}, ${source.id}, ${source.owner_user_id}, ${source.sponsor_id}, ${joiningAmount}
+      ${eventPk}, ${source.id}, ${source.owner_user_id}, ${source.sponsor_id}, ${joiningAmount},
+      ${cutover ? "placement" : "sponsor"}
     )
     on conflict (member_id) do nothing
     returning id
   `;
   const replay = claimed.length === 0;
+  let model: "sponsor" | "placement" = cutover ? "placement" : "sponsor";
+  if (replay) {
+    const stored = await sql<{ ancestry_model: string | null }>`
+      select ancestry_model from membership_activation_events where member_id = ${source.id}
+    `;
+    model = stored[0]?.ancestry_model === "placement" ? "placement" : "sponsor";
+  }
 
-  const hops = await walkSponsorAncestry(sql, newId);
+  const hops =
+    model === "placement" ? await walkPlacementAncestry(sql, newId) : await walkSponsorAncestry(sql, newId);
   const appliedCount = { n: 0 };
   for (const hop of hops) {
     await sql`
@@ -496,7 +748,16 @@ export async function processMembershipIdActivation(
       values (${uid()}, ${hop.ancestorId}, ${source.id}, ${hop.generation})
       on conflict (beneficiary_id, member_id) do nothing
     `;
-    await applyActivationImpact(sql, source, joiningAmount, hop, opts.failAfter, appliedCount);
+    await applyActivationImpact(sql, source, joiningAmount, hop, opts.failAfter, appliedCount, model);
+  }
+  if (model === "placement") {
+    for (const hop of hops) {
+      const ancestor = await loadMember(sql, hop.ancestorId);
+      const level = Number(ancestor?.current_level ?? 1);
+      if (ancestor && ancestor.progression_status !== "GRADUATED" && level >= 1 && level <= 9) {
+        await settleOpenPlacementLevel(sql, hop.ancestorId, level);
+      }
+    }
   }
   await recordDesignationCredit(sql, source.id);
   return { sourceId: newId, replay, impacts: appliedCount.n };

@@ -56,7 +56,7 @@ function Levels() {
         </Card>
       ) : (
         <p className="mb-4 text-[15px] leading-relaxed text-muted">
-          Level 1 needs 3 direct sponsored IDs. Levels 2–9 need eligible downline IDs. Generation depth is not a level requirement.
+          The count on each open level is frozen sponsor-tree progress. Placement progress is shown separately and stays at 0 until a later cutover. Land qualification is unchanged.
         </p>
       )}
       <div className="grid gap-3 lg:grid-cols-2">

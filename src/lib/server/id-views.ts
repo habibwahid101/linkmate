@@ -188,6 +188,7 @@ export type LevelJourneyRow = {
   generation: number;
   required_members: number;
   completed_members: number;
+  placement_completed_members?: number;
   remaining_members: number;
   accumulated_commission: number;
   expected_full_commission: number;
@@ -282,8 +283,9 @@ export async function loadMembershipIdDetail(
   if (!row) throw new Error(ID_NOT_FOUND);
 
   const journey = await sql<LevelJourneyRow>`
-    select level, generation, required_members, completed_members, remaining_members,
-           accumulated_commission, expected_full_commission, status, completed_at, released_at
+    select level, generation, required_members, completed_members, placement_completed_members,
+           remaining_members, accumulated_commission, expected_full_commission, status,
+           completed_at, released_at
     from level_progress where member_id = ${memberId} order by level
   `;
 

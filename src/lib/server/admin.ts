@@ -602,6 +602,20 @@ export const adminUpdateSetting = createServerFn({ method: "POST" })
     if (lockedKeys.includes(data.key)) {
       throw new Error("This setting is locked");
     }
+    if (data.key === "placement_rules_cutover_at") {
+      const next = data.value.trim();
+      const at = Date.parse(next);
+      const active = Boolean(next) && !Number.isNaN(at) && at <= Date.now();
+      if (!active) {
+        const placed = await sql<{ n: number }>`
+          select count(*)::int as n from membership_activation_events
+          where ancestry_model = 'placement'
+        `;
+        if (Number(placed[0]?.n ?? 0) > 0) {
+          throw new Error("Cutover cannot be cleared after a placement activation");
+        }
+      }
+    }
     const existing = await sql<{ key: string }>`select key from app_settings where key = ${data.key}`;
     if (!existing[0]) throw new Error("Unknown setting");
     await sql`
