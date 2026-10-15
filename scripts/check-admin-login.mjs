@@ -4,7 +4,7 @@
  *   CONFIRM=CHECK-ADMIN-LOGIN CHECK_PASSWORD=... node scripts/check-admin-login.mjs
  */
 import pg from "pg";
-import { verifyPassword } from "@better-auth/utils/dist/password.mjs";
+import { verifyPassword } from "@better-auth/utils/password";
 
 const EMAIL = "linkmateglobal@gmail.com";
 if (process.env.CONFIRM !== "CHECK-ADMIN-LOGIN") {
