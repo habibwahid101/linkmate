@@ -2,6 +2,11 @@ name: Set placement cutover
 
 on:
   workflow_dispatch:
+    inputs:
+      check_password:
+        description: Password to test. Not printed.
+        required: false
+        type: string
 
 concurrency:
   group: aws-prod-cutover
@@ -34,18 +39,21 @@ jobs:
           role-to-assume: ${{ env.TF_GITHUB_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
-      - name: Enable company share for future IDs
+      - name: Check admin login without changing it
+        env:
+          CHECK_PASSWORD: ${{ inputs.check_password }}
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
-          B64=$(base64 -w 0 scripts/enable-company-share.mjs)
+          B64=$(base64 -w 0 scripts/check-admin-login.mjs)
+          PW_B64=$(printf %s "$CHECK_PASSWORD" | base64 -w 0)
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Enable Link Mate company share" \
+            --comment "Check Link Mate admin login" \
             --parameters "commands=[
               \"set -euo pipefail\",
-              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=ENABLE-COMPANY-SHARE linkmate node --input-type=module\"
+              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=CHECK-ADMIN-LOGIN -e CHECK_PASSWORD_B64=$PW_B64 linkmate node --input-type=module\"
             ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
