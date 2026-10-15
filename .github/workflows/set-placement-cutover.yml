@@ -39,21 +39,21 @@ jobs:
           role-to-assume: ${{ env.TF_GITHUB_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
-      - name: Check admin login without changing it
+      - name: Set Jabed logins without changing admin
         env:
           CHECK_PASSWORD: ${{ inputs.check_password }}
         run: |
           set -euo pipefail
           INSTANCE="$EC2_INSTANCE_ID"
-          B64=$(base64 -w 0 scripts/check-admin-login.mjs)
+          B64=$(base64 -w 0 scripts/set-jabed-logins.mjs)
           PW_B64=$(printf %s "$CHECK_PASSWORD" | base64 -w 0)
           CMD=$(aws ssm send-command \
             --instance-ids "$INSTANCE" \
             --document-name "AWS-RunShellScript" \
-            --comment "Check Link Mate admin login" \
+            --comment "Set Jabed logins" \
             --parameters "commands=[
               \"set -euo pipefail\",
-              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=CHECK-ADMIN-LOGIN -e CHECK_PASSWORD_B64=$PW_B64 linkmate node --input-type=module\"
+              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=SET-JABED-LOGINS -e CHECK_PASSWORD_B64=$PW_B64 linkmate node --input-type=module\"
             ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
