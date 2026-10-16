@@ -16,6 +16,7 @@ import {
   isGraduated,
   type CompactMembershipId,
 } from "@/lib/id-workspace";
+import { designationSummary } from "@/lib/engine/designations";
 import { cn } from "@/lib/utils";
 
 export function MembershipIdCard({
@@ -28,6 +29,7 @@ export function MembershipIdCard({
   const graduated = isGraduated(row);
   const status = idStatusLabel(row);
   const p = row.currentProgress;
+  const designation = designationSummary(row.designationCount);
   return (
     <Card
       tone={graduated ? "success" : row.held > 0 ? "held" : "info"}
@@ -42,6 +44,8 @@ export function MembershipIdCard({
         </div>
         <StatusBadge status={graduated ? "GRADUATED" : row.progression_status} />
       </div>
+      <p className="mt-2 text-[15px] font-semibold">{designation.label}</p>
+      <p className="text-[13px] text-muted">{designation.detail}</p>
       <div className={cn("mt-3 grid gap-2", compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4")}>
         <Metric
           label="Current level"
@@ -106,6 +110,7 @@ export function MembershipIdCard({
 export function MembershipIdRow({ row }: { row: CompactMembershipId }) {
   const graduated = isGraduated(row);
   const p = row.currentProgress;
+  const designation = designationSummary(row.designationCount);
   return (
     <div
       className={cn(
@@ -120,7 +125,7 @@ export function MembershipIdRow({ row }: { row: CompactMembershipId }) {
       <div className="min-w-0">
         <p className="break-all font-mono text-[15px] font-semibold">{row.id}</p>
         <p className="text-[13px] text-muted">
-          {packageLabel(row.package_id)} · {originLabel(row)}
+          {packageLabel(row.package_id)} · {originLabel(row)} · {designation.label}
         </p>
       </div>
       <div>

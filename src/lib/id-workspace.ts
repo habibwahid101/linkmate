@@ -32,6 +32,7 @@ export type CompactMembershipId = {
   available: number;
   released: number;
   directSponsors: number;
+  designationCount: number;
   completedLevels: number;
   level9Released: boolean;
   currentProgress: CurrentProgress;
@@ -311,6 +312,7 @@ export function fixtureId(overrides: Partial<CompactMembershipId> & { id: string
     available: 0,
     released: 0,
     directSponsors: 0,
+    designationCount: 0,
     completedLevels: graduated ? 9 : Math.max(0, currentLevel - 1),
     level9Released: graduated,
     currentProgress: {

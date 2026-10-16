@@ -26,6 +26,21 @@ export function nextDesignation(count: number): Designation | null {
   return DESIGNATIONS.find((row) => n < row.minDirects) ?? null;
 }
 
+export function designationSummary(count: number): { label: string; detail: string } {
+  const n = Math.max(0, Math.floor(count));
+  const current = designationForCount(n);
+  const next = nextDesignation(n);
+  if (current) {
+    return {
+      label: current.label,
+      detail: next ? `${n} personal sponsors · next ${next.label} at ${next.minDirects}` : `${n} personal sponsors`,
+    };
+  }
+  const target = next?.minDirects ?? 3;
+  const title = next?.label ?? "Sales Executive";
+  return { label: "No designation yet", detail: `${n} / ${target} personal sponsors for ${title}` };
+}
+
 /** Credit the personal sponsor of an activated external root. Internals never count. */
 export async function recordDesignationCredit(sql: Sql, sourceId: string): Promise<void> {
   const rows = await sql<{

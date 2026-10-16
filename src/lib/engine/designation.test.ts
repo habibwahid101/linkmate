@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { attachExternalMember, createIdsForPurchase, reverseJoin } from "./process.ts";
 import { wouldCreatePlacementCycle } from "./activation.ts";
-import { countDesignationCredits, designationForCount, nextDesignation } from "./designations.ts";
+import { countDesignationCredits, designationForCount, designationSummary, nextDesignation } from "./designations.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 let lastPg: PGlite | undefined;
@@ -62,6 +62,9 @@ test("designation thresholds are cumulative and display-only", () => {
   assert.equal(designationForCount(223)?.label, "Project Director");
   assert.equal(nextDesignation(3)?.label, "Platinum Executive");
   assert.equal(nextDesignation(222), null);
+  assert.equal(designationSummary(0).label, "No designation yet");
+  assert.equal(designationSummary(0).detail, "0 / 3 personal sponsors for Sales Executive");
+  assert.equal(designationSummary(3).label, "Sales Executive");
 });
 
 test("personal referral credit ignores package internals and survives inactivity", async () => {

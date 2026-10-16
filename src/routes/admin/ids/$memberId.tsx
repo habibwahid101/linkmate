@@ -47,6 +47,8 @@ function IdDetail() {
         <Row label="Referral code" value={d.referral_code ?? "—"} />
         <Row label="Sponsor" value={d.sponsor_id ?? "—"} />
         <Row label="Placement parent" value={d.parent_id ?? "—"} />
+        <Row label="Designation" value={d.designation.label} />
+        <Row label="Designation progress" value={d.designation.detail} />
         <Row label="Placement" value={d.placement_status} />
         <Row label="Current level" value={`Level ${d.current_level}`} />
         <Row label="Created" value={<LocalDate iso={d.created_at} />} />

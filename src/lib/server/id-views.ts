@@ -73,6 +73,7 @@ function compactFromParts(
     available: number;
     released: number;
     directs: number;
+    designationCount: number;
     progress: ProgressRow[];
   },
 ): CompactMembershipId {
@@ -109,6 +110,7 @@ function compactFromParts(
     available: extras.available,
     released: extras.released,
     directSponsors: extras.directs,
+    designationCount: extras.designationCount,
     completedLevels,
     level9Released,
     currentProgress,
@@ -161,10 +163,18 @@ export async function loadCompactIds(sql: Sql, userId: string): Promise<CompactM
     where sponsor_id in (select id from member_ids where owner_user_id = ${userId})
     group by sponsor_id
   `;
+  const designationRows = await sql<{ sponsor_id: string; n: number }>`
+    select sponsor_id, count(*)::int as n
+    from sponsor_designation_credits
+    where voided_at is null
+      and sponsor_id in (select id from member_ids where owner_user_id = ${userId})
+    group by sponsor_id
+  `;
 
   const walletBy = new Map(wallets.map((w) => [w.member_id, w]));
   const heldBy = new Map(heldRows.map((h) => [h.member_id, toInt(h.held)]));
   const directBy = new Map(directs.map((d) => [d.sponsor_id, d.n]));
+  const designationBy = new Map(designationRows.map((d) => [d.sponsor_id, d.n]));
   const progressBy = new Map<string, ProgressRow[]>();
   for (const row of progress) {
     const list = progressBy.get(row.member_id) ?? [];
@@ -178,6 +188,7 @@ export async function loadCompactIds(sql: Sql, userId: string): Promise<CompactM
       available: toInt(walletBy.get(row.id)?.available_balance),
       released: toInt(walletBy.get(row.id)?.total_released),
       directs: directBy.get(row.id) ?? 0,
+      designationCount: designationBy.get(row.id) ?? 0,
       progress: progressBy.get(row.id) ?? [],
     }),
   );

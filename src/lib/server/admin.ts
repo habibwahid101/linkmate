@@ -19,6 +19,7 @@ import {
 } from "@/lib/server/id-views";
 import { buildCurrentProgress, ID_DETAIL_DIRECT_CAP, ID_DETAIL_TX_CAP, summarizeAccount } from "@/lib/id-workspace";
 import { evaluateLandQualification } from "@/lib/qualification";
+import { designationSummary } from "@/lib/engine/designations";
 
 export { assertAdminRole };
 
@@ -324,6 +325,11 @@ export const adminGetMemberId = createServerFn({ method: "GET" })
     const completedLevels = journey.filter((p) => p.status === "RELEASED" || p.status === "COMPLETED").length;
     const level9Released = journey.some((p) => p.level === 9 && (p.status === "RELEASED" || p.status === "COMPLETED"));
     const directsN = directCount[0]?.n ?? 0;
+    const designationCountRow = await sql<{ n: number }>`
+      select count(*)::int as n from sponsor_designation_credits
+      where sponsor_id = ${data.memberId} and voided_at is null
+    `;
+    const designation = designationSummary(designationCountRow[0]?.n ?? 0);
     const qualification = evaluateLandQualification({
       hasMembership: row.status === "active",
       directSponsors: directsN,
@@ -368,6 +374,7 @@ export const adminGetMemberId = createServerFn({ method: "GET" })
         members: directs,
         hasMore: directsN > directs.length,
       },
+      designation,
       network: {
         directIds: directsN,
         downlineIds: network[0]?.downline_ids ?? 0,
