@@ -12,6 +12,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { MembershipIdCard, MembershipIdRow } from "@/components/membership-id-card";
 import { AccountAvatar } from "@/components/avatar";
 import { LocalDate } from "@/components/local-date";
+import { designationSummary } from "@/lib/engine/designations";
 import { formatBdt } from "@/lib/money";
 import { PACKAGES } from "@/lib/rules";
 import { DASHBOARD_ID_PREVIEW, usesCompactList } from "@/lib/id-workspace";
@@ -100,6 +101,11 @@ function Home() {
 
   const preview = d.ids.slice(0, DASHBOARD_ID_PREVIEW);
   const compact = usesCompactList(d.ids.length);
+  const active =
+    d.ids.find((row) => row.id === d.profile.activeId) ??
+    d.ids.find((row) => row.is_root) ??
+    d.ids[0];
+  const designation = designationSummary(active?.designationCount ?? 0);
 
   return (
     <div>
@@ -154,14 +160,10 @@ function Home() {
           hint={pkg ? formatBdt(pkg.amountBdt) : undefined}
         />
         <LevelKpi
-          tone="info"
-          label={t("dash.activeId")}
-          value={
-            <span className="truncate font-mono text-lg font-semibold tracking-tight">
-              {d.profile.activeId ?? t("dash.none")}
-            </span>
-          }
-          hint={t("dash.membershipId")}
+          tone="package"
+          label={t("dash.designation")}
+          value={<span className="text-xl font-semibold tracking-tight">{designation.label}</span>}
+          hint={active ? `${active.id} · ${designation.detail}` : designation.detail}
         />
       </div>
 

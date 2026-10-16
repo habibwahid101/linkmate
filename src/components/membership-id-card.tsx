@@ -17,6 +17,7 @@ import {
   type CompactMembershipId,
 } from "@/lib/id-workspace";
 import { designationSummary } from "@/lib/engine/designations";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function MembershipIdCard({
@@ -111,6 +112,7 @@ export function MembershipIdRow({ row }: { row: CompactMembershipId }) {
   const graduated = isGraduated(row);
   const p = row.currentProgress;
   const designation = designationSummary(row.designationCount);
+  const t = useT();
   return (
     <div
       className={cn(
@@ -125,7 +127,10 @@ export function MembershipIdRow({ row }: { row: CompactMembershipId }) {
       <div className="min-w-0">
         <p className="break-all font-mono text-[15px] font-semibold">{row.id}</p>
         <p className="text-[13px] text-muted">
-          {packageLabel(row.package_id)} · {originLabel(row)} · {designation.label}
+          {packageLabel(row.package_id)} · {originLabel(row)}
+        </p>
+        <p className="mt-0.5 text-[13px] font-semibold">
+          {t("dash.designation")}: {designation.label}
         </p>
       </div>
       <div>
