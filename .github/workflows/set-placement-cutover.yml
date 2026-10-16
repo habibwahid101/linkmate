@@ -50,7 +50,10 @@ jobs:
             --comment "Read designation status" \
             --parameters "commands=[
               \"set -euo pipefail\",
-              \"echo $B64 | base64 -d | docker exec -i -e CONFIRM=READ-DESIGNATION linkmate node --input-type=module\"
+              \"docker ps -a --format '{{.Names}} {{.Status}} {{.Image}}'\",
+              \"echo $B64 | base64 -d > /tmp/designation-status.mjs\",
+              \"docker cp /tmp/designation-status.mjs linkmate:/tmp/designation-status.mjs\",
+              \"docker exec -e CONFIRM=READ-DESIGNATION linkmate node /tmp/designation-status.mjs\"
             ]" \
             --query "Command.CommandId" --output text)
           echo "Waiting for SSM $CMD"
