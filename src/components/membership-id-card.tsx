@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,10 +8,7 @@ import { CopyButton } from "@/components/copy-button";
 import { packageLabel } from "@/lib/format";
 import {
   originLabel,
-  idStatusLabel,
   progressFraction,
-  remainingCopy,
-  progressNounShort,
   isGraduated,
   type CompactMembershipId,
 } from "@/lib/id-workspace";
@@ -28,7 +24,6 @@ export function MembershipIdCard({
   compact?: boolean;
 }) {
   const graduated = isGraduated(row);
-  const status = idStatusLabel(row);
   const p = row.currentProgress;
   const designation = designationSummary(row.designationCount);
   return (
@@ -47,52 +42,35 @@ export function MembershipIdCard({
       </div>
       <p className="mt-2 text-[15px] font-semibold">{designation.label}</p>
       <p className="text-[13px] text-muted">{designation.detail}</p>
-      <div className={cn("mt-3 grid gap-2", compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4")}>
-        <Metric
-          label="Current level"
-          value={graduated ? "Graduated" : `Level ${row.current_level}`}
-        />
-        <Metric
-          label={progressNounShort(p.level)}
-          value={graduated ? "Journey complete" : progressFraction(p)}
-        />
-        <Metric label="Direct IDs" value={`${row.directSponsors} / 3`} />
-        <Metric label="Held" value={<Money amount={row.held} size="sm" className="text-held" />} />
-      </div>
-      {graduated ? (
-        <p className="mt-3 text-[15px] leading-relaxed text-success">
-          Level journey complete. History and earnings stay available.
-        </p>
-      ) : (
-        <div className="mt-3">
-          <div className="mb-1.5 flex items-baseline justify-between gap-2 text-[13px] text-muted">
-            <span>
-              Level {p.level} · {progressFraction(p)}
-            </span>
-            <span className="tabular">{remainingCopy(p)}</span>
-          </div>
-          <ProgressBar
-            value={p.completed}
-            max={p.required}
-            tone={row.held > 0 ? "held" : "progress"}
-          />
-        </div>
-      )}
-      <div className={cn("mt-3 grid gap-2", compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3")}>
-        <div>
-          <p className="text-[13px] text-muted">Released</p>
-          <Money amount={row.released} size="sm" className="text-success" />
-        </div>
-        <div>
-          <p className="text-[13px] text-muted">Available</p>
-          <Money amount={row.available} size="sm" className="text-accent" />
-        </div>
-        {!compact ? (
-          <div className="col-span-2 sm:col-span-1">
-            <p className="text-[13px] text-muted">Status</p>
-            <p className="text-[15px] font-medium">{status}</p>
-          </div>
-        ) : null}
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[36rem] text-left">
+          <thead>
+            <tr className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+              <th className="pb-2 pr-3 font-semibold">Level</th>
+              <th className="pb-2 pr-3 font-semibold">Progress</th>
+              <th className="pb-2 pr-3 font-semibold">Sponsors</th>
+              <th className="pb-2 pr-3 font-semibold">Held</th>
+              <th className="pb-2 pr-3 font-semibold">Released</th>
+              <th className="pb-2 font-semibold">Available</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="text-[15px] font-medium">
+              <td className="pr-3 align-top">{graduated ? "Graduated" : `Level ${row.current_level}`}</td>
+              <td className="tabular pr-3 align-top">{graduated ? "Complete" : progressFraction(p)}</td>
+              <td className="tabular pr-3 align-top">{row.designationCount}</td>
+              <td className="pr-3 align-top">
+                <Money amount={row.held} size="sm" className="text-held" />
+              </td>
+              <td className="pr-3 align-top">
+                <Money amount={row.released} size="sm" className="text-success" />
+              </td>
+              <td className="align-top">
+                <Money amount={row.available} size="sm" className="text-accent" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {row.referral_code ? (
@@ -161,15 +139,6 @@ export function MembershipIdRow({ row }: { row: CompactMembershipId }) {
           </Button>
         </Link>
       </div>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-[13px] text-muted">{label}</p>
-      <div className="mt-0.5 truncate text-[15px] font-medium">{value}</div>
     </div>
   );
 }

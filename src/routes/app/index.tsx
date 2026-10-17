@@ -271,21 +271,35 @@ function Home() {
           {d.recentTx.length === 0 ? (
             <p className="mt-3 text-sm text-muted">Released earnings appear after a level completes on an ID.</p>
           ) : (
-            <ul className="mt-4 space-y-3">
-              {d.recentTx.map((tx) => (
-                <li key={tx.id} className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{tx.source}</p>
-                    <p className="font-mono text-xs text-muted">
-                      {tx.member_id}
-                      {tx.level ? ` · Level ${tx.level}` : ""}
-                    </p>
-                    <LocalDate className="text-xs text-muted" iso={tx.created_at} />
-                  </div>
-                  <Money amount={tx.amount} size="sm" />
-                </li>
-              ))}
-            </ul>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[32rem] text-left">
+                <thead>
+                  <tr className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                    <th className="pb-2 pr-3 font-semibold">Source</th>
+                    <th className="pb-2 pr-3 font-semibold">ID</th>
+                    <th className="pb-2 pr-3 font-semibold">Date</th>
+                    <th className="pb-2 text-right font-semibold">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.recentTx.map((tx) => (
+                    <tr key={tx.id} className="border-t border-border/70">
+                      <td className="py-2.5 pr-3 text-sm font-medium">
+                        {tx.source}
+                        {tx.level ? <span className="mt-0.5 block text-xs font-normal text-muted">Level {tx.level}</span> : null}
+                      </td>
+                      <td className="py-2.5 pr-3 font-mono text-xs text-muted">{tx.member_id}</td>
+                      <td className="py-2.5 pr-3 text-xs text-muted">
+                        <LocalDate iso={tx.created_at} />
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <Money amount={tx.amount} size="sm" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
       </div>
