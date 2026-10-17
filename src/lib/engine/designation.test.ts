@@ -67,7 +67,7 @@ test("designation thresholds are cumulative and display-only", () => {
   assert.equal(designationSummary(3).label, "Sales Executive");
 });
 
-test("personal referral credit ignores package internals and survives inactivity", async () => {
+test("a package credits every ID to the external sponsor, not the internal root", async () => {
   const sql = await makeSql();
   await insertUser(sql, "u-sponsor", "Sponsor");
   await insertUser(sql, "u-buyer", "Buyer");
@@ -84,7 +84,7 @@ test("personal referral credit ignores package internals and survives inactivity
     externalSponsorId: sponsor.rootId,
   });
 
-  assert.equal(await countDesignationCredits(sql, sponsor.rootId), 1);
+  assert.equal(await countDesignationCredits(sql, sponsor.rootId), 4);
   assert.equal(await countDesignationCredits(sql, turbo.rootId), 0);
   const edges = await sql<{ n: number }>`
     select count(*)::int as n from sponsor_relationships where sponsor_id = ${turbo.rootId}
@@ -100,7 +100,7 @@ test("personal referral credit ignores package internals and survives inactivity
   assert.equal(held[0]?.amount, 880);
 
   await sql`update member_ids set status = 'inactive' where id = ${turbo.rootId}`;
-  assert.equal(await countDesignationCredits(sql, sponsor.rootId), 1);
+  assert.equal(await countDesignationCredits(sql, sponsor.rootId), 4);
 });
 
 test("three personal referrals reach Sales Executive; reversal voids only that credit", async () => {

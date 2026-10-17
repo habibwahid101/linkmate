@@ -628,10 +628,12 @@ async function applyActivationImpact(
     if (currentLevel < 1 || currentLevel > 9) return { applied: false, completedLevel: null };
     const isDirect =
       model === "placement" ? source.parent_id === beneficiary.id : source.sponsor_id === beneficiary.id;
-    if (currentLevel === 1 && !isDirect) return { applied: false, completedLevel: null };
+    // Placement level 1 counts every ID in the genealogy, not only direct children.
+    // Sponsor-stamped history stays direct-only.
+    if (model !== "placement" && currentLevel === 1 && !isDirect) return { applied: false, completedLevel: null };
 
     const eventPk = activationEventId(source.id);
-    const kind = currentLevel === 1 ? "L1_DIRECT" : "DOWNLINE";
+    const kind = currentLevel === 1 && isDirect ? "L1_DIRECT" : "DOWNLINE";
     const levelRule = getLevel(currentLevel);
     const amount = commissionPerMember(joiningAmount, levelRule.rate);
     const commEventId = joinEventId(source.id, beneficiary.id);

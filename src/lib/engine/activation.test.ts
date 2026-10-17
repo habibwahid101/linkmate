@@ -756,3 +756,53 @@ test("S. every package ID pays the company share once", async () => {
   assert.equal(rows[0]?.n, 4);
 });
 
+test("T. Turbo designation follows the sponsor and level follows placement genealogy", async () => {
+  const sql = await makeSql();
+  await insertUser(sql, "u-a", "A");
+  await insertUser(sql, "u-b", "B");
+  await insertUser(sql, "u-buy", "Buyer");
+  const a = await createIdsForPurchase(sql, {
+    userId: "u-a", packageId: "builder", purchaseId: "p-a", externalSponsorId: null,
+  });
+  const b = await createIdsForPurchase(sql, {
+    userId: "u-b", packageId: "builder", purchaseId: "p-b", externalSponsorId: null,
+  });
+  await sql`
+    insert into app_settings (key, value)
+    values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
+    on conflict (key) do update set value = excluded.value
+  `;
+  const turbo = await createIdsForPurchase(sql, {
+    userId: "u-buy",
+    packageId: "turbo",
+    purchaseId: "p-turbo",
+    externalSponsorId: a.rootId,
+    placementParentId: b.rootId,
+  });
+  const credits = await sql<{ n: number }>`
+    select count(*)::int as n from sponsor_designation_credits
+    where sponsor_id = ${a.rootId} and voided_at is null`;
+  assert.equal(credits[0]?.n, 4);
+  assert.equal((await commissions(sql, a.rootId)).length, 0);
+
+  const rootLevel = await sql<{ status: string; n: number }>`
+    select status, placement_completed_members as n from level_progress
+    where member_id = ${turbo.rootId} and level = 1`;
+  assert.equal(rootLevel[0]?.status, "RELEASED");
+  assert.equal(Number(rootLevel[0]?.n), 3);
+  assert.equal((await wallet(sql, turbo.rootId)).available, 2640);
+
+  const bLevel1 = await sql<{ status: string; n: number }>`
+    select status, placement_completed_members as n from level_progress
+    where member_id = ${b.rootId} and level = 1`;
+  assert.equal(bLevel1[0]?.status, "RELEASED");
+  assert.equal(Number(bLevel1[0]?.n), 3);
+  assert.equal((await wallet(sql, b.rootId)).available, 2640);
+  const bLevel2 = await sql<{ status: string; n: number }>`
+    select status, placement_completed_members as n from level_progress
+    where member_id = ${b.rootId} and level = 2`;
+  assert.equal(bLevel2[0]?.status, "IN_PROGRESS");
+  assert.equal(Number(bLevel2[0]?.n), 1);
+  assert.equal((await wallet(sql, b.rootId)).held, 660);
+});
+

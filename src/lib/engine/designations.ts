@@ -41,19 +41,25 @@ export function designationSummary(count: number): { label: string; detail: stri
   return { label: "No designation yet", detail: `${n} / ${target} personal sponsors for ${title}` };
 }
 
-/** Credit the personal sponsor of an activated external root. Internals never count. */
+/** One credit per activated package ID, given to that purchase's external sponsor. */
 export async function recordDesignationCredit(sql: Sql, sourceId: string): Promise<void> {
   const rows = await sql<{
     sponsor_id: string;
     sponsor_owner_user_id: string;
   }>`
-    select m.sponsor_id, s.owner_user_id as sponsor_owner_user_id
+    select sponsor.id as sponsor_id, sponsor.owner_user_id as sponsor_owner_user_id
     from member_ids m
-    join member_ids s on s.id = m.sponsor_id
+    left join member_ids root
+      on m.origin_kind = 'package_internal'
+     and root.purchase_id = m.purchase_id
+     and root.is_root
+    join member_ids credited on credited.id = coalesce(root.id, m.id)
+    join member_ids sponsor on sponsor.id = credited.sponsor_id
     where m.id = ${sourceId}
-      and m.sponsor_id is not null
+      and credited.sponsor_id is not null
+      and (m.origin_kind <> 'package_internal' or root.id is not null)
       and (
-        m.origin_kind in ('purchase_root', 'attach')
+        m.origin_kind in ('purchase_root', 'attach', 'package_internal')
         or (m.origin_kind = 'purchase' and m.is_root)
       )
   `;
