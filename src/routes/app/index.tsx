@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getDashboard, loadSampleNetwork } from "@/lib/server/member";
+import { updateMyProfile } from "@/lib/server/profile";
 import { LevelKpi } from "@/components/level-card";
 import { Money } from "@/components/money";
 import { PageHeader } from "@/components/page-header";
@@ -18,19 +19,95 @@ import { PACKAGES } from "@/lib/rules";
 import { DASHBOARD_ID_PREVIEW, usesCompactList } from "@/lib/id-workspace";
 import { useT } from "@/lib/i18n";
 import { toast } from "sonner";
+import { Camera } from "lucide-react";
+import { useRef, useState } from "react";
 import type { PackageId } from "@/lib/rules";
 import type { AppProfile } from "@/lib/server/profile";
 
 export const Route = createFileRoute("/app/")({ component: Home });
 
-function IdentityCard({ profile }: { profile: AppProfile }) {
+async function readAvatarFile(file: File): Promise<string> {
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    throw new Error("Use a JPEG, PNG, or WebP image");
+  }
+  if (file.size > 8 * 1024 * 1024) throw new Error("Image is too large");
+  const bitmap = await createImageBitmap(file);
+  const size = 192;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not process image");
+  const side = Math.min(bitmap.width, bitmap.height);
+  const sx = (bitmap.width - side) / 2;
+  const sy = (bitmap.height - side) / 2;
+  ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, size, size);
+  bitmap.close();
+  const data = canvas.toDataURL("image/jpeg", 0.82);
+  if (data.length > 180_000) throw new Error("Image is too large");
+  return data;
+}
+
+function HolderAvatar({ profile }: { profile: AppProfile }) {
+  const t = useT();
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function onPick(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    try {
+      const avatarData = await readAvatarFile(file);
+      await updateMyProfile({ data: { avatarData } });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+      void qc.invalidateQueries({ queryKey: ["shell"] });
+      void qc.invalidateQueries({ queryKey: ["profile"] });
+      toast.success(t("profile.saved"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update photo");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="relative shrink-0">
+      <AccountAvatar name={profile.displayName} src={profile.avatarData} size="lg" />
+      <button
+        type="button"
+        aria-label={t("profile.photo")}
+        disabled={busy}
+        onClick={() => fileRef.current?.click()}
+        className="absolute bottom-0 right-0 grid size-7 place-items-center rounded-full bg-surface text-ink shadow-[var(--shadow-card)] ring-2 ring-surface disabled:opacity-60"
+      >
+        <Camera className="size-3.5" strokeWidth={1.75} />
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        onChange={(e) => void onPick(e.target.files?.[0])}
+      />
+    </div>
+  );
+}
+
+function IdentityCard({ profile, designation }: { profile: AppProfile; designation?: string | null }) {
   const t = useT();
   return (
     <Card className="mb-4 flex items-center gap-3 p-4 sm:gap-4">
-      <AccountAvatar name={profile.displayName} src={profile.avatarData} size="lg" />
+      <HolderAvatar profile={profile} />
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{t("dash.holder")}</p>
-        <p className="truncate text-lg font-semibold tracking-tight">{profile.displayName}</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="min-w-0 truncate text-lg font-semibold tracking-tight">{profile.displayName}</p>
+          {designation ? (
+            <p className="shrink-0 text-right text-sm font-semibold">{designation}</p>
+          ) : null}
+        </div>
         <p className="mt-0.5 truncate font-mono text-sm text-muted">
           {t("dash.accountCode")} · {profile.referralCode}
         </p>
@@ -38,9 +115,6 @@ function IdentityCard({ profile }: { profile: AppProfile }) {
           {t("dash.membershipId")} · {profile.activeId ?? t("dash.none")}
         </p>
       </div>
-      <Link to="/app/profile" className="shrink-0 text-sm font-medium text-accent">
-        {t("profile.photo")}
-      </Link>
     </Card>
   );
 }
@@ -110,7 +184,7 @@ function Home() {
   return (
     <div>
       <PageHeader title={t("dash.title")} hint={t("dash.hint")} />
-      <IdentityCard profile={d.profile} />
+      <IdentityCard profile={d.profile} designation={designation.label} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <LevelKpi
@@ -158,12 +232,6 @@ function Home() {
           label={t("dash.latest")}
           value={<span className="text-xl font-semibold tracking-tight">{pkg?.name ?? "—"}</span>}
           hint={pkg ? formatBdt(pkg.amountBdt) : undefined}
-        />
-        <LevelKpi
-          tone="package"
-          label={t("dash.designation")}
-          value={<span className="text-xl font-semibold tracking-tight">{designation.label}</span>}
-          hint={active ? `${active.id} · ${designation.detail}` : designation.detail}
         />
       </div>
 
