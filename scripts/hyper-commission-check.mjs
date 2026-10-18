@@ -89,16 +89,36 @@ try {
     [purchaseId],
   );
 
+  const owners = await client.query(
+    `select
+       count(*) filter (where w.owner_user_id = m.owner_user_id)::int as wallet_matches_member,
+       count(*) filter (where w.owner_user_id = p.user_id)::int as wallet_matches_buyer,
+       count(*) filter (where m.owner_user_id = p.user_id)::int as member_matches_buyer,
+       count(*) filter (where u.role = 'admin')::int as wallet_owner_admin,
+       count(distinct w.owner_user_id)::int as wallet_owners
+     from member_ids m
+     join package_purchases p on p.id = m.purchase_id
+     left join wallets w on w.member_id = m.id
+     left join app_users u on u.user_id = w.owner_user_id
+     where m.purchase_id = $1`,
+    [purchaseId],
+  );
+  const tx = await client.query(
+    `select t.type, t.status, count(*)::int as n, coalesce(sum(t.amount),0)::int as amount,
+            count(*) filter (where t.owner_user_id = m.owner_user_id)::int as owner_matches_member
+     from wallet_transactions t
+     join member_ids m on m.id = t.member_id
+     where m.purchase_id = $1
+     group by t.type, t.status
+     order by t.type`,
+    [purchaseId],
+  );
+
   console.log(JSON.stringify({
     ok: true,
     found: true,
-    shape: shape.rows[0],
-    root: root.rows[0] ?? null,
-    ancestry: ancestry.rows,
-    designation: designation.rows[0],
-    companyShare: share.rows,
-    companyLevelCommission: exemptLevel.rows,
-    rootLevels: rootLevels.rows,
+    owners: owners.rows[0],
+    tx: tx.rows,
     packageCommission: money.rows[0],
   }));
 } finally {
