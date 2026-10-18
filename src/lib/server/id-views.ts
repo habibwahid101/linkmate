@@ -144,7 +144,10 @@ export async function loadCompactIds(sql: Sql, userId: string): Promise<CompactM
   if (rows.length === 0) return [];
 
   const wallets = await sql<{ member_id: string; available_balance: number; total_released: number }>`
-    select member_id, available_balance, total_released from wallets where owner_user_id = ${userId}
+    select w.member_id, w.available_balance, w.total_released
+    from wallets w
+    join member_ids m on m.id = w.member_id
+    where m.owner_user_id = ${userId}
   `;
   const heldRows = await sql<{ member_id: string; held: number }>`
     select member_id, coalesce(sum(amount),0)::int as held

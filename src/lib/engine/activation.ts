@@ -330,7 +330,9 @@ export async function ensureWallet(sql: Sql, memberId: string, ownerUserId: stri
   await sql`
     insert into wallets (member_id, owner_user_id, available_balance, total_released)
     values (${memberId}, ${ownerUserId}, 0, 0)
-    on conflict (member_id) do nothing
+    on conflict (member_id) do update
+      set owner_user_id = excluded.owner_user_id
+      where wallets.owner_user_id is distinct from excluded.owner_user_id
   `;
 }
 
