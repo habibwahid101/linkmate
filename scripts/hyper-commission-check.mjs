@@ -40,6 +40,20 @@ try {
        where w.member_id in (select id from member_ids where purchase_id = $1)`,
       [pack.id],
     );
+    const owners = await client.query(
+      `select
+         (select count(*)::int from wallets w
+            join member_ids m on m.id = w.member_id
+           where m.purchase_id = $1 and w.owner_user_id = m.owner_user_id) as same_owner,
+         (select count(*)::int from wallets w
+            join member_ids m on m.id = w.member_id
+           where m.purchase_id = $1 and w.owner_user_id <> m.owner_user_id) as other_owner,
+         (select coalesce(sum(t.amount),0)::int from wallet_transactions t
+            join member_ids m on m.id = t.member_id
+           where m.purchase_id = $1 and t.type = 'RELEASE' and t.status = 'posted') as release_sum
+      `,
+      [pack.id],
+    );
     const levels = await client.query(
       `select current_level, count(*)::int as n
        from member_ids where purchase_id = $1
@@ -54,6 +68,9 @@ try {
       released_wallet: Number(money.rows[0].released_wallet),
       available: Number(money.rows[0].available),
       release_tx: Number(money.rows[0].release_tx),
+      same_owner: Number(owners.rows[0].same_owner),
+      other_owner: Number(owners.rows[0].other_owner),
+      release_sum: Number(owners.rows[0].release_sum),
       levels: levels.rows,
     });
   }
