@@ -50,15 +50,15 @@ jobs:
           script = pathlib.Path("scripts/keep-company-reset.mjs").read_text()
           apply = os.environ.get("APPLY") == "1"
           run = (
-              "docker exec -e CONFIRM=KEEP-COMPANY-RESET -e NODE_PATH=/app/node_modules -w /app "
-              "linkmate node /tmp/keep-company-reset.mjs --apply"
+              "docker exec -e CONFIRM=KEEP-COMPANY-RESET -w /app "
+              "linkmate node scripts/keep-company-reset.mjs --apply"
               if apply else
-              "docker exec -e NODE_PATH=/app/node_modules -w /app linkmate node /tmp/keep-company-reset.mjs"
+              "docker exec -w /app linkmate node scripts/keep-company-reset.mjs"
           )
           commands = [
               "set -euo pipefail",
               "cat > /tmp/keep-company-reset.mjs << 'ENDSCRIPT'\n" + script + "\nENDSCRIPT",
-              "docker cp /tmp/keep-company-reset.mjs linkmate:/tmp/keep-company-reset.mjs",
+              "docker cp /tmp/keep-company-reset.mjs linkmate:/app/scripts/keep-company-reset.mjs",
               run,
           ]
           pathlib.Path("/tmp/ssm-params.json").write_text(json.dumps({"commands": commands}))
