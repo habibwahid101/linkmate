@@ -1,6 +1,7 @@
 /**
  * Remove every membership except the two admins and the three 1% company IDs.
- * Does not update the kept IDs, their wallets, or the company-share settings.
+ * Also deletes every wallet and every designation credit, including leftovers
+ * on reused ID numbers, then rebuilds empty wallets for the three kept IDs.
  *
  *   node scripts/keep-company-reset.mjs
  *   CONFIRM=KEEP-COMPANY-RESET node scripts/keep-company-reset.mjs --apply
@@ -92,8 +93,9 @@ async function snapshot() {
   };
 }
 
-function sameMoney(before, after) {
-  return JSON.stringify(before.members) === JSON.stringify(after.members)
+function sameIdentity(before, after) {
+  const shape = (rows) => rows.map((row) => [row.id, row.origin, row.sponsor, row.parent].join(":")).join(",");
+  return shape(before.members) === shape(after.members)
     && before.settings.company_share_percent === after.settings.company_share_percent
     && before.settings.company_share_member_ids === after.settings.company_share_member_ids
     && before.settings.company_level_exempt_member_ids === after.settings.company_level_exempt_member_ids
@@ -298,6 +300,56 @@ try {
     );
   }
 
+  if (await exists("sponsor_designation_credits")) {
+    deleted.designation_credits_all = n(await client.query(`delete from sponsor_designation_credits`));
+  }
+  if (await exists("wallet_transactions")) {
+    deleted.wallet_transactions_kept = n(await client.query(
+      `delete from wallet_transactions where member_id = any($1::text[])`,
+      [keep],
+    ));
+  }
+  if (await exists("held_commissions")) {
+    deleted.held_kept = n(await client.query(
+      `delete from held_commissions where member_id = any($1::text[])`,
+      [keep],
+    ));
+  }
+  if (await exists("commission_entries")) {
+    deleted.commissions_kept = n(await client.query(
+      `delete from commission_entries where beneficiary_id = any($1::text[])`,
+      [keep],
+    ));
+  }
+  if (await exists("wallets")) {
+    deleted.wallets = n(await client.query(`delete from wallets`));
+    deleted.wallets_rebuilt = n(await client.query(
+      `insert into wallets (member_id, owner_user_id, available_balance, total_released)
+       select id, owner_user_id, 0, 0 from member_ids where id = any($1::text[])`,
+      [keep],
+    ));
+  }
+  if (await exists("level_progress")) {
+    deleted.levels_reset = n(await client.query(
+      `update level_progress set
+         completed_members = 0,
+         placement_completed_members = 0,
+         remaining_members = required_members,
+         accumulated_commission = 0,
+         status = case when level = 1 then 'IN_PROGRESS' else 'LOCKED' end,
+         completed_at = null,
+         released_at = null
+       where member_id = any($1::text[])`,
+      [keep],
+    ));
+  }
+  await client.query(
+    `update member_ids
+     set current_level = 1, progression_status = 'ACTIVE'
+     where id = any($1::text[])`,
+    [keep],
+  );
+
   await client.query(
     `select setval(
        'member_id_seq',
@@ -312,7 +364,22 @@ try {
   );
 
   const after = await snapshot();
-  if (!sameMoney(before, after)) throw new Error("Refusing: a kept company ID changed");
+  const walletCheck = await client.query(
+    `select count(*)::int as n,
+            coalesce(sum(available_balance),0)::int as available,
+            count(*) filter (where member_id <> all($1::text[]))::int as outside
+     from wallets`,
+    [keep],
+  );
+  const creditCheck = await client.query(`select count(*)::int as n from sponsor_designation_credits`);
+  if (!sameIdentity(before, after)) throw new Error("Refusing: a kept company ID changed");
+  if (after.members.some((row) => row.available !== 0 || row.released !== 0 || row.held !== 0 || row.credits !== 0)) {
+    throw new Error("Refusing: a kept ID still has money or a designation");
+  }
+  if (Number(walletCheck.rows[0].n) !== 3 || Number(walletCheck.rows[0].available) !== 0 || Number(walletCheck.rows[0].outside) !== 0) {
+    throw new Error("Refusing: wallets were not cleared");
+  }
+  if (Number(creditCheck.rows[0].n) !== 0) throw new Error("Refusing: designations were not cleared");
   if (Number(after.counts.members) !== 3) throw new Error("Refusing: member count is not 3");
   if (after.admins.length !== 2) throw new Error("Refusing: admin count changed");
 
@@ -325,6 +392,8 @@ try {
     remaining_members: Number(after.counts.members),
     remaining_users: Number(after.counts.users),
     admins: after.admins.length,
+    wallets: walletCheck.rows[0],
+    designations: Number(creditCheck.rows[0].n),
   }));
 } catch (error) {
   try { await client.query("rollback"); } catch { /* not in a transaction */ }
