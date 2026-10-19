@@ -92,15 +92,47 @@ try {
      group by level order by level`,
     [userId],
   );
+  const rows = await client.query(
+    `select m.id,
+            coalesce(w.available_balance,0)::int as available,
+            coalesce(w.total_released,0)::int as released,
+            coalesce(sum(t.amount) filter (where t.status = 'posted'),0)::int as tx,
+            count(t.id) filter (where t.type = 'RELEASE')::int as release_n,
+            w.updated_at
+     from member_ids m
+     left join wallets w on w.member_id = m.id
+     left join wallet_transactions t on t.member_id = m.id
+     where m.owner_user_id = $1
+     group by m.id, w.available_balance, w.total_released, w.updated_at
+     having coalesce(w.available_balance,0) <> 0
+        or coalesce(sum(t.amount),0) <> 0
+     order by m.id`,
+    [userId],
+  );
+  const spread = await client.query(
+    `select
+       count(*)::int as wallets,
+       count(*) filter (where w.available_balance = s.tx)::int as match,
+       count(*) filter (where s.tx > 0 and w.available_balance = s.tx * 2)::int as doubled,
+       count(*) filter (where w.available_balance <> s.tx)::int as mismatch
+     from wallets w
+     join member_ids m on m.id = w.member_id
+     join lateral (
+       select coalesce(sum(amount),0)::int as tx
+       from wallet_transactions t
+       where t.member_id = w.member_id and t.status = 'posted'
+     ) s on true`,
+  );
   console.log(JSON.stringify({
     ok: true,
     money: money.rows[0],
     tx: tx.rows,
-    releases: releases.rows,
-    ownCredits: credits.rows,
-    purchaseCreditsGivenTo: given.rows,
-    rootLevels: rootLevels.rows,
+    rows: rows.rows,
+    spread: spread.rows[0],
     commissions: byStatus.rows,
+    rootLevels: rootLevels.rows,
+    purchaseCreditsGivenTo: given.rows,
+    ownCredits: credits.rows,
   }));
 } finally {
   client.release();
