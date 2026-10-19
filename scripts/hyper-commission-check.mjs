@@ -76,9 +76,27 @@ try {
      group by status`,
     [userId],
   );
+  const tx = await client.query(
+    `select type, count(*)::int as n, coalesce(sum(amount),0)::int as amount
+     from wallet_transactions
+     where member_id in (select id from member_ids where owner_user_id = $1)
+       and status = 'posted'
+     group by type order by type`,
+    [userId],
+  );
+  const releases = await client.query(
+    `select level, count(*)::int as n, coalesce(sum(amount),0)::int as amount
+     from wallet_transactions
+     where member_id in (select id from member_ids where owner_user_id = $1)
+       and type = 'RELEASE' and status = 'posted'
+     group by level order by level`,
+    [userId],
+  );
   console.log(JSON.stringify({
     ok: true,
     money: money.rows[0],
+    tx: tx.rows,
+    releases: releases.rows,
     ownCredits: credits.rows,
     purchaseCreditsGivenTo: given.rows,
     rootLevels: rootLevels.rows,
