@@ -1,5 +1,5 @@
 /**
- * Read-only check for Sheikh's Hyper Turbo account. No writes.
+ * Read-only check for LM-100026. No writes.
  */
 import pg from "pg";
 
@@ -13,7 +13,7 @@ const client = await pool.connect();
 
 try {
   const owner = await client.query(
-    `select owner_user_id from member_ids where id = 'LM-100004'`,
+    `select owner_user_id from member_ids where id = 'LM-100026'`,
   );
   const userId = owner.rows[0]?.owner_user_id;
   if (!userId) {
@@ -33,20 +33,20 @@ try {
     [userId],
   );
   const credits = await client.query(
-    `select m.id, m.is_root, m.origin_kind, count(c.sponsored_id)::int as credits
+    `select m.id, m.is_root, count(c.sponsored_id)::int as credits
      from member_ids m
      left join sponsor_designation_credits c
        on c.sponsor_id = m.id and c.voided_at is null
      where m.owner_user_id = $1
-     group by m.id, m.is_root, m.origin_kind
+     group by m.id, m.is_root
      having count(c.sponsored_id) > 0
      order by credits desc`,
     [userId],
   );
   const purchase = await client.query(
-    `select p.id from package_purchases p
-     where p.user_id = $1 and p.package_id = 'hyper_turbo'
-     order by p.created_at desc limit 1`,
+    `select id from package_purchases
+     where user_id = $1 and package_id = 'super_turbo'
+     order by created_at desc limit 1`,
     [userId],
   );
   const purchaseId = purchase.rows[0]?.id ?? null;
@@ -61,12 +61,12 @@ try {
       )
     : { rows: [] };
   const rootLevels = await client.query(
-    `select lp.level, lp.placement_completed_members, lp.required_members, lp.status,
+    `select m.id, lp.level, lp.placement_completed_members, lp.required_members, lp.status,
             lp.accumulated_commission::int as accumulated
      from level_progress lp
      join member_ids m on m.id = lp.member_id
      where m.owner_user_id = $1 and m.is_root and lp.level <= 4
-     order by m.id, lp.level`,
+     order by lp.level`,
     [userId],
   );
   const byStatus = await client.query(
