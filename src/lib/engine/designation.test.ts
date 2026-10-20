@@ -67,7 +67,7 @@ test("designation thresholds are cumulative and display-only", () => {
   assert.equal(designationSummary(3).label, "Sales Executive");
 });
 
-test("a package credits every ID to the external sponsor, not the internal root", async () => {
+test("one buyer email gives the external sponsor one credit, not one per package ID", async () => {
   const sql = await makeSql();
   await insertUser(sql, "u-sponsor", "Sponsor");
   await insertUser(sql, "u-buyer", "Buyer");
@@ -84,7 +84,7 @@ test("a package credits every ID to the external sponsor, not the internal root"
     externalSponsorId: sponsor.rootId,
   });
 
-  assert.equal(await countDesignationCredits(sql, sponsor.rootId), 4);
+  assert.equal(await countDesignationCredits(sql, sponsor.rootId), 1);
   assert.equal(await countDesignationCredits(sql, turbo.rootId), 0);
   const edges = await sql<{ n: number }>`
     select count(*)::int as n from sponsor_relationships where sponsor_id = ${turbo.rootId}
@@ -99,8 +99,16 @@ test("a package credits every ID to the external sponsor, not the internal root"
   assert.equal(held[0]?.n, 1);
   assert.equal(held[0]?.amount, 880);
 
+  await createIdsForPurchase(sql, {
+    userId: "u-buyer",
+    packageId: "turbo",
+    purchaseId: "p-turbo-2",
+    externalSponsorId: sponsor.rootId,
+  });
+  assert.equal(await countDesignationCredits(sql, sponsor.rootId), 1);
+
   await sql`update member_ids set status = 'inactive' where id = ${turbo.rootId}`;
-  assert.equal(await countDesignationCredits(sql, sponsor.rootId), 4);
+  assert.equal(await countDesignationCredits(sql, sponsor.rootId), 1);
 });
 
 test("three personal referrals reach Sales Executive; reversal voids only that credit", async () => {

@@ -782,7 +782,7 @@ test("T. Turbo designation follows the sponsor and level follows placement genea
   const credits = await sql<{ n: number }>`
     select count(*)::int as n from sponsor_designation_credits
     where sponsor_id = ${a.rootId} and voided_at is null`;
-  assert.equal(credits[0]?.n, 4);
+  assert.equal(credits[0]?.n, 1);
   assert.equal((await commissions(sql, a.rootId)).length, 0);
 
   const rootLevel = await sql<{ status: string; n: number }>`
