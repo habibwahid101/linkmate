@@ -1,5 +1,5 @@
 /**
- * Read-only check for LM-100026. No writes.
+ * Read-only check for LM-100044. No writes.
  */
 import pg from "pg";
 
@@ -10,10 +10,12 @@ if (!databaseUrl) {
 }
 const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
 const client = await pool.connect();
+const id = "LM-100044";
 
 try {
   const owner = await client.query(
-    `select owner_user_id from member_ids where id = 'LM-100026'`,
+    `select owner_user_id from member_ids where id = $1`,
+    [id],
   );
   const userId = owner.rows[0]?.owner_user_id;
   if (!userId) {
@@ -21,118 +23,38 @@ try {
     process.exit(0);
   }
   const money = await client.query(
-    `select count(*)::int as ids,
-            coalesce(sum(w.available_balance),0)::int as available,
-            coalesce(sum(w.total_released),0)::int as released,
-            coalesce((select sum(h.amount)::int from held_commissions h
-              join member_ids m on m.id = h.member_id
-              where m.owner_user_id = $1),0) as held
-     from member_ids m
-     left join wallets w on w.member_id = m.id
-     where m.owner_user_id = $1`,
-    [userId],
+    `select coalesce(w.available_balance,0)::int as available,
+            coalesce(w.total_released,0)::int as released,
+            coalesce((select sum(amount)::int from held_commissions where member_id = $1),0) as held,
+            coalesce((select sum(amount)::int from wallet_transactions
+              where member_id = $1 and status = 'posted' and type = 'RELEASE'),0) as release_tx
+     from wallets w where w.member_id = $1`,
+    [id],
+  );
+  const levels = await client.query(
+    `select level, completed_members, placement_completed_members, required_members, status,
+            accumulated_commission::int as accumulated
+     from level_progress where member_id = $1 and level <= 4
+     order by level`,
+    [id],
   );
   const credits = await client.query(
-    `select m.id, m.is_root, count(c.sponsored_id)::int as credits
-     from member_ids m
-     left join sponsor_designation_credits c
-       on c.sponsor_id = m.id and c.voided_at is null
-     where m.owner_user_id = $1
-     group by m.id, m.is_root
-     having count(c.sponsored_id) > 0
-     order by credits desc`,
-    [userId],
+    `select sponsored_id from sponsor_designation_credits
+     where sponsor_id = $1 and voided_at is null order by sponsored_id`,
+    [id],
   );
-  const purchase = await client.query(
-    `select id from package_purchases
-     where user_id = $1 and package_id = 'super_turbo'
-     order by created_at desc limit 1`,
-    [userId],
-  );
-  const purchaseId = purchase.rows[0]?.id ?? null;
-  const given = purchaseId
-    ? await client.query(
-        `select sponsor_id, count(*)::int as credits
-         from sponsor_designation_credits
-         where voided_at is null
-           and sponsored_id in (select id from member_ids where purchase_id = $1)
-         group by sponsor_id`,
-        [purchaseId],
-      )
-    : { rows: [] };
-  const rootLevels = await client.query(
-    `select m.id, lp.level, lp.placement_completed_members, lp.required_members, lp.status,
-            lp.accumulated_commission::int as accumulated
-     from level_progress lp
-     join member_ids m on m.id = lp.member_id
-     where m.owner_user_id = $1 and m.is_root and lp.level <= 4
-     order by lp.level`,
-    [userId],
-  );
-  const byStatus = await client.query(
-    `select status, count(*)::int as n, coalesce(sum(commission_amount),0)::int as amount
-     from commission_entries
-     where beneficiary_id in (select id from member_ids where owner_user_id = $1)
-     group by status`,
-    [userId],
-  );
-  const tx = await client.query(
-    `select type, count(*)::int as n, coalesce(sum(amount),0)::int as amount
-     from wallet_transactions
-     where member_id in (select id from member_ids where owner_user_id = $1)
-       and status = 'posted'
-     group by type order by type`,
-    [userId],
-  );
-  const releases = await client.query(
-    `select level, count(*)::int as n, coalesce(sum(amount),0)::int as amount
-     from wallet_transactions
-     where member_id in (select id from member_ids where owner_user_id = $1)
-       and type = 'RELEASE' and status = 'posted'
-     group by level order by level`,
-    [userId],
-  );
-  const rows = await client.query(
-    `select m.id,
-            coalesce(w.available_balance,0)::int as available,
-            coalesce(w.total_released,0)::int as released,
-            coalesce(sum(t.amount) filter (where t.status = 'posted'),0)::int as tx,
-            count(t.id) filter (where t.type = 'RELEASE')::int as release_n,
-            w.updated_at
-     from member_ids m
-     left join wallets w on w.member_id = m.id
-     left join wallet_transactions t on t.member_id = m.id
-     where m.owner_user_id = $1
-     group by m.id, w.available_balance, w.total_released, w.updated_at
-     having coalesce(w.available_balance,0) <> 0
-        or coalesce(sum(t.amount),0) <> 0
-     order by m.id`,
-    [userId],
-  );
-  const spread = await client.query(
-    `select
-       count(*)::int as wallets,
-       count(*) filter (where w.available_balance = s.tx)::int as match,
-       count(*) filter (where s.tx > 0 and w.available_balance = s.tx * 2)::int as doubled,
-       count(*) filter (where w.available_balance <> s.tx)::int as mismatch
-     from wallets w
-     join member_ids m on m.id = w.member_id
-     join lateral (
-       select coalesce(sum(amount),0)::int as tx
-       from wallet_transactions t
-       where t.member_id = w.member_id and t.status = 'posted'
-     ) s on true`,
+  const byLevel = await client.query(
+    `select level, status, count(*)::int as n, coalesce(sum(commission_amount),0)::int as amount
+     from commission_entries where beneficiary_id = $1
+     group by level, status order by level, status`,
+    [id],
   );
   console.log(JSON.stringify({
     ok: true,
-    money: money.rows[0],
-    tx: tx.rows,
-    rows: rows.rows,
-    spread: spread.rows[0],
-    commissions: byStatus.rows,
-    rootLevels: rootLevels.rows,
-    purchaseCreditsGivenTo: given.rows,
-    ownCredits: credits.rows,
+    money: money.rows[0] ?? null,
+    levels: levels.rows,
+    sponsorCredits: credits.rows.length,
+    byLevel: byLevel.rows,
   }));
 } finally {
   client.release();
