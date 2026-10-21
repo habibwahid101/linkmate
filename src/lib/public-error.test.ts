@@ -36,6 +36,11 @@ describe("publicErrorMessage", () => {
     );
   });
 
+  it("hides raw form validation details", () => {
+    const raw = '[{"origin":"string","code":"too_small","minimum":4,"path":["payoutAccount"],"message":"Invalid input"}]';
+    assert.equal(publicErrorMessage(new Error(raw)), "Enter the account number and the account name.");
+  });
+
   it("maps credential failures without enumerating accounts", () => {
     assert.equal(publicErrorMessage(new Error("Invalid email or password")), "Email or password is incorrect.");
   });

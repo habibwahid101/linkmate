@@ -44,6 +44,9 @@ export function publicErrorMessage(error: unknown): string {
     if (raw.includes("Forbidden") || raw.includes("Unauthorized")) return raw.includes("Forbidden") ? "You do not have access to that." : "Please sign in again.";
     return raw;
   }
+  if (/"code"\s*:\s*"too_small"/.test(raw) || raw.includes("payoutAccount") || raw.includes("payoutName")) {
+    return "Enter the account number and the account name.";
+  }
   if (/invalid email or password|invalid password|user not found|invalid credentials/i.test(raw)) {
     return "Email or password is incorrect.";
   }

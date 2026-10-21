@@ -67,8 +67,8 @@ export const requestWithdrawal = createServerFn({ method: "POST" })
       memberId: z.string().min(1).max(40),
       amountBdt: z.number().int().positive(),
       payoutMethod: z.enum(["bkash", "nagad", "bank"]),
-      payoutAccount: z.string().min(4).max(80),
-      payoutName: z.string().min(2).max(80),
+      payoutAccount: z.string().trim().min(4, "Enter the account number.").max(80),
+      payoutName: z.string().trim().min(2, "Enter the account name.").max(80),
       userNote: z.string().max(400).optional(),
     }),
   )

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt } from "@/lib/money";
+import { publicErrorMessage } from "@/lib/public-error";
 import { LocalDate } from "@/components/local-date";
 import { quoteWithdrawal } from "@/lib/withdrawals/policy";
 import { useState } from "react";
@@ -32,8 +33,8 @@ export function MemberWithdrawalPanel({
           memberId: memberId!,
           amountBdt: Number(amount),
           payoutMethod: method,
-          payoutAccount: account,
-          payoutName: name,
+          payoutAccount: account.trim(),
+          payoutName: name.trim(),
         },
       }),
     onSuccess: (res) => {
@@ -42,7 +43,7 @@ export function MemberWithdrawalPanel({
       setAmount("");
       setConfirming(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(publicErrorMessage(e)),
   });
   if (q.isPending) return null;
   const policy = q.data?.policy;
@@ -92,6 +93,10 @@ export function MemberWithdrawalPanel({
           className="mt-4 w-full sm:w-auto"
           disabled={!memberId || available <= 0 || req.isPending || !quote || quote.amountBdt <= 0}
           onClick={() => {
+            if (account.trim().length < 4 || name.trim().length < 2) {
+              toast.error("Enter the account number and the account name.");
+              return;
+            }
             if (!confirming) {
               setConfirming(true);
               return;
@@ -131,7 +136,7 @@ export function AdminWithdrawalPanel() {
       void qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success(res.replayed ? "Already processed" : `Marked ${res.status}`);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(publicErrorMessage(e)),
   });
   if (!q.data) return q.isError ? <p className="text-sm text-danger">Could not load withdrawals.</p> : null;
   if (q.data.length === 0) return <p className="mt-4 text-sm text-muted">No withdrawal requests.</p>;
