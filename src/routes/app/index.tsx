@@ -17,6 +17,7 @@ import { designationSummary } from "@/lib/engine/designations";
 import { formatBdt } from "@/lib/money";
 import { PACKAGES } from "@/lib/rules";
 import { DASHBOARD_ID_PREVIEW, usesCompactList } from "@/lib/id-workspace";
+import { IdSwitcher } from "@/components/id-switcher";
 import { useT } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Camera } from "lucide-react";
@@ -185,6 +186,11 @@ function Home() {
     <div>
       <PageHeader title={t("dash.title")} hint={t("dash.hint")} />
       <IdentityCard profile={d.profile} designation={designation.label} />
+      {active ? (
+        <div className="mb-4">
+          <IdSwitcher ids={d.ids} selectedId={active.id} />
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <LevelKpi
@@ -196,20 +202,20 @@ function Home() {
         <LevelKpi
           tone="available"
           label={t("dash.available")}
-          value={<Money amount={d.wallet.available} size="lg" className="text-accent" />}
-          hint="Account total · withdrawable"
+          value={<Money amount={active?.available ?? 0} size="lg" className="text-accent" />}
+          hint={active ? `${active.id} · withdrawable` : "This ID"}
         />
         <LevelKpi
           tone="held"
           label={t("dash.held")}
-          value={<Money amount={d.wallet.held} size="lg" className="text-held" />}
-          hint="Account total · not withdrawable"
+          value={<Money amount={active?.held ?? 0} size="lg" className="text-held" />}
+          hint={active ? `${active.id} · not withdrawable` : "This ID"}
         />
         <LevelKpi
           tone="success"
           label={t("dash.released")}
-          value={<Money amount={d.wallet.released} size="lg" className="text-success" />}
-          hint="Account lifetime released"
+          value={<Money amount={active?.released ?? 0} size="lg" className="text-success" />}
+          hint={active ? `${active.id} · released` : "This ID"}
         />
         <LevelKpi
           tone="progress"

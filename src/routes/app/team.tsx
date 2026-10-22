@@ -15,7 +15,7 @@ import { IdSwitcher, IdScopedLinks } from "@/components/id-switcher";
 import { packageLabel } from "@/lib/format";
 import { LocalDate } from "@/components/local-date";
 import { useT } from "@/lib/i18n";
-import { parseMemberIdSearch, progressNounShort } from "@/lib/id-workspace";
+import { liveLevelCount, parseMemberIdSearch, progressNounShort } from "@/lib/id-workspace";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -108,7 +108,7 @@ function Team() {
       />
 
       <p className="mb-4 text-[15px] leading-relaxed text-muted">
-        This list is for {team.data.activeId} only. Direct IDs count toward Level 1. Network depth is informational — it is not the level requirement.
+        This list is the personal sponsors of {team.data.activeId}. Three sponsors open this ID’s level income. The level count itself is the placement downline, not this list.
       </p>
 
       <CardTitle>Direct sponsored IDs</CardTitle>
@@ -146,9 +146,9 @@ function Team() {
                 <StatusBadge status={lvl.status} />
               </div>
               <p className="mt-1 tabular text-sm text-muted">
-                {lvl.completed_members} / {lvl.required_members}
+                {liveLevelCount(lvl)} / {lvl.required_members}
               </p>
-              <ProgressBar className="mt-2" value={lvl.completed_members} max={lvl.required_members} />
+              <ProgressBar className="mt-2" value={liveLevelCount(lvl)} max={lvl.required_members} />
             </Card>
           ))}
         </div>

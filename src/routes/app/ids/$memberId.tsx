@@ -21,7 +21,6 @@ import {
   levelRequirementCopy,
   originLabel,
   progressFraction,
-  remainingCopy,
 } from "@/lib/id-workspace";
 import { publicErrorMessage } from "@/lib/public-error";
 import { useEffect, useMemo, useState } from "react";
@@ -87,7 +86,7 @@ function IdDashboard() {
               ? ` Next title is ${d.designation.nextLabel} at ${d.designation.nextAt}.`
               : " Highest title reached."}
             {" "}
-            This title does not change Level 1, commission, or land qualification. Package-created internal IDs are not counted.
+            This title does not change level commission or land qualification. Every ID that lists this ID as sponsor counts, including IDs inside a package.
           </p>
         </Card>
       </section>
@@ -109,7 +108,7 @@ function IdDashboard() {
                 Level {p.level} · {progressFraction(p)} complete
               </p>
               <p className="mt-1 text-[15px] leading-relaxed text-muted">
-                {levelRequirementCopy(p.level)} · {remainingCopy(p)}
+                {levelRequirementCopy(p.level)}. Level income stays closed until this ID has 3 personal sponsors. After that, IDs placed below it count.
               </p>
               <ProgressBar className="mt-3" value={p.completed} max={p.required} tone={d.wallet.held > 0 ? "held" : "progress"} />
             </>
@@ -120,7 +119,7 @@ function IdDashboard() {
       <section className="mt-6">
         <CardTitle>Level journey</CardTitle>
         <p className="mt-1 text-[15px] leading-relaxed text-muted">
-          Level 1 still shows the frozen sponsor-tree count. Placement progress is separate and starts at 0. This does not change commission or land qualification.
+          The number on an open level is placement progress. It does not move until this ID has 3 personal sponsors. Sponsor count and placement count are separate.
         </p>
         <div className="mt-3">
           <LevelJourney rows={d.journey} graduated={graduated} />
@@ -143,8 +142,8 @@ function IdDashboard() {
         <CardTitle>Direct sponsored IDs</CardTitle>
         <Card className="mt-3" tone="info">
           <p className="tabular text-sm font-medium">
-            {d.directs.count} / {d.directs.required}
-            {d.directs.count >= d.directs.required ? " · Level 1 complete" : " · needed for Level 1"}
+            {d.directs.count} personal sponsor{d.directs.count === 1 ? "" : "s"}
+            {d.directs.count >= 3 ? " · level income open" : " · level income opens at 3"}
           </p>
           {d.directs.members.length === 0 ? (
             <p className="mt-3 text-sm text-muted">Share this ID’s referral to sponsor direct IDs.</p>

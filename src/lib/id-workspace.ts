@@ -15,6 +15,16 @@ export type CurrentProgress = {
   status: string;
 };
 
+/** Placement count is the live level counter once it has started. Legacy sponsor count stays frozen. */
+export function liveLevelCount(row: {
+  completed_members?: number | null;
+  placement_completed_members?: number | null;
+}): number {
+  const placement = Number(row.placement_completed_members ?? 0);
+  const legacy = Number(row.completed_members ?? 0);
+  return placement > 0 ? placement : legacy;
+}
+
 export type CompactMembershipId = {
   id: string;
   package_id: string;
@@ -83,16 +93,16 @@ export function idStatusLabel(row: { progression_status: string; placement_statu
 }
 
 export function progressNoun(level: number): string {
-  return level <= 1 ? "Direct Sponsored IDs" : "Eligible Downline IDs";
+  return level <= 1 ? "Placed downline IDs" : "Eligible Downline IDs";
 }
 
 export function progressNounShort(level: number): string {
-  return level <= 1 ? "Direct IDs" : "Eligible Downline IDs";
+  return level <= 1 ? "Placed IDs" : "Eligible Downline IDs";
 }
 
 export function levelRequirementCopy(level: number): string {
   const rule = getLevel(level);
-  if (level === 1) return `${rule.requiredMembers} Direct Sponsored IDs`;
+  if (level === 1) return `${rule.requiredMembers} placed downline IDs`;
   return `${rule.requiredMembers} Eligible Downline IDs`;
 }
 

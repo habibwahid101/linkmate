@@ -17,7 +17,7 @@ import {
   type IdCommission,
   type LevelJourneyRow,
 } from "@/lib/server/id-views";
-import { buildCurrentProgress, ID_DETAIL_DIRECT_CAP, ID_DETAIL_TX_CAP, summarizeAccount } from "@/lib/id-workspace";
+import { buildCurrentProgress, ID_DETAIL_DIRECT_CAP, ID_DETAIL_TX_CAP, liveLevelCount, summarizeAccount } from "@/lib/id-workspace";
 import { evaluateLandQualification } from "@/lib/qualification";
 import { designationSummary } from "@/lib/engine/designations";
 
@@ -283,7 +283,7 @@ export const adminGetMemberId = createServerFn({ method: "GET" })
     if (!row) throw new Error("Membership ID not found");
 
     const journey = await sql<LevelJourneyRow>`
-      select level, generation, required_members, completed_members, remaining_members,
+      select level, generation, required_members, completed_members, placement_completed_members, remaining_members,
              accumulated_commission, expected_full_commission, status, completed_at, released_at
       from level_progress where member_id = ${data.memberId} order by level
     `;
@@ -339,13 +339,19 @@ export const adminGetMemberId = createServerFn({ method: "GET" })
     const currentProgress = buildCurrentProgress({
       currentLevel,
       progressionStatus,
-      progressRows: journey.map((p) => ({
-        level: p.level,
-        status: p.status,
-        completed: toInt(p.completed_members),
-        required: toInt(p.required_members),
-        remaining: toInt(p.remaining_members),
-      })),
+      progressRows: journey.map((p) => {
+        const completed = liveLevelCount(p);
+        const required = toInt(p.required_members);
+        return {
+          level: p.level,
+          status: p.status,
+          completed,
+          required,
+          remaining: Number(p.placement_completed_members ?? 0) > 0
+            ? Math.max(0, required - completed)
+            : toInt(p.remaining_members),
+        };
+      }),
     });
 
     return {
@@ -768,10 +774,11 @@ export const adminNetwork = createServerFn({ method: "GET" })
     const progress = await sql<{
       level: number;
       completed_members: number;
+      placement_completed_members: number;
       required_members: number;
       status: string;
     }>`
-      select level, completed_members, required_members, status
+      select level, completed_members, placement_completed_members, required_members, status
       from level_progress where member_id = ${focus} order by level
     `;
     const directs = await sql<{ n: number }>`

@@ -12,7 +12,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { IdSwitcher, IdScopedLinks } from "@/components/id-switcher";
 import { evaluateLandQualification } from "@/lib/qualification";
 import { LEVELS } from "@/lib/rules";
-import { parseMemberIdSearch, progressNounShort } from "@/lib/id-workspace";
+import { liveLevelCount, parseMemberIdSearch, progressNounShort } from "@/lib/id-workspace";
 import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/app/qualification")({
@@ -88,7 +88,7 @@ function Qualification() {
                 </div>
                 <ProgressBar
                   className="mt-1.5"
-                  value={row?.completed_members ?? 0}
+                  value={liveLevelCount(row ?? {})}
                   max={rule.requiredMembers}
                 />
               </li>

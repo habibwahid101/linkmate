@@ -5,6 +5,7 @@ import {
   assertAcyclicSponsor,
   assertAcyclicPlacement,
   assertPlacementParentAllowed,
+  assertPlacementParentIsLeaf,
   ensureLevelRows,
   ensureWallet,
   processMembershipIdActivation,
@@ -152,11 +153,9 @@ async function orchestratePurchaseIds(
   const expected = PACKAGES[opts.packageId].idCount;
   const rootParent =
     opts.placementParentId !== undefined ? opts.placementParentId : opts.externalSponsorId;
-  assertPlacementParentAllowed(
-    opts.externalSponsorId,
-    rootParent,
-    await placementCutoverActive(sql),
-  );
+  const cutover = await placementCutoverActive(sql);
+  assertPlacementParentAllowed(opts.externalSponsorId, rootParent, cutover);
+  await assertPlacementParentIsLeaf(sql, rootParent, cutover);
   const existing = await loadExistingPurchaseIds(sql, opts.purchaseId);
   if (existing.length > 0) {
     if (existing.length !== expected) {
@@ -258,11 +257,9 @@ export async function attachExternalMember(
     parentMemberId: string;
   },
 ): Promise<string> {
-  assertPlacementParentAllowed(
-    opts.sponsorMemberId,
-    opts.parentMemberId,
-    await placementCutoverActive(sql),
-  );
+  const cutover = await placementCutoverActive(sql);
+  assertPlacementParentAllowed(opts.sponsorMemberId, opts.parentMemberId, cutover);
+  await assertPlacementParentIsLeaf(sql, opts.parentMemberId, cutover);
   const newId = await nextMemberCode(sql);
   await insertMemberId(sql, {
     id: newId,

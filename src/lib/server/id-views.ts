@@ -7,6 +7,7 @@ import {
   ID_DETAIL_DIRECT_CAP,
   ID_DETAIL_TX_CAP,
   buildCurrentProgress,
+  liveLevelCount,
   summarizeAccount,
   type CompactMembershipId,
   type CurrentProgress,
@@ -49,6 +50,7 @@ type ProgressRow = {
   level: number;
   status: string;
   completed_members: number;
+  placement_completed_members: number;
   required_members: number;
   remaining_members: number;
 };
@@ -85,13 +87,19 @@ function compactFromParts(
   const currentProgress = buildCurrentProgress({
     currentLevel,
     progressionStatus,
-    progressRows: own.map((p) => ({
-      level: p.level,
-      status: p.status,
-      completed: toInt(p.completed_members),
-      required: toInt(p.required_members),
-      remaining: toInt(p.remaining_members),
-    })),
+    progressRows: own.map((p) => {
+      const completed = liveLevelCount(p);
+      const required = toInt(p.required_members);
+      return {
+        level: p.level,
+        status: p.status,
+        completed,
+        required,
+        remaining: Number(p.placement_completed_members) > 0
+          ? Math.max(0, required - completed)
+          : toInt(p.remaining_members),
+      };
+    }),
   });
   return {
     id: row.id,
@@ -155,7 +163,8 @@ export async function loadCompactIds(sql: Sql, userId: string): Promise<CompactM
     group by member_id
   `;
   const progress = await sql<ProgressRow>`
-    select lp.member_id, lp.level, lp.status, lp.completed_members, lp.required_members, lp.remaining_members
+    select lp.member_id, lp.level, lp.status, lp.completed_members, lp.placement_completed_members,
+           lp.required_members, lp.remaining_members
     from level_progress lp
     join member_ids m on m.id = lp.member_id
     where m.owner_user_id = ${userId}
@@ -347,13 +356,19 @@ export async function loadMembershipIdDetail(
   const currentProgress = buildCurrentProgress({
     currentLevel,
     progressionStatus,
-    progressRows: journey.map((p) => ({
-      level: p.level,
-      status: p.status,
-      completed: toInt(p.completed_members),
-      required: toInt(p.required_members),
-      remaining: toInt(p.remaining_members),
-    })),
+    progressRows: journey.map((p) => {
+      const completed = liveLevelCount(p);
+      const required = toInt(p.required_members);
+      return {
+        level: p.level,
+        status: p.status,
+        completed,
+        required,
+        remaining: Number(p.placement_completed_members ?? 0) > 0
+          ? Math.max(0, required - completed)
+          : toInt(p.remaining_members),
+      };
+    }),
   });
 
   return {
@@ -417,7 +432,7 @@ export async function loadIdNetwork(
 }> {
   await assertOwnedMemberId(sql, userId, memberId);
   const levels = await sql<LevelJourneyRow>`
-    select level, generation, required_members, completed_members, remaining_members,
+    select level, generation, required_members, completed_members, placement_completed_members, remaining_members,
            accumulated_commission, expected_full_commission, status, completed_at, released_at
     from level_progress where member_id = ${memberId} order by level
   `;

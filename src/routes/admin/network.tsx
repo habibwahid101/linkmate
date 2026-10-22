@@ -6,6 +6,7 @@ import { QueryError } from "@/components/query-error";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { packageLabel } from "@/lib/format";
+import { liveLevelCount } from "@/lib/id-workspace";
 import { useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 
@@ -64,7 +65,7 @@ function Network() {
               <Card key={p.level} className="p-3 text-center" tone="progress">
                 <p className="text-[11px] text-muted">L{p.level}</p>
                 <p className="tabular text-sm font-semibold">
-                  {p.completed_members}/{p.required_members}
+                  {liveLevelCount(p)}/{p.required_members}
                 </p>
               </Card>
             ))}

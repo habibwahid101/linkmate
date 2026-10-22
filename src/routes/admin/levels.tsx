@@ -17,7 +17,7 @@ function Levels() {
   if (q.isError) return <QueryError error={q.error} retry={() => q.refetch()} />;
   return (
     <div>
-      <PageHeader title="Levels" hint="Locked defaults. Direct IDs apply at Level 1. Eligible Downline IDs apply from Level 2. Rates are versioned in commission_rules." />
+      <PageHeader title="Levels" hint="Locked rates. An ID earns nothing from placement until it has 3 personal sponsors. After that, placement downline counts 3, then 9, 27, and onward through level 9." />
       <div className="space-y-2">
         {q.data.rules.map((r) => (
           <Card key={r.level} className="flex items-center justify-between gap-3" tone="progress">

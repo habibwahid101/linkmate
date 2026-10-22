@@ -4,7 +4,7 @@ import { ProgressBar, ProgressMeta } from "@/components/progress-bar";
 import { Money } from "@/components/money";
 import { formatBdt } from "@/lib/money";
 import { getLevel } from "@/lib/rules";
-import { journeyState, levelRequirementCopy, progressNounShort } from "@/lib/id-workspace";
+import { journeyState, levelRequirementCopy, liveLevelCount, progressNounShort } from "@/lib/id-workspace";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
@@ -37,6 +37,10 @@ function barTone(status: string): "success" | "progress" | "held" {
 
 export function LevelCard({ row, compact = false }: { row: LevelRow; compact?: boolean }) {
   const rule = getLevel(row.level);
+  const shown = liveLevelCount(row);
+  const shownRemaining = (row.placement_completed_members ?? 0) > 0
+    ? Math.max(0, row.required_members - shown)
+    : row.remaining_members;
   const release =
     row.status === "RELEASED"
       ? "Completed — Released"
@@ -57,17 +61,17 @@ export function LevelCard({ row, compact = false }: { row: LevelRow; compact?: b
       </div>
       <div>
         <ProgressMeta
-          completed={row.completed_members}
+          completed={shown}
           required={row.required_members}
-          remaining={row.status === "LOCKED" ? undefined : row.remaining_members}
+          remaining={row.status === "LOCKED" ? undefined : shownRemaining}
           noun={progressNounShort(row.level)}
         />
         <ProgressBar
-          value={row.completed_members}
+          value={shown}
           max={row.required_members}
           tone={barTone(row.status)}
         />
-        {row.status === "IN_PROGRESS" ? (
+        {row.status === "IN_PROGRESS" && row.completed_members > 0 && (row.placement_completed_members ?? 0) > 0 ? (
           <p className="mt-2 text-sm leading-relaxed text-muted">
             Legacy sponsor progress {row.completed_members}/{row.required_members}, frozen.
             Placement progress {row.placement_completed_members ?? 0}/{row.required_members}.

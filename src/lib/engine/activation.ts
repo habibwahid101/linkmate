@@ -230,6 +230,21 @@ export function assertPlacementParentAllowed(
   }
 }
 
+/** After cutover, a new external ID can only be placed under an ID with nobody under it. */
+export async function assertPlacementParentIsLeaf(
+  sql: Sql,
+  parentId: string | null,
+  cutoverActive: boolean,
+): Promise<void> {
+  if (!cutoverActive || !parentId) return;
+  const rows = await sql<{ n: number }>`
+    select count(*)::int as n from member_ids where parent_id = ${parentId}
+  `;
+  if (Number(rows[0]?.n ?? 0) > 0) {
+    throw new Error("Place this ID under a bottom ID. That ID already has someone under it.");
+  }
+}
+
 export async function assertAcyclicPlacement(
   sql: Sql,
   childId: string,
@@ -625,6 +640,9 @@ async function applyActivationImpact(
     const beneficiary = locked[0];
     if (!beneficiary) return { applied: false, completedLevel: null };
     if (beneficiary.progression_status === "GRADUATED") return { applied: false, completedLevel: null };
+    if (model === "placement" && await directSponsorCount(sql, beneficiary.id) < 3) {
+      return { applied: false, completedLevel: null };
+    }
 
     const currentLevel = Number(beneficiary.current_level ?? 1);
     if (currentLevel < 1 || currentLevel > 9) return { applied: false, completedLevel: null };
@@ -705,6 +723,7 @@ async function applyActivationImpact(
       await sql`
         update level_progress set
           placement_completed_members = ${nextCount},
+          remaining_members = ${remaining},
           accumulated_commission = ${accumulated},
           status = 'IN_PROGRESS'
         where member_id = ${beneficiary.id} and level = ${currentLevel}
@@ -771,10 +790,44 @@ export type ActivationResult = {
   impacts: number;
 };
 
+async function directSponsorCount(sql: Sql, memberId: string): Promise<number> {
+  const rows = await sql<{ n: number }>`
+    select count(*)::int as n from sponsor_relationships where sponsor_id = ${memberId}
+  `;
+  return Number(rows[0]?.n ?? 0);
+}
+
+/** After an ID has 3 sponsors, older placement descendants that were skipped start counting. */
+async function backfillQualifiedPlacement(sql: Sql, ancestorId: string, exceptId: string): Promise<void> {
+  if (await directSponsorCount(sql, ancestorId) < 3) return;
+  const pending = await sql<{ id: string }>`
+    with recursive down as (
+      select id, created_at from member_ids where parent_id = ${ancestorId}
+      union all
+      select m.id, m.created_at from member_ids m
+      join down d on m.parent_id = d.id
+    )
+    select d.id
+    from down d
+    join membership_activation_events e on e.member_id = d.id
+    where d.id <> ${exceptId}
+      and not exists (
+        select 1 from commission_entries c
+        where c.beneficiary_id = ${ancestorId}
+          and c.source_id = d.id
+          and c.status in ('HELD', 'RELEASED')
+      )
+    order by d.created_at, d.id
+  `;
+  for (const row of pending) {
+    await processMembershipIdActivation(sql, row.id, { skipBackfill: true });
+  }
+}
+
 export async function processMembershipIdActivation(
   sql: Sql,
   newId: string,
-  opts: { failAfter?: number } = {},
+  opts: { failAfter?: number; skipBackfill?: boolean } = {},
 ): Promise<ActivationResult> {
   const source = await loadMember(sql, newId);
   if (!source) return { sourceId: newId, replay: false, impacts: 0 };
@@ -812,6 +865,17 @@ export async function processMembershipIdActivation(
   const hops =
     model === "placement" ? await walkPlacementAncestry(sql, newId) : await walkSponsorAncestry(sql, newId);
   const share = await readCompanyShare(sql);
+  if (model === "placement" && !opts.skipBackfill) {
+    const seen = new Set<string>();
+    for (const hop of hops) {
+      if (share.exempt.has(hop.ancestorId)) continue;
+      seen.add(hop.ancestorId);
+      await backfillQualifiedPlacement(sql, hop.ancestorId, source.id);
+    }
+    if (source.sponsor_id && !seen.has(source.sponsor_id) && !share.exempt.has(source.sponsor_id)) {
+      await backfillQualifiedPlacement(sql, source.sponsor_id, source.id);
+    }
+  }
   const appliedCount = { n: 0 };
   for (const hop of hops) {
     if (share.exempt.has(hop.ancestorId)) continue;

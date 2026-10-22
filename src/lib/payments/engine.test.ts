@@ -17,6 +17,7 @@ import {
 } from "./engine.ts";
 import { PACKAGES } from "../rules.ts";
 import { assertAdminRole } from "../auth/roles.ts";
+import { uid } from "../engine/ids.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -272,6 +273,23 @@ describe("manual payment engine", () => {
       values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
       on conflict (key) do update set value = excluded.value
     `;
+    for (let i = 0; i < 3; i += 1) {
+      const id = `${placer.rootId}-Q${i}`;
+      const owner = `q${i}placer`;
+      await insertUser(sql, owner, owner);
+      await sql`
+        insert into member_ids (
+          id, owner_user_id, package_id, is_root, sponsor_id, parent_id, placement_status, status,
+          joining_amount_bdt, referral_code, current_level, progression_status, activated_at, origin_kind
+        ) values (
+          ${id}, ${owner}, 'builder', true, ${placer.rootId}, null, 'placed', 'active', 11000,
+          ${"RQ" + i + "PLACER"}, 1, 'ACTIVE', now(), 'attach'
+        )`;
+      await sql`
+        insert into sponsor_relationships (id, sponsor_id, sponsored_id)
+        values (${uid()}, ${placer.rootId}, ${id})
+      `;
+    }
     const sponsorCode = await sql<{ referral_code: string }>`
       select referral_code from member_ids where id = ${sponsor.rootId}
     `;

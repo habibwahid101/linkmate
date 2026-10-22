@@ -13,7 +13,7 @@ import { Money } from "@/components/money";
 import { ProgressBar } from "@/components/progress-bar";
 import { formatBdt, toInt } from "@/lib/money";
 import { packageLabel } from "@/lib/format";
-import { levelRequirementCopy, originLabel, progressFraction } from "@/lib/id-workspace";
+import { levelRequirementCopy, liveLevelCount, originLabel, progressFraction } from "@/lib/id-workspace";
 import { cn } from "@/lib/utils";
 import { LocalDate } from "@/components/local-date";
 
@@ -49,6 +49,14 @@ function IdDetail() {
         <Row label="Placement parent" value={d.parent_id ?? "—"} />
         <Row label="Designation" value={d.designation.label} />
         <Row label="Designation progress" value={d.designation.detail} />
+        <Row
+          label="Level income"
+          value={
+            d.network.directIds >= 3
+              ? `Open · ${d.network.directIds} sponsors`
+              : `Closed until 3 sponsors · ${d.network.directIds}/3`
+          }
+        />
         <Row label="Placement" value={d.placement_status} />
         <Row label="Current level" value={`Level ${d.current_level}`} />
         <Row label="Created" value={<LocalDate iso={d.created_at} />} />
@@ -94,7 +102,7 @@ function IdDetail() {
           <Card key={p.level} className="p-3 text-center" tone={p.status === "RELEASED" ? "success" : "progress"}>
             <p className="text-[11px] text-muted">L{p.level}</p>
             <p className="tabular text-sm font-semibold">
-              {p.completed_members}/{p.required_members}
+              {liveLevelCount(p)}/{p.required_members}
             </p>
           </Card>
         ))}

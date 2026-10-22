@@ -41,38 +41,24 @@ export function designationSummary(count: number): { label: string; detail: stri
   return { label: "No designation yet", detail: `${n} / ${target} personal sponsors for ${title}` };
 }
 
-/** One credit per buyer account, given to that purchase's external sponsor. */
+/** One credit per sponsored ID, given to that ID's direct sponsor. */
 export async function recordDesignationCredit(sql: Sql, sourceId: string): Promise<void> {
   const rows = await sql<{
     sponsor_id: string;
     sponsor_owner_user_id: string;
-    buyer_owner_user_id: string;
   }>`
-    select sponsor.id as sponsor_id,
-           sponsor.owner_user_id as sponsor_owner_user_id,
-           credited.owner_user_id as buyer_owner_user_id
+    select sponsor.id as sponsor_id, sponsor.owner_user_id as sponsor_owner_user_id
     from member_ids m
-    join member_ids credited on credited.id = m.id
-    join member_ids sponsor on sponsor.id = credited.sponsor_id
+    join member_ids sponsor on sponsor.id = m.sponsor_id
     where m.id = ${sourceId}
-      and credited.sponsor_id is not null
-      and m.origin_kind is distinct from 'package_internal'
+      and m.sponsor_id is not null
       and (
-        m.origin_kind in ('purchase_root', 'attach')
+        m.origin_kind in ('purchase_root', 'attach', 'package_internal')
         or (m.origin_kind = 'purchase' and m.is_root)
       )
   `;
   const row = rows[0];
   if (!row?.sponsor_id) return;
-  const already = await sql<{ n: number }>`
-    select count(*)::int as n
-    from sponsor_designation_credits c
-    join member_ids bought on bought.id = c.sponsored_id
-    where c.sponsor_id = ${row.sponsor_id}
-      and c.voided_at is null
-      and bought.owner_user_id = ${row.buyer_owner_user_id}
-  `;
-  if (Number(already[0]?.n ?? 0) > 0) return;
   await sql`
     insert into sponsor_designation_credits (
       id, sponsor_id, sponsored_id, sponsor_owner_user_id

@@ -117,6 +117,28 @@ async function addDirect(sql: Sql, owner: string, sponsorId: string, tag: string
   });
 }
 
+/** Three sponsors who are not placed under the ID, so income is open and placement progress stays empty. */
+async function openIncome(sql: Sql, memberId: string) {
+  for (let i = 0; i < 3; i += 1) {
+    const id = `${memberId}-Q${i}`;
+    const owner = `oq-${memberId}-${i}`;
+    await sql`insert into app_users (user_id, display_name, email, role, referral_code, is_synthetic)
+      values (${owner}, ${owner}, ${owner + "@lm.test"}, 'member', ${"Q" + memberId.replace(/[^A-Z0-9]/gi, "") + i}, false)`;
+    await sql`
+      insert into member_ids (
+        id, owner_user_id, package_id, is_root, sponsor_id, parent_id, placement_status, status,
+        joining_amount_bdt, referral_code, current_level, progression_status, activated_at, origin_kind
+      ) values (
+        ${id}, ${owner}, 'builder', true, ${memberId}, null, 'placed', 'active', 11000,
+        ${"R" + id}, 1, 'ACTIVE', now(), 'attach'
+      )`;
+    await sql`
+      insert into sponsor_relationships (id, sponsor_id, sponsored_id)
+      values (${uid()}, ${memberId}, ${id})
+    `;
+  }
+}
+
 test("A. Level 1 0/3 to 3/3 releases 2640 and opens L2 at 0/9", async () => {
   const sql = await makeSql();
   await insertUser(sql, "u-s", "S");
@@ -510,6 +532,7 @@ test("N. After cutover a different placement parent is paid and the sponsor is n
     values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
     on conflict (key) do update set value = excluded.value
   `;
+  await openIncome(sql, b.rootId);
   const child = await attachExternalMember(sql, {
     ownerUserId: "u-c",
     displayName: "C",
@@ -554,15 +577,17 @@ test("O. Three placement children release 2640 once and do not move the frozen c
     values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
     on conflict (key) do update set value = excluded.value
   `;
+  await openIncome(sql, b.rootId);
+  let parent = b.rootId;
   for (let i = 0; i < 3; i += 1) {
     await insertUser(sql, `u-c${i}`, `C${i}`);
-    await attachExternalMember(sql, {
+    parent = await attachExternalMember(sql, {
       ownerUserId: `u-c${i}`,
       displayName: `C${i}`,
       email: null,
       packageId: "builder",
       sponsorMemberId: a.rootId,
-      parentMemberId: b.rootId,
+      parentMemberId: parent,
     });
   }
   assert.equal((await progress(sql, b.rootId, 1)).completed_members, 0);
@@ -612,6 +637,7 @@ test("P. A sponsor-stamped activation stays on the sponsor walk after cutover", 
     select placement_completed_members as n from level_progress where member_id = ${s.rootId} and level = 1`;
   assert.equal(Number(placement[0]?.n), 0);
 
+  await openIncome(sql, b.rootId);
   await insertUser(sql, "u-e", "E");
   await attachExternalMember(sql, {
     ownerUserId: "u-e",
@@ -636,7 +662,7 @@ test("Q. Placement completion releases frozen legacy held and new placement held
   const a = await createIdsForPurchase(sql, {
     userId: "u-a", packageId: "builder", purchaseId: "p-a", externalSponsorId: null,
   });
-  await addDirect(sql, "u-d1", s.rootId, "D1");
+  const d1 = await addDirect(sql, "u-d1", s.rootId, "D1");
   await addDirect(sql, "u-d2", s.rootId, "D2");
   assert.equal((await wallet(sql, s.rootId)).held, 1760);
   assert.equal((await progress(sql, s.rootId, 1)).completed_members, 2);
@@ -645,15 +671,17 @@ test("Q. Placement completion releases frozen legacy held and new placement held
     values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
     on conflict (key) do update set value = excluded.value
   `;
+  await openIncome(sql, s.rootId);
+  let parent = d1;
   for (let i = 0; i < 3; i += 1) {
     await insertUser(sql, `u-p${i}`, `P${i}`);
-    await attachExternalMember(sql, {
+    parent = await attachExternalMember(sql, {
       ownerUserId: `u-p${i}`,
       displayName: `P${i}`,
       email: null,
       packageId: "builder",
       sponsorMemberId: a.rootId,
-      parentMemberId: s.rootId,
+      parentMemberId: parent,
     });
   }
   assert.equal((await progress(sql, s.rootId, 1)).completed_members, 2);
@@ -772,6 +800,7 @@ test("T. Turbo designation follows the sponsor and level follows placement genea
     values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
     on conflict (key) do update set value = excluded.value
   `;
+  await openIncome(sql, b.rootId);
   const turbo = await createIdsForPurchase(sql, {
     userId: "u-buy",
     packageId: "turbo",
@@ -804,5 +833,70 @@ test("T. Turbo designation follows the sponsor and level follows placement genea
   assert.equal(bLevel2[0]?.status, "IN_PROGRESS");
   assert.equal(Number(bLevel2[0]?.n), 1);
   assert.equal((await wallet(sql, b.rootId)).held, 660);
+});
+
+test("U. Placement income stays closed until 3 sponsors, then earlier placements count", async () => {
+  const sql = await makeSql();
+  await insertUser(sql, "u-a", "A");
+  await insertUser(sql, "u-b", "B");
+  await insertUser(sql, "u-x", "X");
+  const a = await createIdsForPurchase(sql, {
+    userId: "u-a", packageId: "builder", purchaseId: "p-a", externalSponsorId: null,
+  });
+  const b = await createIdsForPurchase(sql, {
+    userId: "u-b", packageId: "builder", purchaseId: "p-b", externalSponsorId: null,
+  });
+  const x = await createIdsForPurchase(sql, {
+    userId: "u-x", packageId: "builder", purchaseId: "p-x", externalSponsorId: null,
+  });
+  await sql`
+    insert into app_settings (key, value)
+    values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
+    on conflict (key) do update set value = excluded.value
+  `;
+  await insertUser(sql, "u-p", "P");
+  await attachExternalMember(sql, {
+    ownerUserId: "u-p",
+    displayName: "P",
+    email: null,
+    packageId: "builder",
+    sponsorMemberId: a.rootId,
+    parentMemberId: b.rootId,
+  });
+  assert.equal((await commissions(sql, b.rootId)).length, 0);
+
+  let parent = x.rootId;
+  for (let i = 0; i < 3; i += 1) {
+    await insertUser(sql, `u-s${i}`, `S${i}`);
+    parent = await attachExternalMember(sql, {
+      ownerUserId: `u-s${i}`,
+      displayName: `S${i}`,
+      email: null,
+      packageId: "builder",
+      sponsorMemberId: b.rootId,
+      parentMemberId: parent,
+    });
+    if (i < 2) assert.equal((await commissions(sql, b.rootId)).length, 0);
+  }
+  const paid = await commissions(sql, b.rootId);
+  assert.equal(paid.length, 1);
+  assert.equal(Number(paid[0]!.commission_amount), 880);
+  const placed = await sql<{ n: number }>`
+    select placement_completed_members as n from level_progress
+    where member_id = ${b.rootId} and level = 1`;
+  assert.equal(Number(placed[0]?.n), 1);
+  assert.equal((await wallet(sql, b.rootId)).held, 880);
+  await insertUser(sql, "u-late", "Late");
+  await assert.rejects(
+    () => attachExternalMember(sql, {
+      ownerUserId: "u-late",
+      displayName: "Late",
+      email: null,
+      packageId: "builder",
+      sponsorMemberId: a.rootId,
+      parentMemberId: b.rootId,
+    }),
+    /bottom ID/,
+  );
 });
 
