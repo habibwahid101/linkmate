@@ -56,7 +56,7 @@ function Levels() {
         </Card>
       ) : (
         <p className="mb-4 text-[15px] leading-relaxed text-muted">
-          Level income on this ID stays closed until it has 3 personal sponsors. After that, every ID placed below it counts toward the open level. A new member is placed only under a bottom ID.
+          Level income on this ID stays closed until it has 3 personal sponsors. After that, every ID placed below it counts toward the open level. An ID can hold 3 people directly under it.
         </p>
       )}
       <div className="grid gap-3 lg:grid-cols-2">

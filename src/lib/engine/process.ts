@@ -257,6 +257,20 @@ export async function attachExternalMember(
     parentMemberId: string;
   },
 ): Promise<string> {
+  return inTransaction(sql, (tx) => attachExternalMemberTx(tx, opts));
+}
+
+async function attachExternalMemberTx(
+  sql: Sql,
+  opts: {
+    ownerUserId: string;
+    displayName: string;
+    email: string | null;
+    packageId: PackageId;
+    sponsorMemberId: string;
+    parentMemberId: string;
+  },
+): Promise<string> {
   const cutover = await placementCutoverActive(sql);
   assertPlacementParentAllowed(opts.sponsorMemberId, opts.parentMemberId, cutover);
   await assertPlacementParentIsLeaf(sql, opts.parentMemberId, cutover);

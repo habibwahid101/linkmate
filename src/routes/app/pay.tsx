@@ -154,7 +154,7 @@ function Pay() {
             {placementName ? (
               <p className="mt-1.5 text-xs text-success">Placement: {placementName}. Level count and commission follow this ID.</p>
             ) : (
-              <p className="mt-1.5 text-xs text-muted">Leave blank to place under the sponsor.</p>
+              <p className="mt-1.5 text-xs text-muted">Leave blank to place under the sponsor. An ID can hold 3 direct placements.</p>
             )}
           </div>
           <Button className="w-full" onClick={() => { setAmount(String(pkg.amountBdt)); setStep("method"); }}>

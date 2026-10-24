@@ -887,16 +887,37 @@ test("U. Placement income stays closed until 3 sponsors, then earlier placements
   assert.equal(Number(placed[0]?.n), 1);
   assert.equal((await wallet(sql, b.rootId)).held, 880);
   await insertUser(sql, "u-late", "Late");
+  await attachExternalMember(sql, {
+    ownerUserId: "u-late",
+    displayName: "Late",
+    email: null,
+    packageId: "builder",
+    sponsorMemberId: a.rootId,
+    parentMemberId: b.rootId,
+  });
+  await insertUser(sql, "u-late2", "Late2");
+  await attachExternalMember(sql, {
+    ownerUserId: "u-late2",
+    displayName: "Late2",
+    email: null,
+    packageId: "builder",
+    sponsorMemberId: a.rootId,
+    parentMemberId: b.rootId,
+  });
+  const underB = await sql<{ n: number }>`
+    select count(*)::int as n from member_ids where parent_id = ${b.rootId}`;
+  assert.equal(Number(underB[0]?.n), 3);
+  await insertUser(sql, "u-late3", "Late3");
   await assert.rejects(
     () => attachExternalMember(sql, {
-      ownerUserId: "u-late",
-      displayName: "Late",
+      ownerUserId: "u-late3",
+      displayName: "Late3",
       email: null,
       packageId: "builder",
       sponsorMemberId: a.rootId,
       parentMemberId: b.rootId,
     }),
-    /bottom ID/,
+    /already has 3/,
   );
 });
 

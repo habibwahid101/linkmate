@@ -230,18 +230,19 @@ export function assertPlacementParentAllowed(
   }
 }
 
-/** After cutover, a new external ID can only be placed under an ID with nobody under it. */
+/** After cutover, a new external ID can be placed under an ID that has fewer than 3 direct children. */
 export async function assertPlacementParentIsLeaf(
   sql: Sql,
   parentId: string | null,
   cutoverActive: boolean,
 ): Promise<void> {
   if (!cutoverActive || !parentId) return;
+  await sql`select id from member_ids where id = ${parentId} for update`;
   const rows = await sql<{ n: number }>`
     select count(*)::int as n from member_ids where parent_id = ${parentId}
   `;
-  if (Number(rows[0]?.n ?? 0) > 0) {
-    throw new Error("Place this ID under a bottom ID. That ID already has someone under it.");
+  if (Number(rows[0]?.n ?? 0) >= 3) {
+    throw new Error("This ID already has 3 people under it. Place under an ID that has fewer than 3.");
   }
 }
 
