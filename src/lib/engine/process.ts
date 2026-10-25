@@ -15,6 +15,7 @@ import {
   reconcileWallet,
   reverseJoin,
   walkSponsorAncestry,
+  createActivationMemo,
   type Sql,
 } from "./activation.ts";
 
@@ -153,7 +154,8 @@ async function orchestratePurchaseIds(
   const expected = PACKAGES[opts.packageId].idCount;
   const rootParent =
     opts.placementParentId !== undefined ? opts.placementParentId : opts.externalSponsorId;
-  const cutover = await placementCutoverActive(sql);
+  const memo = createActivationMemo();
+  const cutover = await placementCutoverActive(sql, memo);
   assertPlacementParentAllowed(opts.externalSponsorId, rootParent, cutover);
   await assertPlacementParentIsLeaf(sql, rootParent, cutover);
   const existing = await loadExistingPurchaseIds(sql, opts.purchaseId);
@@ -163,7 +165,7 @@ async function orchestratePurchaseIds(
     }
     const ids = existing.map((r) => r.id);
     const rootId = existing.find((r) => r.is_root)?.id ?? ids[0]!;
-    for (const id of ids) await processNewId(sql, id);
+    for (const id of ids) await processNewId(sql, id, memo);
     return { rootId, ids };
   }
 
@@ -222,7 +224,7 @@ async function orchestratePurchaseIds(
     if (p.placementStatus === "pending_config" && !p.isRoot && p.sponsorIndex == null && p.parentIndex == null) {
       continue;
     }
-    await processNewId(sql, codes[i]!);
+    await processNewId(sql, codes[i]!, memo);
   }
 
   const rootId = codes[0]!;
@@ -271,7 +273,8 @@ async function attachExternalMemberTx(
     parentMemberId: string;
   },
 ): Promise<string> {
-  const cutover = await placementCutoverActive(sql);
+  const memo = createActivationMemo();
+  const cutover = await placementCutoverActive(sql, memo);
   assertPlacementParentAllowed(opts.sponsorMemberId, opts.parentMemberId, cutover);
   await assertPlacementParentIsLeaf(sql, opts.parentMemberId, cutover);
   const newId = await nextMemberCode(sql);
@@ -296,6 +299,6 @@ async function attachExternalMemberTx(
     values (${uid()}, ${opts.parentMemberId}, ${newId}, 0)
     on conflict (child_id) do nothing
   `;
-  await processNewId(sql, newId);
+  await processNewId(sql, newId, memo);
   return newId;
 }
