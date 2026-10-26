@@ -16,7 +16,7 @@ import { LocalDate } from "@/components/local-date";
 import { designationSummary } from "@/lib/engine/designations";
 import { formatBdt } from "@/lib/money";
 import { PACKAGES } from "@/lib/rules";
-import { DASHBOARD_ID_PREVIEW, usesCompactList } from "@/lib/id-workspace";
+import { DASHBOARD_ID_PREVIEW, usesCompactList, parseMemberIdSearch } from "@/lib/id-workspace";
 import { IdSwitcher } from "@/components/id-switcher";
 import { useT } from "@/lib/i18n";
 import { toast } from "sonner";
@@ -25,7 +25,10 @@ import { useRef, useState } from "react";
 import type { PackageId } from "@/lib/rules";
 import type { AppProfile } from "@/lib/server/profile";
 
-export const Route = createFileRoute("/app/")({ component: Home });
+export const Route = createFileRoute("/app/")({
+  validateSearch: parseMemberIdSearch,
+  component: Home,
+});
 
 async function readAvatarFile(file: File): Promise<string> {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
@@ -96,7 +99,15 @@ function HolderAvatar({ profile }: { profile: AppProfile }) {
   );
 }
 
-function IdentityCard({ profile, designation }: { profile: AppProfile; designation?: string | null }) {
+function IdentityCard({
+  profile,
+  designation,
+  membershipId,
+}: {
+  profile: AppProfile;
+  designation?: string | null;
+  membershipId?: string | null;
+}) {
   const t = useT();
   return (
     <Card className="mb-4 flex items-center gap-3 p-4 sm:gap-4">
@@ -113,7 +124,7 @@ function IdentityCard({ profile, designation }: { profile: AppProfile; designati
           {t("dash.accountCode")} · {profile.referralCode}
         </p>
         <p className="mt-0.5 truncate font-mono text-sm text-accent">
-          {t("dash.membershipId")} · {profile.activeId ?? t("dash.none")}
+          {t("dash.membershipId")} · {membershipId ?? profile.activeId ?? t("dash.none")}
         </p>
       </div>
     </Card>
@@ -122,6 +133,7 @@ function IdentityCard({ profile, designation }: { profile: AppProfile; designati
 
 function Home() {
   const t = useT();
+  const { id: viewedId } = Route.useSearch();
   const qc = useQueryClient();
   const dash = useQuery({ queryKey: ["dashboard"], queryFn: () => getDashboard() });
   const sample = useMutation({
@@ -177,18 +189,20 @@ function Home() {
   const preview = d.ids.slice(0, DASHBOARD_ID_PREVIEW);
   const compact = usesCompactList(d.ids.length);
   const active =
+    d.ids.find((row) => row.id === viewedId) ??
     d.ids.find((row) => row.id === d.profile.activeId) ??
     d.ids.find((row) => row.is_root) ??
     d.ids[0];
   const designation = designationSummary(active?.designationCount ?? 0);
+  const releases = active ? d.recentTx.filter((tx) => tx.member_id === active.id) : d.recentTx;
 
   return (
     <div>
       <PageHeader title={t("dash.title")} hint={t("dash.hint")} />
-      <IdentityCard profile={d.profile} designation={designation.label} />
+      <IdentityCard profile={d.profile} designation={designation.label} membershipId={active?.id} />
       {active ? (
         <div className="mb-4">
-          <IdSwitcher ids={d.ids} selectedId={active.id} />
+          <IdSwitcher ids={d.ids} selectedId={active.id} onSelectPath="/app" />
         </div>
       ) : null}
 
@@ -273,9 +287,11 @@ function Home() {
           </Link>
         </div>
         <Card tone="success">
-          <p className="text-[15px] leading-relaxed text-muted">Account-wide ledger. Open an ID to see only that ID’s earnings.</p>
-          {d.recentTx.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">Released earnings appear after a level completes on an ID.</p>
+          <p className="text-[15px] leading-relaxed text-muted">
+            {active ? `${active.id} only. The other IDs keep their own wallets.` : "Each Membership ID has its own wallet."}
+          </p>
+          {releases.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">Released earnings appear after a level completes on this ID.</p>
           ) : (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[32rem] text-left">
@@ -288,7 +304,7 @@ function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {d.recentTx.map((tx) => (
+                  {releases.map((tx) => (
                     <tr key={tx.id} className="border-t border-border/70">
                       <td className="py-2.5 pr-3 text-sm font-medium">
                         {tx.source}

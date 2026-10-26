@@ -11,7 +11,7 @@ export function IdSwitcher({
   ids: CompactMembershipId[];
   selectedId: string;
   /** When set, changing the select navigates to this path with `?id=`. */
-  onSelectPath?: "/app/team" | "/app/levels" | "/app/invite" | "/app/qualification" | "/app/earnings";
+  onSelectPath?: "/app" | "/app/team" | "/app/levels" | "/app/invite" | "/app/qualification" | "/app/earnings";
 }) {
   const navigate = useNavigate();
   if (ids.length === 0) return null;
