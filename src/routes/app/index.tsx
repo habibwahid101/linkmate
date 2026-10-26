@@ -16,7 +16,7 @@ import { LocalDate } from "@/components/local-date";
 import { designationSummary } from "@/lib/engine/designations";
 import { formatBdt } from "@/lib/money";
 import { PACKAGES } from "@/lib/rules";
-import { DASHBOARD_ID_PREVIEW, usesCompactList, parseMemberIdSearch } from "@/lib/id-workspace";
+import { DASHBOARD_ID_PREVIEW, usesCompactList, parseMemberIdSearch, isGraduated, progressFraction } from "@/lib/id-workspace";
 import { IdSwitcher } from "@/components/id-switcher";
 import { useT } from "@/lib/i18n";
 import { toast } from "sonner";
@@ -148,7 +148,6 @@ function Home() {
   if (dash.isPending) return <DashboardSkeleton />;
   if (dash.isError) return <QueryError error={dash.error} retry={() => dash.refetch()} />;
   const d = dash.data;
-  const pkg = d.latestPackage ? PACKAGES[d.latestPackage as PackageId] : null;
 
   if (d.ids.length === 0) {
     return (
@@ -195,6 +194,9 @@ function Home() {
     d.ids[0];
   const designation = designationSummary(active?.designationCount ?? 0);
   const releases = active ? d.recentTx.filter((tx) => tx.member_id === active.id) : d.recentTx;
+  const idPkg = active ? PACKAGES[active.package_id as PackageId] : null;
+  const graduated = active ? isGraduated(active) : false;
+  const progress = active?.currentProgress;
 
   return (
     <div>
@@ -210,8 +212,8 @@ function Home() {
         <LevelKpi
           tone="info"
           label={t("dash.ids")}
-          value={<span className="tabular text-xl font-semibold tracking-tight">{d.idCount}</span>}
-          hint={pkg ? `${pkg.name} · ${pkg.idCount} issued` : "Owned by this account"}
+          value={<span className="tabular text-xl font-semibold tracking-tight">{active?.designationCount ?? 0}</span>}
+          hint={active?.id}
         />
         <LevelKpi
           tone="available"
@@ -236,22 +238,26 @@ function Home() {
           label={t("dash.highest")}
           value={
             <span className="tabular text-xl font-semibold tracking-tight">
-              {d.highestActiveLevel ? `Level ${d.highestActiveLevel}` : "—"}
+              {!active ? "—" : graduated ? "Graduated" : `Level ${active.current_level}`}
             </span>
           }
-          hint="Highest current level among owned IDs"
+          hint={active?.id}
         />
         <LevelKpi
           tone="progress"
           label={t("dash.inProgress")}
-          value={<span className="tabular text-xl font-semibold tracking-tight">{d.idsInProgress}</span>}
-          hint={d.graduatedCount ? `${d.graduatedCount} graduated` : "Not yet graduated"}
+          value={
+            <span className="tabular text-xl font-semibold tracking-tight">
+              {!progress ? "—" : graduated ? "Complete" : progressFraction(progress)}
+            </span>
+          }
+          hint={active && progress ? (graduated ? active.id : `${active.id} · Level ${progress.level}`) : undefined}
         />
         <LevelKpi
           tone="package"
           label={t("dash.latest")}
-          value={<span className="text-xl font-semibold tracking-tight">{pkg?.name ?? "—"}</span>}
-          hint={pkg ? formatBdt(pkg.amountBdt) : undefined}
+          value={<span className="text-xl font-semibold tracking-tight">{idPkg?.name ?? "—"}</span>}
+          hint={idPkg ? formatBdt(idPkg.amountBdt) : active?.id}
         />
       </div>
 
@@ -267,8 +273,18 @@ function Home() {
 
       <div className="mt-3 space-y-3">
         {compact
-          ? preview.map((row) => <MembershipIdRow key={row.id} row={row} />)
-          : preview.map((row) => <MembershipIdCard key={row.id} row={row} compact={d.ids.length > 1} />)}
+          ? preview.map((row) => (
+              <MembershipIdRow key={row.id} row={row} selectPath="/app" selected={row.id === active?.id} />
+            ))
+          : preview.map((row) => (
+              <MembershipIdCard
+                key={row.id}
+                row={row}
+                compact={d.ids.length > 1}
+                selectPath="/app"
+                selected={row.id === active?.id}
+              />
+            ))}
         {d.ids.length > DASHBOARD_ID_PREVIEW ? (
           <p className="text-center text-sm text-muted">
             Showing {DASHBOARD_ID_PREVIEW} of {d.ids.length}.{" "}

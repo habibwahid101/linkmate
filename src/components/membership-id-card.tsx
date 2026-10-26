@@ -19,9 +19,13 @@ import { cn } from "@/lib/utils";
 export function MembershipIdCard({
   row,
   compact = false,
+  selectPath,
+  selected = false,
 }: {
   row: CompactMembershipId;
   compact?: boolean;
+  selectPath?: "/app";
+  selected?: boolean;
 }) {
   const graduated = isGraduated(row);
   const p = row.currentProgress;
@@ -29,11 +33,19 @@ export function MembershipIdCard({
   return (
     <Card
       tone={graduated ? "success" : row.held > 0 ? "held" : "info"}
-      className={cn("min-w-0", compact && "p-3.5 sm:p-4")}
+      className={cn("min-w-0", compact && "p-3.5 sm:p-4", selected && "ring-2 ring-accent")}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="break-all font-mono text-[15px] font-semibold">{row.id}</p>
+          <p className="break-all font-mono text-[15px] font-semibold">
+            {selectPath ? (
+              <Link to={selectPath} search={{ id: row.id }} className="hover:text-accent">
+                {row.id}
+              </Link>
+            ) : (
+              row.id
+            )}
+          </p>
           <p className="mt-0.5 text-[13px] text-muted">
             {packageLabel(row.package_id)} · {originLabel(row)}
           </p>
@@ -86,7 +98,15 @@ export function MembershipIdCard({
   );
 }
 
-export function MembershipIdRow({ row }: { row: CompactMembershipId }) {
+export function MembershipIdRow({
+  row,
+  selectPath,
+  selected = false,
+}: {
+  row: CompactMembershipId;
+  selectPath?: "/app";
+  selected?: boolean;
+}) {
   const graduated = isGraduated(row);
   const p = row.currentProgress;
   const designation = designationSummary(row.designationCount);
@@ -100,10 +120,19 @@ export function MembershipIdRow({ row }: { row: CompactMembershipId }) {
           : row.held > 0
             ? "shadow-[inset_3px_0_0_var(--color-held),var(--shadow-card)]"
             : "shadow-[var(--shadow-card)]",
+        selected && "ring-2 ring-accent",
       )}
     >
       <div className="min-w-0">
-        <p className="break-all font-mono text-[15px] font-semibold">{row.id}</p>
+        <p className="break-all font-mono text-[15px] font-semibold">
+          {selectPath ? (
+            <Link to={selectPath} search={{ id: row.id }} className="hover:text-accent">
+              {row.id}
+            </Link>
+          ) : (
+            row.id
+          )}
+        </p>
         <p className="text-[13px] text-muted">
           {packageLabel(row.package_id)} · {originLabel(row)}
         </p>
