@@ -864,7 +864,7 @@ async function directSponsorCount(sql: Sql, memberId: string, memo?: ActivationM
 }
 
 /** After an ID has 3 sponsors, older placement descendants that were skipped start counting. */
-async function backfillQualifiedPlacement(
+export async function backfillQualifiedPlacement(
   sql: Sql,
   ancestorId: string,
   exceptId: string,

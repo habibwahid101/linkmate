@@ -1,5 +1,6 @@
 import { STANDARD_ID_VALUE_BDT, PACKAGES, type PackageId } from "../rules.ts";
 import { planPackagePlacement } from "./placement.ts";
+import { issuePlacedPackage } from "./package-fast.ts";
 import { formatMemberId, makeReferralCode, uid } from "./ids.ts";
 import {
   assertAcyclicSponsor,
@@ -170,66 +171,73 @@ async function orchestratePurchaseIds(
   }
 
   const plan = planPackagePlacement(opts.packageId);
-  const codes: string[] = [];
-  for (let i = 0; i < plan.length; i++) {
-    codes.push(await nextMemberCode(sql));
+  if (opts.failAfterCreated != null || !cutover) {
+    const codes: string[] = [];
+    for (let i = 0; i < plan.length; i++) codes.push(await nextMemberCode(sql));
+    for (let i = 0; i < plan.length; i++) {
+      const p = plan[i]!;
+      const id = codes[i]!;
+      const parentId = p.isRoot ? rootParent : p.parentIndex != null ? codes[p.parentIndex]! : null;
+      const sponsorId = p.isRoot ? opts.externalSponsorId : p.sponsorIndex != null ? codes[p.sponsorIndex]! : null;
+      await insertMemberId(sql, {
+        id,
+        ownerUserId: opts.userId,
+        packageId: opts.packageId,
+        purchaseId: opts.purchaseId,
+        isRoot: p.isRoot,
+        sponsorId,
+        parentId,
+        placementStatus: p.placementStatus,
+        originKind: p.isRoot ? "purchase_root" : "package_internal",
+      });
+      if (sponsorId) {
+        await sql`
+          insert into sponsor_relationships (id, sponsor_id, sponsored_id)
+          values (${uid()}, ${sponsorId}, ${id})
+          on conflict (sponsored_id) do nothing
+        `;
+      }
+      if (parentId && p.placementStatus === "placed") {
+        await sql`
+          insert into placement_relationships (id, parent_id, child_id, position)
+          values (${uid()}, ${parentId}, ${id}, ${p.position})
+          on conflict (child_id) do nothing
+        `;
+      }
+      if (opts.failAfterCreated != null && i + 1 >= opts.failAfterCreated) {
+        throw new Error("PACKAGE_TEST_FAILURE");
+      }
+    }
+    for (let i = 0; i < plan.length; i++) {
+      const p = plan[i]!;
+      if (p.placementStatus === "pending_config" && !p.isRoot && p.sponsorIndex == null && p.parentIndex == null) continue;
+      await processNewId(sql, codes[i]!, memo);
+    }
+    const rootId = codes[0]!;
+    await sql`update package_purchases set root_id = ${rootId} where id = ${opts.purchaseId}`;
+    await notify(sql, opts.userId, "ids", "New IDs created", `${codes.length} ID${codes.length === 1 ? "" : "s"} issued for your ${opts.packageId.replace("_", " ")} package. Root: ${rootId}.`);
+    return { rootId, ids: codes };
   }
 
-  // Parent-before-child inserts so every child sponsor/placement FK target exists.
-  for (let i = 0; i < plan.length; i++) {
-    const p = plan[i]!;
-    const id = codes[i]!;
-    const parentId = p.isRoot
-      ? rootParent
-      : p.parentIndex != null
-        ? codes[p.parentIndex]!
-        : null;
-    const internalSponsor = p.sponsorIndex != null ? codes[p.sponsorIndex]! : null;
-    const sponsorId = p.isRoot ? opts.externalSponsorId : internalSponsor;
-
-    await insertMemberId(sql, {
-      id,
-      ownerUserId: opts.userId,
-      packageId: opts.packageId,
-      purchaseId: opts.purchaseId,
-      isRoot: p.isRoot,
-      sponsorId,
-      parentId,
-      placementStatus: p.placementStatus,
-      originKind: p.isRoot ? "purchase_root" : "package_internal",
-    });
-
-    if (sponsorId) {
-      await sql`
-        insert into sponsor_relationships (id, sponsor_id, sponsored_id)
-        values (${uid()}, ${sponsorId}, ${id})
-        on conflict (sponsored_id) do nothing
-      `;
-    }
-    if (parentId && p.placementStatus === "placed") {
-      await sql`
-        insert into placement_relationships (id, parent_id, child_id, position)
-        values (${uid()}, ${parentId}, ${id}, ${p.position})
-        on conflict (child_id) do nothing
-      `;
-    }
-    if (opts.failAfterCreated != null && i + 1 >= opts.failAfterCreated) {
-      throw new Error("PACKAGE_TEST_FAILURE");
-    }
+  const seq = await sql<{ n: number }>`
+    select nextval('member_id_seq')::int as n from generate_series(1, ${plan.length})
+  `;
+  const codes = seq.map((row) => formatMemberId(Number(row.n)));
+  if (rootParent) {
+    await assertAcyclicPlacement(sql, codes[0]!, rootParent);
+    await assertAcyclicSponsor(sql, codes[0]!, opts.externalSponsorId);
   }
-
-  // Activate in the same parent-before-child order. Engine owns progress/commission.
-  for (let i = 0; i < plan.length; i++) {
-    const p = plan[i]!;
-    if (p.placementStatus === "pending_config" && !p.isRoot && p.sponsorIndex == null && p.parentIndex == null) {
-      continue;
-    }
-    await processNewId(sql, codes[i]!, memo);
-  }
-
+  await issuePlacedPackage(sql, {
+    userId: opts.userId,
+    packageId: opts.packageId,
+    purchaseId: opts.purchaseId,
+    rootParent,
+    externalSponsorId: opts.externalSponsorId,
+    codes,
+    memo,
+  });
   const rootId = codes[0]!;
   await sql`update package_purchases set root_id = ${rootId} where id = ${opts.purchaseId}`;
-
   await notify(
     sql,
     opts.userId,
@@ -237,7 +245,6 @@ async function orchestratePurchaseIds(
     "New IDs created",
     `${codes.length} ID${codes.length === 1 ? "" : "s"} issued for your ${opts.packageId.replace("_", " ")} package. Root: ${rootId}.`,
   );
-
   return { rootId, ids: codes };
 }
 
