@@ -10,6 +10,7 @@ import { AdminSearch } from "@/components/admin-filters";
 import { Badge } from "@/components/ui/badge";
 
 import { ADMIN_EMPTY } from "@/lib/admin-status";
+import { sortTime } from "@/lib/format";
 import { LocalDate } from "@/components/local-date";
 
 export const Route = createFileRoute("/admin/users/")({ component: Users });
@@ -22,8 +23,8 @@ function Users() {
     const data = [...(list.data ?? [])].map((u) => ({ ...u, id: u.user_id }));
     data.sort(
       (a, b) =>
-        a.display_name.localeCompare(b.display_name, "en", { numeric: true, sensitivity: "base" }) ||
-        a.created_at.localeCompare(b.created_at),
+        String(a.display_name ?? "").localeCompare(String(b.display_name ?? ""), "en", { numeric: true, sensitivity: "base" }) ||
+        sortTime(a.created_at) - sortTime(b.created_at),
     );
     const numbered = data.map((row, index) => ({ ...row, serial: index + 1 }));
     const needle = q.trim().toLowerCase();

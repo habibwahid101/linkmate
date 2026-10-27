@@ -9,7 +9,7 @@ import { AdminList } from "@/components/admin-list";
 import { AdminSearch } from "@/components/admin-filters";
 import { StatusBadge } from "@/components/status-badge";
 import { formatBdt, toInt } from "@/lib/money";
-import { packageLabel } from "@/lib/format";
+import { packageLabel, sortTime } from "@/lib/format";
 import { ADMIN_EMPTY } from "@/lib/admin-status";
 import { LocalDate } from "@/components/local-date";
 
@@ -20,7 +20,7 @@ function Purchases() {
   const [q, setQ] = useState("");
   const list = useQuery({ queryKey: ["admin", "purchases"], queryFn: () => adminListPurchases() });
   const rows = useMemo(() => {
-    const data = [...(list.data ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const data = [...(list.data ?? [])].sort((a, b) => sortTime(a.created_at) - sortTime(b.created_at));
     const numbered = data.map((row, index) => ({ ...row, serial: index + 1 }));
     const needle = q.trim().toLowerCase();
     if (!needle) return numbered;

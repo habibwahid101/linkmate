@@ -8,7 +8,7 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { AdminList } from "@/components/admin-list";
 import { AdminSearch } from "@/components/admin-filters";
 import { StatusBadge } from "@/components/status-badge";
-import { packageLabel } from "@/lib/format";
+import { packageLabel, sortTime } from "@/lib/format";
 import { ADMIN_EMPTY } from "@/lib/admin-status";
 import { LocalDate } from "@/components/local-date";
 
@@ -19,7 +19,9 @@ function Ids() {
   const [q, setQ] = useState("");
   const list = useQuery({ queryKey: ["admin", "ids"], queryFn: () => adminListIds() });
   const rows = useMemo(() => {
-    const data = [...(list.data ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id, "en", { numeric: true }));
+    const data = [...(list.data ?? [])].sort(
+      (a, b) => sortTime(a.created_at) - sortTime(b.created_at) || a.id.localeCompare(b.id, "en", { numeric: true }),
+    );
     const numbered = data.map((row, index) => ({ ...row, serial: index + 1 }));
     const needle = q.trim().toLowerCase();
     if (!needle) return numbered;
