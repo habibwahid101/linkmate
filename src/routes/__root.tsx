@@ -43,13 +43,21 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-title", content: APP_NAME },
       {
         name: "description",
-        content: "Link Mate membership from ৳11,000. Sponsor 3 and complete Level 9 to qualify for 1 Decimal Land, subject to allocation terms.",
+        content: "Link Mate membership from \u09f311,000. Sponsor 3 and complete Level 9 to qualify for 1 Decimal Land, subject to allocation terms.",
       },
+      { property: "og:title", content: "Link Mate Global" },
+      { property: "og:description", content: "Link Mate membership from \u09f311,000. Sponsor 3 and complete Level 9 to qualify for 1 Decimal Land, subject to allocation terms." },
+      { property: "og:image", content: "https://linkmateglobal.com/logo-mark.png" },
+      { property: "og:image:alt", content: "Link Mate logo" },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://linkmateglobal.com/" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:image", content: "https://linkmateglobal.com/logo-mark.png" },
     ],
     links: [
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", href: "/logo-mark.png" },
+      { rel: "apple-touch-icon", href: "/logo-mark.png" },
       { rel: "manifest", href: "/__grok/manifest.webmanifest?v=2" },
-      { rel: "apple-touch-icon", href: "/icon-192.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",
@@ -70,7 +78,7 @@ function Root() {
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(()=>{var l=document.createElement("link");l.rel="stylesheet";l.href=${JSON.stringify(FONT_HREF)};document.head.appendChild(l);})();`,
+            __html: `(()=>{var l=document.createElement("link");l.rel="stylesheet";l.href=${JSON.stringify(FONT_HREF)};document.head.appendChild(l);})()`,
           }}
         />
       </head>
