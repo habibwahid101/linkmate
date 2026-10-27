@@ -91,7 +91,7 @@ function UserDetail() {
         {ids.length === 0 ? (
           <Card className="py-8 text-center text-sm text-muted">This account does not own any Membership IDs.</Card>
         ) : (
-          ids.map((id) => {
+          ids.map((id, index) => {
             const land = evaluateLandQualification({
               hasMembership: id.status === "active",
               directSponsors: id.directSponsors,
@@ -107,7 +107,7 @@ function UserDetail() {
               >
                 <Card className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-mono text-sm font-medium">{id.id}</p>
+                    <p className="font-mono text-sm font-medium">{index + 1}. {id.id}</p>
                     <p className="text-xs text-muted">
                       {packageLabel(id.package_id)} · Level {id.current_level} · Direct IDs {id.directSponsors}
                     </p>

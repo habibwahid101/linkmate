@@ -19,10 +19,11 @@ function Ids() {
   const [q, setQ] = useState("");
   const list = useQuery({ queryKey: ["admin", "ids"], queryFn: () => adminListIds() });
   const rows = useMemo(() => {
-    const data = list.data ?? [];
+    const data = [...(list.data ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id, "en", { numeric: true }));
+    const numbered = data.map((row, index) => ({ ...row, serial: index + 1 }));
     const needle = q.trim().toLowerCase();
-    if (!needle) return data;
-    return data.filter((r) => {
+    if (!needle) return numbered;
+    return numbered.filter((r) => {
       const hay = `${r.id} ${r.display_name} ${r.referral_code ?? ""} ${r.sponsor_id ?? ""} ${r.owner_user_id}`.toLowerCase();
       return hay.includes(needle);
     });
@@ -33,7 +34,7 @@ function Ids() {
     <div>
       <PageHeader
         title="Membership IDs"
-        hint="Lookup LM-… IDs. Sponsor, placement, and level are engine-owned and cannot be edited here."
+        hint="Joining serial. The earlier ID is first, the later ID is after it."
       />
       <AdminSearch
         value={q}
@@ -48,6 +49,7 @@ function Ids() {
         caption="Membership IDs"
         onRow={(r) => nav({ to: "/admin/ids/$memberId", params: { memberId: r.id } })}
         columns={[
+          { key: "serial", label: "Serial", render: (r) => r.serial },
           { key: "id", label: "ID", render: (r) => <span className="font-mono text-xs">{r.id}</span> },
           { key: "owner", label: "Account", render: (r) => r.display_name },
           { key: "pkg", label: "Package", render: (r) => packageLabel(r.package_id) },

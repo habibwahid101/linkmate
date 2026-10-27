@@ -146,8 +146,8 @@ export const adminListUsers = createServerFn({ method: "GET" })
       select u.user_id, u.display_name, u.email, u.role, u.referral_code, u.is_synthetic, u.created_at,
              (select count(*)::int from member_ids m where m.owner_user_id = u.user_id) as id_count
       from app_users u
-      order by u.created_at desc
-      limit 200
+      order by u.created_at asc
+      limit 2000
     `
     ).map((u) => ({ ...u, locked: isLockedAdminEmail(u.email) }));
   });
@@ -185,7 +185,7 @@ export const adminGetUser = createServerFn({ method: "GET" })
     }>`
       select id, package_id, amount_bdt, id_count, root_id, payment_status, created_at
       from package_purchases where user_id = ${data.userId}
-      order by created_at desc limit 20
+      order by created_at asc limit 50
     `;
     const payments = await sql<{
       id: string;
@@ -244,8 +244,8 @@ export const adminListIds = createServerFn({ method: "GET" })
              m.placement_status, m.status, m.referral_code, m.current_level, m.progression_status, m.created_at
       from member_ids m
       join app_users u on u.user_id = m.owner_user_id
-      order by m.created_at desc
-      limit 300
+      order by m.created_at asc
+      limit 3000
     `;
   });
 
@@ -463,8 +463,8 @@ export const adminListPurchases = createServerFn({ method: "GET" })
              p.root_id, p.payment_status, p.created_at
       from package_purchases p
       join app_users u on u.user_id = p.user_id
-      order by p.created_at desc
-      limit 200
+      order by p.created_at asc
+      limit 1000
     `;
   });
 

@@ -20,16 +20,17 @@ function Purchases() {
   const [q, setQ] = useState("");
   const list = useQuery({ queryKey: ["admin", "purchases"], queryFn: () => adminListPurchases() });
   const rows = useMemo(() => {
-    const data = list.data ?? [];
+    const data = [...(list.data ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const numbered = data.map((row, index) => ({ ...row, serial: index + 1 }));
     const needle = q.trim().toLowerCase();
-    if (!needle) return data;
-    return data.filter((r) => `${r.display_name} ${r.package_id} ${r.root_id ?? ""} ${r.id}`.toLowerCase().includes(needle));
+    if (!needle) return numbered;
+    return numbered.filter((r) => `${r.display_name} ${r.package_id} ${r.root_id ?? ""} ${r.id}`.toLowerCase().includes(needle));
   }, [list.data, q]);
   if (list.isPending) return <DashboardSkeleton />;
   if (list.isError) return <QueryError error={list.error} retry={() => list.refetch()} />;
   return (
     <div>
-      <PageHeader title="Purchases" hint="Package activation stays atomic. Admin never creates Membership IDs from this list." />
+      <PageHeader title="Purchases" hint="Earlier joining is first. Later joining stays after it." />
       <AdminSearch value={q} onChange={setQ} label="Search purchases" placeholder="Search member, package, or root ID" />
       <AdminList
         rows={rows}
@@ -38,6 +39,7 @@ function Purchases() {
         caption="Package purchases"
         onRow={(r) => nav({ to: "/admin/users/$userId", params: { userId: r.user_id } })}
         columns={[
+          { key: "serial", label: "Serial", render: (r) => r.serial },
           { key: "pkg", label: "Package", render: (r) => packageLabel(r.package_id) },
           { key: "who", label: "Account", render: (r) => r.display_name },
           { key: "amt", label: "Amount", render: (r) => formatBdt(toInt(r.amount_bdt)) },
