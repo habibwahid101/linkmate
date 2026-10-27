@@ -87,7 +87,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <div className="min-h-dvh bg-bg text-ink">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col border-r border-border bg-surface lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-surface lg:flex">
         <div className="flex h-16 items-center px-4">
           <BrandLink />
         </div>
@@ -109,7 +109,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     to={item.to}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "mb-0.5 flex h-10 items-center gap-2.5 rounded-[10px] px-2.5 text-[13px] font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                      "mb-0.5 flex h-10 items-center gap-2.5 whitespace-nowrap rounded-[10px] px-2.5 text-[13px] font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                       active ? "bg-accent-soft text-accent" : "text-muted hover:bg-surface-2 hover:text-ink",
                     )}
                   >
@@ -129,7 +129,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           Member app
         </Link>
       </aside>
-      <div className="lg:pl-[220px]">
+      <div className="lg:pl-[248px]">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-bg/90 px-4 backdrop-blur-md lg:px-8">
           <p className="text-sm font-medium">Admin</p>
           <Link to="/app" className="text-sm text-muted hover:text-ink">
@@ -146,7 +146,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   to={item.to}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "rounded-full px-3 py-1.5 text-xs font-medium",
+                    "shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium",
                     active ? "bg-accent text-accent-fg" : "bg-surface-2 text-muted",
                   )}
                 >

@@ -33,10 +33,13 @@ function Qualification() {
   return (
     <div>
       <PageHeader
-        title="1 Decimal Land"
-        hint="Qualification requires an active Membership ID, 3 Direct IDs, and Level 9 complete. Qualification is not legal ownership, allocation, or transfer. Documentation status is not stored yet."
+        title="Land Qualification"
+        hint="One list. 3 Direct IDs and Level 9. Qualification is not a land transfer."
       />
-      <p className="mb-3 text-sm text-muted">{qualifiedCount} Qualified · {(list.data?.length ?? 0) - qualifiedCount} Not Yet Qualified</p>
+      <p className="mb-3 text-lg">
+        <span className="lm-land-highlight">1 Decimal Land</span>
+        <span className="ml-3 text-sm text-muted">{qualifiedCount} Qualified · {(list.data?.length ?? 0) - qualifiedCount} Not Yet Qualified</span>
+      </p>
       <FilterChips
         options={[
           { id: "all", label: "All" },
