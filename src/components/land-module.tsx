@@ -21,7 +21,9 @@ export function LandModule({
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardKicker tone="success">Land Qualification</CardKicker>
-            <p className="mt-1 text-xl font-semibold tracking-tight">1 Decimal Land</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">
+              <span className="lm-land-highlight">1 Decimal Land</span>
+            </p>
           </div>
           <span
             className={cn(
