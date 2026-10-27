@@ -56,6 +56,7 @@ function Overview() {
         hint="Operational command center. Pending work is first. Financial figures come from the existing ledger."
       />
 
+      <section className="rounded-2xl bg-[#fff4e5] p-4 shadow-[0_0_0_1px_#e7c48a]">
       <h2 className="text-sm font-semibold">Needs attention</h2>
       <p className="mt-1 text-sm text-muted">
         {attention === 0
@@ -72,12 +73,14 @@ function Overview() {
         <Kpi tone="held" label="Pending withdrawals" hint="Reserve / pay / reject" to="/admin/withdrawals">
           <span className="tabular text-xl font-semibold">{d.pendingWithdrawals}</span>
         </Kpi>
-        <Kpi tone="success" label="Qualified land IDs" hint="Qualification ≠ transfer" to="/admin/qualification">
+        <Kpi tone="success" label="Qualified land IDs" hint="Qualification \u2260 transfer" to="/admin/qualification">
           <span className="tabular text-xl font-semibold">{d.qualifiedLand}</span>
         </Kpi>
       </div>
+      </section>
 
-      <h2 className="mt-8 text-sm font-semibold">Membership</h2>
+      <section className="mt-6 rounded-2xl bg-[#e7f3f0] p-4 shadow-[0_0_0_1px_#9dcec4]">
+      <h2 className="text-sm font-semibold">Membership</h2>
       <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Members" to="/admin/users">{d.totalUsers}</Kpi>
         <Kpi tone="info" label="Active Membership IDs" to="/admin/ids">
@@ -90,8 +93,10 @@ function Overview() {
           {d.totalAccounts}
         </Kpi>
       </div>
+      </section>
 
-      <h2 className="mt-8 text-sm font-semibold">Ledger</h2>
+      <section className="mt-6 rounded-2xl bg-[#e8f0fb] p-4 shadow-[0_0_0_1px_#b7ccea]">
+      <h2 className="text-sm font-semibold">Ledger</h2>
       <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi tone="available" label="Available" hint="Withdrawable when released" to="/admin/wallets">
           <Money amount={d.available} size="lg" />
@@ -106,8 +111,10 @@ function Overview() {
           <Money amount={d.reversed} size="lg" />
         </Kpi>
       </div>
+      </section>
 
-      <h2 className="mt-8 text-sm font-semibold">Package purchases</h2>
+      <section className="mt-6 rounded-2xl bg-[#f6eefe] p-4 shadow-[0_0_0_1px_#d7c2ee]">
+      <h2 className="text-sm font-semibold">Package purchases</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {(["builder", "turbo", "super_turbo", "hyper_turbo"] as const).map((id) => {
           const row = d.packages[id];
@@ -121,6 +128,7 @@ function Overview() {
           );
         })}
       </div>
+      </section>
 
       <h2 className="mt-8 text-sm font-semibold">Level completions</h2>
       <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-9">
