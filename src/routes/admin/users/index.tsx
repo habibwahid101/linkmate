@@ -19,10 +19,16 @@ function Users() {
   const [q, setQ] = useState("");
   const list = useQuery({ queryKey: ["admin", "users"], queryFn: () => adminListUsers() });
   const rows = useMemo(() => {
-    const data = (list.data ?? []).map((u) => ({ ...u, id: u.user_id }));
+    const data = [...(list.data ?? [])].map((u) => ({ ...u, id: u.user_id }));
+    data.sort(
+      (a, b) =>
+        a.display_name.localeCompare(b.display_name, "en", { numeric: true, sensitivity: "base" }) ||
+        a.created_at.localeCompare(b.created_at),
+    );
+    const numbered = data.map((row, index) => ({ ...row, serial: index + 1 }));
     const needle = q.trim().toLowerCase();
-    if (!needle) return data;
-    return data.filter((r) => {
+    if (!needle) return numbered;
+    return numbered.filter((r) => {
       const hay = `${r.display_name} ${r.email ?? ""} ${r.user_id} ${r.referral_code}`.toLowerCase();
       return hay.includes(needle);
     });
@@ -33,7 +39,7 @@ function Users() {
     <div>
       <PageHeader
         title="Accounts"
-        hint="An account is a person. Membership IDs belong to the account and earn independently. Locked platform operators cannot be demoted."
+        hint="Serial follows the account name, so JABED-1, JABED-2, JABED-3 stay in that order."
       />
       <AdminSearch
         value={q}
@@ -48,6 +54,7 @@ function Users() {
         caption="Member accounts"
         onRow={(r) => nav({ to: "/admin/users/$userId", params: { userId: r.user_id } })}
         columns={[
+          { key: "serial", label: "Serial", render: (r) => r.serial },
           { key: "name", label: "Account", render: (r) => r.display_name },
           { key: "email", label: "Email", render: (r) => r.email ?? "—" },
           { key: "role", label: "Role", render: (r) => (r.locked ? `${r.role} · locked` : r.role) },
