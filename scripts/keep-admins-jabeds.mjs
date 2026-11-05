@@ -78,6 +78,21 @@ try {
   );
   const dropMemberIds = dropMembers.rows.map((row) => row.id);
 
+  if (
+    dropMemberIds.length &&
+    (await exists("membership_activation_impacts")) &&
+    (await exists("membership_activation_events"))
+  ) {
+    deleted["membership_activation_impacts.events"] = n(await client.query(
+      `delete from membership_activation_impacts
+       where beneficiary_id = any($1::text[])
+          or event_id in (
+            select id from membership_activation_events where member_id = any($1::text[])
+          )`,
+      [dropMemberIds],
+    ));
+  }
+
   const memberTables = [
     ["membership_activation_impacts", "beneficiary_id"],
     ["membership_activation_events", "member_id"],
@@ -144,6 +159,17 @@ try {
   );
   const dropUserIds = dropUsers.rows.map((row) => row.user_id);
   if (dropUserIds.length) {
+    if (await exists("withdrawal_requests")) {
+      const columns = await client.query(
+        `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'withdrawal_requests'`,
+      );
+      if (columns.rows.some((row) => row.column_name === "owner_user_id")) {
+        deleted.withdrawal_owners = n(await client.query(
+          `delete from withdrawal_requests where owner_user_id = any($1::text[])`,
+          [dropUserIds],
+        ));
+      }
+    }
     if (await exists("session")) {
       await client.query(`delete from "session" where "userId" = any($1::text[])`, [dropUserIds]);
     }
