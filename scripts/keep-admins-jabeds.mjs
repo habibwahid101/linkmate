@@ -137,6 +137,30 @@ try {
       [keepIds],
     ));
   }
+  if (await exists("payments")) {
+    deleted.payments = n(await client.query(
+      `delete from payments where purchase_id in (
+         select id from package_purchases where user_id <> all($1::text[])
+       )`,
+      [keepIds],
+    ));
+  }
+  if (await exists("user_packages")) {
+    deleted.user_packages = n(await client.query(
+      `delete from user_packages
+       where user_id <> all($1::text[])
+          or purchase_id in (
+            select id from package_purchases where user_id <> all($1::text[])
+          )`,
+      [keepIds],
+    ));
+  }
+  if (await exists("purchase_idempotency")) {
+    deleted.purchase_idempotency = n(await client.query(
+      `delete from purchase_idempotency where user_id <> all($1::text[])`,
+      [keepIds],
+    ));
+  }
   if (await exists("package_purchases")) {
     deleted.package_purchases = n(await client.query(
       `delete from package_purchases where user_id <> all($1::text[])`,
