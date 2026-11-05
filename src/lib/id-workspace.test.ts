@@ -170,10 +170,10 @@ test("J. compact list kicks in for 13/22, not for 1 or 4", () => {
 });
 
 test("K. member dashboard copy never teaches generation = level", () => {
-  assert.equal(levelRequirementCopy(1), "3 placed downline IDs");
-  assert.equal(levelRequirementCopy(2), "9 Eligible Downline IDs");
-  assert.equal(levelRequirementCopy(3), "27 Eligible Downline IDs");
-  assert.equal(levelRequirementCopy(9), "324 Eligible Downline IDs");
+  assert.equal(levelRequirementCopy(1), "2 people on this level");
+  assert.equal(levelRequirementCopy(2), "4 people on this level");
+  assert.equal(levelRequirementCopy(3), "8 people on this level");
+  assert.equal(levelRequirementCopy(9), "512 people on this level");
   assert.equal(progressNoun(1), "Placed downline IDs");
   assert.equal(progressNoun(5), "Eligible Downline IDs");
   assert.equal(remainingCopy({ level: 2, completed: 17, required: 27, remaining: 10, status: "IN_PROGRESS" }), "10 IDs remaining");

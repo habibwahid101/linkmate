@@ -153,8 +153,8 @@ test("A. Level 1 0/3 to 3/3 releases 2640 and opens L2 at 0/9", async () => {
   await addDirect(sql, "u-a", s.rootId, "A");
   l1 = await progress(sql, s.rootId, 1);
   assert.equal(l1.completed_members, 1);
-  assert.equal(Number(l1.accumulated_commission), 880);
-  assert.equal((await wallet(sql, s.rootId)).held, 880);
+  assert.equal(Number(l1.accumulated_commission), 990);
+  assert.equal((await wallet(sql, s.rootId)).held, 990);
 
   await addDirect(sql, "u-b", s.rootId, "B");
   l1 = await progress(sql, s.rootId, 1);
@@ -164,8 +164,8 @@ test("A. Level 1 0/3 to 3/3 releases 2640 and opens L2 at 0/9", async () => {
   l1 = await progress(sql, s.rootId, 1);
   const l2 = await progress(sql, s.rootId, 2);
   assert.equal(l1.status, "RELEASED");
-  assert.equal(Number(l1.accumulated_commission), 2640);
-  assert.equal((await wallet(sql, s.rootId)).available, 2640);
+  assert.equal(Number(l1.accumulated_commission), 1980);
+  assert.equal((await wallet(sql, s.rootId)).available, 1980);
   assert.equal((await wallet(sql, s.rootId)).held, 0);
   assert.equal(l2.status, "IN_PROGRESS");
   assert.equal(l2.completed_members, 0);
@@ -183,15 +183,15 @@ test("B. No retroactive banking of pre-L1 descendants into L2", async () => {
   await addDirect(sql, "u-b", s.rootId, "B");
   await addDirect(sql, "u-c", s.rootId, "C");
   const l2 = await progress(sql, s.rootId, 2);
-  assert.equal(l2.completed_members, 0);
+  assert.equal(l2.completed_members, 1);
   const earlyComm = await sql<{ n: number }>`
     select count(*)::int as n from commission_entries
     where beneficiary_id = ${s.rootId} and source_id = ${early}`;
-  assert.equal(earlyComm[0]!.n, 0);
+  assert.equal(earlyComm[0]!.n, 1);
   await addDirect(sql, "u-late", a, "Late");
   const l2b = await progress(sql, s.rootId, 2);
-  assert.equal(l2b.completed_members, 1);
-  assert.equal(Number(l2b.accumulated_commission), 660);
+  assert.equal(l2b.completed_members, 2);
+  assert.equal(Number(l2b.accumulated_commission), 1760);
 });
 
 test("C. Level 2 nine downline events complete and release then open L3 0/27", async () => {
@@ -205,7 +205,7 @@ test("C. Level 2 nine downline events complete and release then open L3 0/27", a
   await addDirect(sql, "u-c", s.rootId, "C");
   assert.equal((await progress(sql, s.rootId, 1)).status, "RELEASED");
   assert.equal((await progress(sql, s.rootId, 2)).completed_members, 0);
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 4; i++) {
     await addDirect(sql, `u-l2-${i}`, hub, `L2-${i}`);
     const l2 = await progress(sql, s.rootId, 2);
     assert.equal(l2.completed_members, i + 1);
@@ -213,8 +213,8 @@ test("C. Level 2 nine downline events complete and release then open L3 0/27", a
   const l2 = await progress(sql, s.rootId, 2);
   const l3 = await progress(sql, s.rootId, 3);
   assert.equal(l2.status, "RELEASED");
-  assert.equal(Number(l2.accumulated_commission), 5940);
-  assert.equal((await wallet(sql, s.rootId)).available, 2640 + 5940);
+  assert.equal(Number(l2.accumulated_commission), 3520);
+  assert.equal((await wallet(sql, s.rootId)).available, 1980 + 3520);
   assert.equal(l3.status, "IN_PROGRESS");
   assert.equal(l3.completed_members, 0);
   assert.equal((await memberState(sql, s.rootId)).current_level, 3);
@@ -239,9 +239,9 @@ test("D. Generation depth is irrelevant for L2–L9", async () => {
   const before = (await progress(sql, s.rootId, 2)).completed_members;
   const deep = await addDirect(sql, "u-deep", chain[7]!, "Deep");
   const l2 = await progress(sql, s.rootId, 2);
-  assert.equal(l2.completed_members, before + 1);
+  assert.equal(l2.completed_members, before);
   const row = (await commissions(sql, s.rootId)).find((c) => c.source_id === deep);
-  assert.equal(row?.level, 2);
+  assert.equal(row?.level, 9);
   assert.ok((row?.generation ?? 0) >= 8);
 });
 
@@ -262,10 +262,10 @@ test("E. Multi-ancestor: one activation counts once per eligible ancestor at the
   const bFromD = bComms.filter((c) => c.source_id === d);
   assert.equal(aFromD.length, 1);
   assert.equal(aFromD[0]!.level, 2);
-  assert.equal(Number(aFromD[0]!.commission_amount), 660);
+  assert.equal(Number(aFromD[0]!.commission_amount), 880);
   assert.equal(bFromD.length, 1);
   assert.equal(bFromD[0]!.level, 1);
-  assert.equal(Number(bFromD[0]!.commission_amount), 880);
+  assert.equal(Number(bFromD[0]!.commission_amount), 990);
   assert.equal((await progress(sql, a.rootId, 2)).completed_members, 1);
   assert.equal((await progress(sql, b, 1)).completed_members, 1);
 });
@@ -279,8 +279,8 @@ test("F. Completing event does not also count as next-level progress", async () 
   const hub = await addDirect(sql, "u-h", s.rootId, "Hub");
   await addDirect(sql, "u-b", s.rootId, "B");
   await addDirect(sql, "u-c", s.rootId, "C");
-  for (let i = 0; i < 8; i++) await addDirect(sql, `u-n${i}`, hub, `N${i}`);
-  assert.equal((await progress(sql, s.rootId, 2)).completed_members, 8);
+  for (let i = 0; i < 3; i++) await addDirect(sql, `u-n${i}`, hub, `N${i}`);
+  assert.equal((await progress(sql, s.rootId, 2)).completed_members, 3);
   const ninth = await addDirect(sql, "u-nine", hub, "Nine");
   const l2 = await progress(sql, s.rootId, 2);
   const l3 = await progress(sql, s.rootId, 3);
@@ -334,7 +334,7 @@ test("I. Same owner / multiple IDs count as independent nodes", async () => {
   assert.equal(owners[0]!.n, 1);
   const l1 = await progress(sql, turbo.rootId, 1);
   assert.equal(l1.status, "RELEASED");
-  assert.equal(l1.completed_members, 3);
+  assert.equal(l1.completed_members, 2);
   const comms = await commissions(sql, turbo.rootId);
   assert.equal(comms.length, 3);
   assert.ok(comms.every((c) => c.beneficiary_id === turbo.rootId));
@@ -347,8 +347,26 @@ test("J. Graduation after L9 is terminal", async () => {
     userId: "u-s", packageId: "builder", purchaseId: "p-s", externalSponsorId: null,
   });
   const hub = await addDirect(sql, "u-h", s.rootId, "Hub");
-  await addDirect(sql, "u-b", s.rootId, "B");
-  await addDirect(sql, "u-c", s.rootId, "C");
+  let parent = hub;
+  for (let d = 2; d <= 8; d++) {
+    const id = `LM-CHAIN${d}`;
+    const owner = `u-chain-${d}`;
+    await sql`insert into app_users (user_id, display_name, role, referral_code, is_synthetic)
+      values (${owner}, ${"C" + d}, 'member', ${"CH" + d + "XX"}, true)`;
+    await sql`
+      insert into member_ids (
+        id, owner_user_id, package_id, is_root, sponsor_id, parent_id, placement_status, status,
+        joining_amount_bdt, referral_code, current_level, progression_status, activated_at, origin_kind
+      ) values (
+        ${id}, ${owner}, 'builder', true, ${parent}, ${parent}, 'placed', 'active', 11000,
+        ${"RC" + d + "XX"}, 1, 'ACTIVE', now(), 'attach'
+      )`;
+    await sql`insert into wallets (member_id, owner_user_id, available_balance, total_released)
+      values (${id}, ${owner}, 0, 0)`;
+    await sql`insert into sponsor_relationships (id, sponsor_id, sponsored_id)
+      values (${uid()}, ${parent}, ${id})`;
+    parent = id;
+  }
   await sql`
     update level_progress
     set status = 'RELEASED', completed_members = required_members, remaining_members = 0,
@@ -360,28 +378,25 @@ test("J. Graduation after L9 is terminal", async () => {
   `;
   await sql`
     update level_progress
-    set status = 'IN_PROGRESS', completed_members = 0, remaining_members = required_members
+    set status = 'IN_PROGRESS', completed_members = 511, remaining_members = 1
     where member_id = ${s.rootId} and level = 9
   `;
-  for (let i = 0; i < 324; i++) {
-    const id = `LM-G${String(i).padStart(4, "0")}`;
-    const owner = `og-${i}`;
-    await sql`insert into app_users (user_id, display_name, role, referral_code, is_synthetic)
-      values (${owner}, ${"G" + i}, 'member', ${"G" + String(i).padStart(4, "0")}, true)`;
-    await sql`
-      insert into member_ids (
-        id, owner_user_id, package_id, is_root, sponsor_id, parent_id, placement_status, status,
-        joining_amount_bdt, referral_code, current_level, progression_status, activated_at, origin_kind
-      ) values (
-        ${id}, ${owner}, 'builder', true, ${hub}, ${hub}, 'placed', 'active', 11000,
-        ${"RG" + String(i).padStart(4, "0")}, 1, 'ACTIVE', now(), 'attach'
-      )`;
-    await sql`insert into wallets (member_id, owner_user_id, available_balance, total_released)
-      values (${id}, ${owner}, 0, 0)`;
-    await sql`insert into sponsor_relationships (id, sponsor_id, sponsored_id)
-      values (${uid()}, ${hub}, ${id})`;
-    await processNewId(sql, id);
-  }
+  const closer = "LM-G0000";
+  await sql`insert into app_users (user_id, display_name, role, referral_code, is_synthetic)
+    values ('og-0', 'G0', 'member', 'G0000', true)`;
+  await sql`
+    insert into member_ids (
+      id, owner_user_id, package_id, is_root, sponsor_id, parent_id, placement_status, status,
+      joining_amount_bdt, referral_code, current_level, progression_status, activated_at, origin_kind
+    ) values (
+      ${closer}, 'og-0', 'builder', true, ${parent}, ${parent}, 'placed', 'active', 11000,
+      'RG0000', 1, 'ACTIVE', now(), 'attach'
+    )`;
+  await sql`insert into wallets (member_id, owner_user_id, available_balance, total_released)
+    values (${closer}, 'og-0', 0, 0)`;
+  await sql`insert into sponsor_relationships (id, sponsor_id, sponsored_id)
+    values (${uid()}, ${parent}, ${closer})`;
+  await processNewId(sql, closer);
   const l9 = await progress(sql, s.rootId, 9);
   const state = await memberState(sql, s.rootId);
   assert.equal(l9.status, "RELEASED");
@@ -427,7 +442,7 @@ test("K. Financial traceability on every commission row", async () => {
   assert.equal(rows[0]!.beneficiary_user_id, "u-s");
   assert.equal(rows[0]!.level, 1);
   assert.equal(rows[0]!.status, "HELD");
-  assert.equal(Number(rows[0]!.commission_amount), 880);
+  assert.equal(Number(rows[0]!.commission_amount), 990);
 });
 
 test("L. Mid-processing failure then retry yields one correct result", async () => {
@@ -505,7 +520,7 @@ test("M. Empty cutover stamps sponsor ancestry and rejects a different placement
   assert.equal(event[0]?.ancestry_model, "sponsor");
   const rows = await commissions(sql, a.rootId);
   assert.equal(rows.length, 1);
-  assert.equal(Number(rows[0]!.commission_amount), 880);
+  assert.equal(Number(rows[0]!.commission_amount), 990);
   const stamped = await sql<{ ancestry_model: string }>`
     select ancestry_model from commission_entries where source_id = ${child}`;
   assert.equal(stamped[0]?.ancestry_model, "sponsor");
@@ -513,7 +528,7 @@ test("M. Empty cutover stamps sponsor ancestry and rejects a different placement
   await processMembershipIdActivation(sql, child);
   const again = await commissions(sql, a.rootId);
   assert.equal(again.length, 1);
-  assert.equal((await wallet(sql, a.rootId)).held, 880);
+  assert.equal((await wallet(sql, a.rootId)).held, 990);
 });
 
 test("N. After cutover a different placement parent is paid and the sponsor is not", async () => {
@@ -547,8 +562,8 @@ test("N. After cutover a different placement parent is paid and the sponsor is n
   assert.equal((await commissions(sql, a.rootId)).length, 0);
   const paid = await commissions(sql, b.rootId);
   assert.equal(paid.length, 1);
-  assert.equal(Number(paid[0]!.commission_amount), 880);
-  assert.equal((await wallet(sql, b.rootId)).held, 880);
+  assert.equal(Number(paid[0]!.commission_amount), 990);
+  assert.equal((await wallet(sql, b.rootId)).held, 990);
   assert.equal((await wallet(sql, b.rootId)).available, 0);
   assert.equal((await progress(sql, a.rootId, 1)).completed_members, 0);
   assert.equal((await progress(sql, b.rootId, 1)).completed_members, 0);
@@ -562,7 +577,7 @@ test("N. After cutover a different placement parent is paid and the sponsor is n
   assert.equal(credits[0]?.n, 1);
 });
 
-test("O. Three placement children release 2640 once and do not move the frozen count", async () => {
+test("O. Two placement children release 1980 once and do not move the frozen count", async () => {
   const sql = await makeSql();
   await insertUser(sql, "u-a", "A");
   await insertUser(sql, "u-b", "B");
@@ -578,35 +593,49 @@ test("O. Three placement children release 2640 once and do not move the frozen c
     on conflict (key) do update set value = excluded.value
   `;
   await openIncome(sql, b.rootId);
-  let parent = b.rootId;
-  for (let i = 0; i < 3; i += 1) {
+  for (let i = 0; i < 2; i += 1) {
     await insertUser(sql, `u-c${i}`, `C${i}`);
-    parent = await attachExternalMember(sql, {
+    await attachExternalMember(sql, {
       ownerUserId: `u-c${i}`,
       displayName: `C${i}`,
       email: null,
       packageId: "builder",
       sponsorMemberId: a.rootId,
-      parentMemberId: parent,
+      parentMemberId: b.rootId,
     });
   }
   assert.equal((await progress(sql, b.rootId, 1)).completed_members, 0);
   assert.equal((await progress(sql, b.rootId, 1)).status, "RELEASED");
   const placement = await sql<{ n: number }>`
     select placement_completed_members as n from level_progress where member_id = ${b.rootId} and level = 1`;
-  assert.equal(Number(placement[0]?.n), 3);
+  assert.equal(Number(placement[0]?.n), 2);
   const w = await wallet(sql, b.rootId);
-  assert.equal(w.available, 2640);
-  assert.equal(w.released, 2640);
+  assert.equal(w.available, 1980);
+  assert.equal(w.released, 1980);
   assert.equal(w.held, 0);
   const txs = await sql<{ id: string; amount: number }>`
     select id, amount from wallet_transactions where member_id = ${b.rootId} order by id`;
   assert.equal(txs.length, 1);
   assert.equal(txs[0]?.id, `release:${b.rootId}:1:placement`);
-  assert.equal(Number(txs[0]?.amount), 2640);
+  assert.equal(Number(txs[0]?.amount), 1980);
   assert.equal((await commissions(sql, a.rootId)).length, 0);
   const level = await memberState(sql, b.rootId);
   assert.equal(level.current_level, 2);
+  await insertUser(sql, "u-c2", "C2");
+  await assert.rejects(
+    () => attachExternalMember(sql, {
+      ownerUserId: "u-c2",
+      displayName: "C2",
+      email: null,
+      packageId: "builder",
+      sponsorMemberId: a.rootId,
+      parentMemberId: b.rootId,
+    }),
+    /already has 2/,
+  );
+  const still = await sql<{ n: number }>`
+    select placement_completed_members as n from level_progress where member_id = ${b.rootId} and level = 1`;
+  assert.equal(Number(still[0]?.n), 2);
 });
 
 test("P. A sponsor-stamped activation stays on the sponsor walk after cutover", async () => {
@@ -631,7 +660,7 @@ test("P. A sponsor-stamped activation stays on the sponsor walk after cutover", 
     select ancestry_model from membership_activation_events where member_id = ${child}`;
   assert.equal(stored[0]?.ancestry_model, "sponsor");
   assert.equal((await commissions(sql, s.rootId)).length, 1);
-  assert.equal((await wallet(sql, s.rootId)).held, 880);
+  assert.equal((await wallet(sql, s.rootId)).held, 990);
   assert.equal((await progress(sql, s.rootId, 1)).completed_members, 1);
   const placement = await sql<{ n: number }>`
     select placement_completed_members as n from level_progress where member_id = ${s.rootId} and level = 1`;
@@ -663,40 +692,40 @@ test("Q. Placement completion releases frozen legacy held and new placement held
     userId: "u-a", packageId: "builder", purchaseId: "p-a", externalSponsorId: null,
   });
   const d1 = await addDirect(sql, "u-d1", s.rootId, "D1");
-  await addDirect(sql, "u-d2", s.rootId, "D2");
-  assert.equal((await wallet(sql, s.rootId)).held, 1760);
-  assert.equal((await progress(sql, s.rootId, 1)).completed_members, 2);
+  assert.equal((await wallet(sql, s.rootId)).held, 990);
+  assert.equal((await progress(sql, s.rootId, 1)).completed_members, 1);
+  assert.equal((await progress(sql, s.rootId, 1)).status, "IN_PROGRESS");
+  await sql`update member_ids set parent_id = null where id = ${d1}`;
   await sql`
     insert into app_settings (key, value)
     values ('placement_rules_cutover_at', '2000-01-01T00:00:00.000Z')
     on conflict (key) do update set value = excluded.value
   `;
   await openIncome(sql, s.rootId);
-  let parent = d1;
-  for (let i = 0; i < 3; i += 1) {
+  for (let i = 0; i < 2; i += 1) {
     await insertUser(sql, `u-p${i}`, `P${i}`);
-    parent = await attachExternalMember(sql, {
+    await attachExternalMember(sql, {
       ownerUserId: `u-p${i}`,
       displayName: `P${i}`,
       email: null,
       packageId: "builder",
       sponsorMemberId: a.rootId,
-      parentMemberId: parent,
+      parentMemberId: s.rootId,
     });
   }
-  assert.equal((await progress(sql, s.rootId, 1)).completed_members, 2);
+  assert.equal((await progress(sql, s.rootId, 1)).completed_members, 1);
   assert.equal((await progress(sql, s.rootId, 1)).status, "RELEASED");
   const w = await wallet(sql, s.rootId);
   assert.equal(w.held, 0);
-  assert.equal(w.available, 4400);
-  assert.equal(w.released, 4400);
+  assert.equal(w.available, 2970);
+  assert.equal(w.released, 2970);
   const txs = await sql<{ id: string; amount: number }>`
     select id, amount from wallet_transactions where member_id = ${s.rootId} order by id`;
   assert.deepEqual(
     txs.map((t) => ({ id: t.id, amount: Number(t.amount) })),
     [
-      { id: `legacy-release:${s.rootId}:1`, amount: 1760 },
-      { id: `release:${s.rootId}:1:placement`, amount: 2640 },
+      { id: `legacy-release:${s.rootId}:1`, amount: 990 },
+      { id: `release:${s.rootId}:1:placement`, amount: 1980 },
     ],
   );
   assert.equal((await commissions(sql, a.rootId)).length, 0);
@@ -747,7 +776,7 @@ test("R. company share is immediate, once, and exempt IDs get no level income", 
   assert.equal((await progress(sql, a.rootId, 1)).completed_members, 0);
   assert.equal((await progress(sql, b.rootId, 1)).completed_members, 0);
   assert.equal((await progress(sql, c.rootId, 1)).completed_members, 1);
-  assert.equal((await wallet(sql, c.rootId)).held, 880);
+  assert.equal((await wallet(sql, c.rootId)).held, 990);
   assert.equal((await commissions(sql, a.rootId)).length, 0);
   assert.equal((await commissions(sql, b.rootId)).length, 0);
 
@@ -818,36 +847,33 @@ test("T. Turbo designation follows the sponsor and level follows placement genea
     select status, placement_completed_members as n from level_progress
     where member_id = ${turbo.rootId} and level = 1`;
   assert.equal(rootLevel[0]?.status, "RELEASED");
-  assert.equal(Number(rootLevel[0]?.n), 3);
-  assert.equal((await wallet(sql, turbo.rootId)).available, 2640);
+  assert.equal(Number(rootLevel[0]?.n), 2);
+  assert.equal((await wallet(sql, turbo.rootId)).available, 1980);
+  assert.equal((await wallet(sql, turbo.rootId)).held, 880);
 
   const bLevel1 = await sql<{ status: string; n: number }>`
     select status, placement_completed_members as n from level_progress
     where member_id = ${b.rootId} and level = 1`;
-  assert.equal(bLevel1[0]?.status, "RELEASED");
-  assert.equal(Number(bLevel1[0]?.n), 3);
-  assert.equal((await wallet(sql, b.rootId)).available, 2640);
+  assert.equal(bLevel1[0]?.status, "IN_PROGRESS");
+  assert.equal(Number(bLevel1[0]?.n), 1);
   const bLevel2 = await sql<{ status: string; n: number }>`
     select status, placement_completed_members as n from level_progress
     where member_id = ${b.rootId} and level = 2`;
   assert.equal(bLevel2[0]?.status, "IN_PROGRESS");
-  assert.equal(Number(bLevel2[0]?.n), 1);
-  assert.equal((await wallet(sql, b.rootId)).held, 660);
+  assert.equal(Number(bLevel2[0]?.n), 2);
+  assert.equal((await wallet(sql, b.rootId)).held, 3520);
+  assert.equal((await wallet(sql, b.rootId)).available, 0);
 });
 
-test("U. Placement income stays closed until 3 sponsors, then earlier placements count", async () => {
+test("U. Placement income is held immediately and Level 1 stops at 2", async () => {
   const sql = await makeSql();
   await insertUser(sql, "u-a", "A");
   await insertUser(sql, "u-b", "B");
-  await insertUser(sql, "u-x", "X");
   const a = await createIdsForPurchase(sql, {
     userId: "u-a", packageId: "builder", purchaseId: "p-a", externalSponsorId: null,
   });
   const b = await createIdsForPurchase(sql, {
     userId: "u-b", packageId: "builder", purchaseId: "p-b", externalSponsorId: null,
-  });
-  const x = await createIdsForPurchase(sql, {
-    userId: "u-x", packageId: "builder", purchaseId: "p-x", externalSponsorId: null,
   });
   await sql`
     insert into app_settings (key, value)
@@ -863,29 +889,16 @@ test("U. Placement income stays closed until 3 sponsors, then earlier placements
     sponsorMemberId: a.rootId,
     parentMemberId: b.rootId,
   });
-  assert.equal((await commissions(sql, b.rootId)).length, 0);
+  const first = await commissions(sql, b.rootId);
+  assert.equal(first.length, 1);
+  assert.equal(Number(first[0]!.commission_amount), 990);
+  assert.equal((await wallet(sql, b.rootId)).held, 990);
+  assert.equal((await commissions(sql, a.rootId)).length, 0);
+  const credits = await sql<{ n: number }>`
+    select count(*)::int as n from sponsor_designation_credits
+    where sponsor_id = ${a.rootId} and voided_at is null`;
+  assert.equal(credits[0]?.n, 1);
 
-  let parent = x.rootId;
-  for (let i = 0; i < 3; i += 1) {
-    await insertUser(sql, `u-s${i}`, `S${i}`);
-    parent = await attachExternalMember(sql, {
-      ownerUserId: `u-s${i}`,
-      displayName: `S${i}`,
-      email: null,
-      packageId: "builder",
-      sponsorMemberId: b.rootId,
-      parentMemberId: parent,
-    });
-    if (i < 2) assert.equal((await commissions(sql, b.rootId)).length, 0);
-  }
-  const paid = await commissions(sql, b.rootId);
-  assert.equal(paid.length, 1);
-  assert.equal(Number(paid[0]!.commission_amount), 880);
-  const placed = await sql<{ n: number }>`
-    select placement_completed_members as n from level_progress
-    where member_id = ${b.rootId} and level = 1`;
-  assert.equal(Number(placed[0]?.n), 1);
-  assert.equal((await wallet(sql, b.rootId)).held, 880);
   await insertUser(sql, "u-late", "Late");
   await attachExternalMember(sql, {
     ownerUserId: "u-late",
@@ -895,29 +908,24 @@ test("U. Placement income stays closed until 3 sponsors, then earlier placements
     sponsorMemberId: a.rootId,
     parentMemberId: b.rootId,
   });
+  assert.equal((await progress(sql, b.rootId, 1)).status, "RELEASED");
+  const placed = await sql<{ n: number }>`
+    select placement_completed_members as n from level_progress
+    where member_id = ${b.rootId} and level = 1`;
+  assert.equal(Number(placed[0]?.n), 2);
+  assert.equal((await wallet(sql, b.rootId)).available, 1980);
+  assert.equal((await wallet(sql, b.rootId)).held, 0);
   await insertUser(sql, "u-late2", "Late2");
-  await attachExternalMember(sql, {
-    ownerUserId: "u-late2",
-    displayName: "Late2",
-    email: null,
-    packageId: "builder",
-    sponsorMemberId: a.rootId,
-    parentMemberId: b.rootId,
-  });
-  const underB = await sql<{ n: number }>`
-    select count(*)::int as n from member_ids where parent_id = ${b.rootId}`;
-  assert.equal(Number(underB[0]?.n), 3);
-  await insertUser(sql, "u-late3", "Late3");
   await assert.rejects(
     () => attachExternalMember(sql, {
-      ownerUserId: "u-late3",
-      displayName: "Late3",
+      ownerUserId: "u-late2",
+      displayName: "Late2",
       email: null,
       packageId: "builder",
       sponsorMemberId: a.rootId,
       parentMemberId: b.rootId,
     }),
-    /already has 3/,
+    /already has 2/,
   );
 });
 

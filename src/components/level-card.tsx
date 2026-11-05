@@ -86,6 +86,13 @@ export function LevelCard({ row, compact = false }: { row: LevelRow; compact?: b
               {formatBdt(row.accumulated_commission)}{" "}
               <span className="text-muted">/ {formatBdt(row.expected_full_commission)}</span>
             </p>
+            <p className="mt-1 max-w-xs text-[13px] leading-relaxed text-muted">
+              {row.status === "RELEASED"
+                ? "This level is full. This amount is in the wallet."
+                : row.accumulated_commission > 0
+                  ? "This amount is held. It moves to the wallet when this level is full."
+                  : "Nothing is held on this level yet."}
+            </p>
           </div>
           <div className="text-right">
             <p className="text-[13px] text-muted">Wallet release</p>

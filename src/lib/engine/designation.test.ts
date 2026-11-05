@@ -85,19 +85,19 @@ test("a package credits the root to the external sponsor and the inner IDs to th
   });
 
   assert.equal(await countDesignationCredits(sql, sponsor.rootId), 1);
-  assert.equal(await countDesignationCredits(sql, turbo.rootId), 3);
+  assert.equal(await countDesignationCredits(sql, turbo.rootId), 2);
   const edges = await sql<{ n: number }>`
     select count(*)::int as n from sponsor_relationships where sponsor_id = ${turbo.rootId}
   `;
-  assert.equal(edges[0]?.n, 3);
+  assert.equal(edges[0]?.n, 2);
 
   const held = await sql<{ n: number; amount: number }>`
     select count(*)::int as n, coalesce(sum(commission_amount), 0)::int as amount
     from commission_entries
     where beneficiary_id = ${sponsor.rootId} and status = 'HELD'
   `;
-  assert.equal(held[0]?.n, 1);
-  assert.equal(held[0]?.amount, 880);
+  assert.equal(held[0]?.n, 4);
+  assert.equal(held[0]?.amount, 3520);
 
   await createIdsForPurchase(sql, {
     userId: "u-buyer",

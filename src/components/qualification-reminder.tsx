@@ -11,7 +11,7 @@ export function QualificationReminder({ compact = false }: { compact?: boolean }
     >
       <p className="kicker text-success">Land Benefit Qualification</p>
       <p className={cn("font-medium", compact ? "mt-1.5 text-[15px]" : "mt-2 text-base")}>
-        Mandatory: Sponsor 3 + Complete Level 9
+        Complete Level 9 to qualify for 1 Decimal Land. Held commission stays out of the wallet until its own level is full.
       </p>
       <p className="mt-1 text-[15px] leading-relaxed text-muted">
         Qualified benefit: 1 Decimal Land. Subject to applicable allocation and transfer terms.

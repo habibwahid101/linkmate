@@ -22,6 +22,7 @@ jobs:
     env:
       AWS_REGION: ap-south-1
       EC2_INSTANCE_ID: i-0d5882a956e4d3981
+      RDS_ID: linkmate-prod-pg
       TF_GITHUB_DEPLOY_ROLE_ARN: arn:aws:iam::364410974458:role/linkmate-prod-github-deploy
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +40,26 @@ jobs:
           role-to-assume: ${{ env.TF_GITHUB_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
+      - name: Record RDS recovery point
+        continue-on-error: true
+        run: |
+          set +e
+          aws rds describe-db-instances --db-instance-identifier "$RDS_ID" \
+            --query 'DBInstances[0].{Id:DBInstanceIdentifier,Status:DBInstanceStatus,BackupRetention:BackupRetentionPeriod,LatestRestorable:LatestRestorableTime}' \
+            --output json
+          echo "RDS_NOTE Automated PITR remains the recovery point if snapshot permission is missing."
+      - name: Create manual snapshot before apply
+        if: ${{ github.event.inputs.apply == '1' }}
+        continue-on-error: true
+        run: |
+          set +e
+          SNAP="linkmate-keep-admins-jabeds-$(date -u +%Y%m%d%H%M)"
+          echo "SNAPSHOT=$SNAP"
+          aws rds create-db-snapshot \
+            --db-instance-identifier "$RDS_ID" \
+            --db-snapshot-identifier "$SNAP" \
+            --tags Key=purpose,Value=keep-admins-jabeds
+          echo "SNAPSHOT_CREATE_EXIT=$?"
       - name: Inventory or wipe
         env:
           APPLY: ${{ github.event.inputs.apply }}

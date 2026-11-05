@@ -43,10 +43,10 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-title", content: APP_NAME },
       {
         name: "description",
-        content: "Link Mate membership from \u09f311,000. Sponsor 3 and complete Level 9 to qualify for 1 Decimal Land, subject to allocation terms.",
+        content: "Link Mate membership from ৳11,000. Complete Level 9 to qualify for 1 Decimal Land. Commission is held until that level is full.",
       },
       { property: "og:title", content: "Link Mate Global" },
-      { property: "og:description", content: "Link Mate membership from \u09f311,000. Sponsor 3 and complete Level 9 to qualify for 1 Decimal Land, subject to allocation terms." },
+      { property: "og:description", content: "Link Mate membership from ৳11,000. Complete Level 9 to qualify for 1 Decimal Land. Commission is held until that level is full." },
       { property: "og:image", content: "https://linkmateglobal.com/logo-mark.png" },
       { property: "og:image:alt", content: "Link Mate logo" },
       { property: "og:type", content: "website" },

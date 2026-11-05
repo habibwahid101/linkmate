@@ -281,7 +281,7 @@ export function assertPlacementParentAllowed(
   }
 }
 
-/** After cutover, a new external ID can be placed under an ID that has fewer than 3 direct children. */
+/** After cutover, a BIN can hold only 2 people on its own Level 1. */
 export async function assertPlacementParentIsLeaf(
   sql: Sql,
   parentId: string | null,
@@ -292,8 +292,9 @@ export async function assertPlacementParentIsLeaf(
   const rows = await sql<{ n: number }>`
     select count(*)::int as n from member_ids where parent_id = ${parentId}
   `;
-  if (Number(rows[0]?.n ?? 0) >= 3) {
-    throw new Error("This ID already has 3 people under it. Place under an ID that has fewer than 3.");
+  const cap = LEVELS[0]!.requiredMembers;
+  if (Number(rows[0]?.n ?? 0) >= cap) {
+    throw new Error("This BIN already has 2 people on Level 1. Place the next person under one of them.");
   }
 }
 
@@ -552,10 +553,20 @@ export async function settleOpenPlacementLevel(
   const gate = ready[0];
   if (!gate || gate.status === "RELEASED" || gate.status === "LOCKED") return { released: false };
   if (Number(gate.placement_completed_members) < Number(gate.required_members)) return { released: false };
+  if (level > 1) {
+    const prev = await sql<{ status: string }>`
+      select status from level_progress where member_id = ${memberId} and level = ${level - 1}
+    `;
+    if (prev[0]?.status !== "RELEASED") return { released: false };
+  }
   if (typeof sql.withTransaction !== "function") {
     throw new Error("Placement release requires a database transaction");
   }
-  return sql.withTransaction((tx) => settleOpenPlacementLevelTx(tx, memberId, level, opts));
+  const result = await sql.withTransaction((tx) => settleOpenPlacementLevelTx(tx, memberId, level, opts));
+  if (result.released && level < 9) {
+    await settleOpenPlacementLevel(sql, memberId, level + 1, opts);
+  }
+  return result;
 }
 
 async function settleOpenPlacementLevelTx(
@@ -593,6 +604,12 @@ async function settleOpenPlacementLevelTx(
   if (!row) return { released: false };
   if (row.status === "RELEASED" || row.status === "LOCKED") return { released: false };
   if (Number(row.placement_completed_members) < Number(row.required_members)) return { released: false };
+  if (level > 1) {
+    const prev = await sql<{ status: string }>`
+      select status from level_progress where member_id = ${memberId} and level = ${level - 1} for update
+    `;
+    if (prev[0]?.status !== "RELEASED") return { released: false };
+  }
 
   fail("before-placement-claim");
 
@@ -706,57 +723,12 @@ async function applyActivationImpact(
     const beneficiary = locked[0];
     if (!beneficiary) return { applied: false, completedLevel: null };
     if (beneficiary.progression_status === "GRADUATED") return { applied: false, completedLevel: null };
-    if (model === "placement" && await directSponsorCount(sql, beneficiary.id, memo) < 3) {
-      return { applied: false, completedLevel: null };
-    }
 
-    const currentLevel = Number(beneficiary.current_level ?? 1);
-    if (currentLevel < 1 || currentLevel > 9) return { applied: false, completedLevel: null };
+    const level = hop.generation;
+    if (level < 1 || level > 9) return { applied: false, completedLevel: null };
     const isDirect =
       model === "placement" ? source.parent_id === beneficiary.id : source.sponsor_id === beneficiary.id;
-    // Placement level 1 counts every ID in the genealogy, not only direct children.
-    // Sponsor-stamped history stays direct-only.
-    if (model !== "placement" && currentLevel === 1 && !isDirect) return { applied: false, completedLevel: null };
-
-    const eventPk = activationEventId(source.id);
-    const kind = currentLevel === 1 && isDirect ? "L1_DIRECT" : "DOWNLINE";
-    const levelRule = getLevel(currentLevel);
-    const amount = commissionPerMember(joiningAmount, levelRule.rate);
-    const commEventId = joinEventId(source.id, beneficiary.id);
-    const insertedComm = await sql<{ id: string }>`
-      insert into commission_entries (
-        id, event_id, beneficiary_user_id, beneficiary_id, source_user_id, source_id,
-        source_joining_amount, generation, level, commission_rate, commission_amount,
-        status, rule_version, ancestry_model
-      ) values (
-        ${uid()}, ${commEventId}, ${beneficiary.owner_user_id}, ${beneficiary.id},
-        ${source.owner_user_id}, ${source.id}, ${joiningAmount},
-        ${hop.generation}, ${currentLevel}, ${levelRule.rate}, ${amount},
-        'HELD', ${RULE_VERSION}, ${model}
-      )
-      on conflict (event_id) do nothing
-      returning id
-    `;
-    if (insertedComm.length === 0) return { applied: false, completedLevel: null };
-
-    const impactInsert = await sql<{ id: string }>`
-      insert into membership_activation_impacts (
-        id, event_id, beneficiary_id, beneficiary_owner_user_id, level, kind, commission_entry_id
-      ) values (
-        ${uid()}, ${eventPk}, ${beneficiary.id}, ${beneficiary.owner_user_id}, ${currentLevel}, ${kind},
-        ${insertedComm[0]!.id}
-      )
-      on conflict (event_id, beneficiary_id) do nothing
-      returning id
-    `;
-    if (impactInsert.length === 0) return { applied: false, completedLevel: null };
-
-    await sql`
-      insert into held_commissions (member_id, owner_user_id, level, amount)
-      values (${beneficiary.id}, ${beneficiary.owner_user_id}, ${currentLevel}, ${amount})
-      on conflict (member_id, level) do update
-        set amount = held_commissions.amount + excluded.amount
-    `;
+    if (model !== "placement" && level === 1 && !isDirect) return { applied: false, completedLevel: null };
 
     const prog = await sql<{
       completed_members: number;
@@ -768,15 +740,56 @@ async function applyActivationImpact(
       select completed_members, placement_completed_members, required_members,
              accumulated_commission, status
       from level_progress
-      where member_id = ${beneficiary.id} and level = ${currentLevel}
+      where member_id = ${beneficiary.id} and level = ${level}
       for update
     `;
     const row = prog[0];
-    if (!row || row.status === "RELEASED") return { applied: true, completedLevel: null };
-
+    if (!row || row.status === "RELEASED") return { applied: false, completedLevel: null };
     const required = Number(row.required_members);
     const priorCount =
       model === "placement" ? Number(row.placement_completed_members) : Number(row.completed_members);
+    if (priorCount >= required) return { applied: false, completedLevel: null };
+
+    const eventPk = activationEventId(source.id);
+    const kind = level === 1 && isDirect ? "L1_DIRECT" : "DOWNLINE";
+    const levelRule = getLevel(level);
+    const amount = commissionPerMember(joiningAmount, levelRule.rate);
+    const commEventId = joinEventId(source.id, beneficiary.id);
+    const insertedComm = await sql<{ id: string }>`
+      insert into commission_entries (
+        id, event_id, beneficiary_user_id, beneficiary_id, source_user_id, source_id,
+        source_joining_amount, generation, level, commission_rate, commission_amount,
+        status, rule_version, ancestry_model
+      ) values (
+        ${uid()}, ${commEventId}, ${beneficiary.owner_user_id}, ${beneficiary.id},
+        ${source.owner_user_id}, ${source.id}, ${joiningAmount},
+        ${hop.generation}, ${level}, ${levelRule.rate}, ${amount},
+        'HELD', ${RULE_VERSION}, ${model}
+      )
+      on conflict (event_id) do nothing
+      returning id
+    `;
+    if (insertedComm.length === 0) return { applied: false, completedLevel: null };
+
+    const impactInsert = await sql<{ id: string }>`
+      insert into membership_activation_impacts (
+        id, event_id, beneficiary_id, beneficiary_owner_user_id, level, kind, commission_entry_id
+      ) values (
+        ${uid()}, ${eventPk}, ${beneficiary.id}, ${beneficiary.owner_user_id}, ${level}, ${kind},
+        ${insertedComm[0]!.id}
+      )
+      on conflict (event_id, beneficiary_id) do nothing
+      returning id
+    `;
+    if (impactInsert.length === 0) return { applied: false, completedLevel: null };
+
+    await sql`
+      insert into held_commissions (member_id, owner_user_id, level, amount)
+      values (${beneficiary.id}, ${beneficiary.owner_user_id}, ${level}, ${amount})
+      on conflict (member_id, level) do update
+        set amount = held_commissions.amount + excluded.amount
+    `;
+
     const nextCount = priorCount + 1;
     const remaining = Math.max(0, required - nextCount);
     const accumulated = Number(row.accumulated_commission) + amount;
@@ -788,16 +801,16 @@ async function applyActivationImpact(
           remaining_members = ${remaining},
           accumulated_commission = ${accumulated},
           status = 'IN_PROGRESS'
-        where member_id = ${beneficiary.id} and level = ${currentLevel}
+        where member_id = ${beneficiary.id} and level = ${level}
       `;
       if (appliedCount) appliedCount.n += 1;
       if (failAfter != null && appliedCount && appliedCount.n >= failAfter) {
         throw new Error("ACTIVATION_TEST_FAILURE");
       }
       if (nextCount >= required) {
-        await settleOpenPlacementLevel(sql, beneficiary.id, currentLevel, { memo });
+        await settleOpenPlacementLevel(sql, beneficiary.id, level, { memo });
       }
-      return { applied: true, completedLevel: nextCount >= required ? currentLevel : null };
+      return { applied: true, completedLevel: nextCount >= required ? level : null };
     }
 
     if (nextCount < required) {
@@ -807,13 +820,13 @@ async function applyActivationImpact(
           remaining_members = ${remaining},
           accumulated_commission = ${accumulated},
           status = 'IN_PROGRESS'
-        where member_id = ${beneficiary.id} and level = ${currentLevel}
+        where member_id = ${beneficiary.id} and level = ${level}
       `;
       if (appliedCount) appliedCount.n += 1;
       if (failAfter != null && appliedCount && appliedCount.n >= failAfter) {
         throw new Error("ACTIVATION_TEST_FAILURE");
       }
-      if (currentLevel === 1) {
+      if (level === 1) {
         await notify(
           sql,
           beneficiary.owner_user_id,
@@ -832,17 +845,17 @@ async function applyActivationImpact(
         accumulated_commission = ${accumulated},
         status = 'COMPLETED',
         completed_at = coalesce(completed_at, now())
-      where member_id = ${beneficiary.id} and level = ${currentLevel}
+      where member_id = ${beneficiary.id} and level = ${level}
     `;
     if (!(await placementCutoverActive(sql, memo))) {
-      await releaseLevel(sql, beneficiary, currentLevel);
-      await advanceAfterCompletion(sql, beneficiary, currentLevel);
+      await releaseLevel(sql, beneficiary, level);
+      await advanceAfterCompletion(sql, beneficiary, level);
     }
     if (appliedCount) appliedCount.n += 1;
     if (failAfter != null && appliedCount && appliedCount.n >= failAfter) {
       throw new Error("ACTIVATION_TEST_FAILURE");
     }
-    return { applied: true, completedLevel: currentLevel };
+    return { applied: true, completedLevel: level };
   });
 }
 

@@ -28,9 +28,9 @@ export const PACKAGES: Record<PackageId, PackageRule> = {
     name: "Builder",
     amountBdt: 11_000,
     idCount: 1,
-    placementRuleVersion: "v1",
-    structureSummary: "1 ID. You are the root. Level 1 requires 3 personal sponsors.",
-    receives: "One membership ID. Invite 3 direct members to complete Level 1.",
+    placementRuleVersion: "v3-level-caps",
+    structureSummary: "1 ID. You are the root. Level 1 holds 2 people.",
+    receives: "One membership ID. Two people on Level 1 complete that level and release its commission.",
     locked: true,
   },
   turbo: {
@@ -38,10 +38,9 @@ export const PACKAGES: Record<PackageId, PackageRule> = {
     name: "Turbo",
     amountBdt: 44_000,
     idCount: 4,
-    placementRuleVersion: "v1",
-    structureSummary: "4 IDs — 1 root ID + 3 internal Level-1 IDs.",
-    receives:
-      "Four IDs. Your first ID internally sponsors the other three, which can complete its Level 1.",
+    placementRuleVersion: "v3-level-caps",
+    structureSummary: "4 IDs — 1 root, 2 on Level 1, and the 3rd internal ID on Level 2.",
+    receives: "Four IDs. Level 1 holds only 2 people. The extra ID sits on the next level.",
     locked: true,
   },
   super_turbo: {
@@ -49,10 +48,9 @@ export const PACKAGES: Record<PackageId, PackageRule> = {
     name: "Super Turbo",
     amountBdt: 143_000,
     idCount: 13,
-    placementRuleVersion: "v1",
-    structureSummary: "13 IDs — 1 root + 3 first generation + 9 second generation.",
-    receives:
-      "Thirteen IDs placed as 1 root, 3 under the root, and 9 under those positions.",
+    placementRuleVersion: "v3-level-caps",
+    structureSummary: "13 IDs. Each level holds its own people: 2, then 4, then the rest on the next level.",
+    receives: "Thirteen IDs. No level holds more people than its cap. Extra IDs move to the next level.",
     locked: true,
   },
   hyper_turbo: {
@@ -60,11 +58,9 @@ export const PACKAGES: Record<PackageId, PackageRule> = {
     name: "Hyper Turbo",
     amountBdt: 242_000,
     idCount: 22,
-    placementRuleVersion: "v2-middle-sponsors-final-9",
-    structureSummary:
-      "22 IDs — 1 root + 3 + 9, then the middle ID of each gen-2 group sponsors 3 of the final 9.",
-    receives:
-      "Twenty-two IDs. All are placed: 1 root, 3 under the root, 9 under those, and 9 under the middle ID of each trio.",
+    placementRuleVersion: "v3-level-caps",
+    structureSummary: "22 IDs. Filled in level order: 2, 4, 8, then the rest on the next level.",
+    receives: "Twenty-two IDs. A level never holds more than its cap. The extra ID moves down.",
     locked: true,
   },
 };
@@ -81,15 +77,15 @@ export type LevelRule = {
 };
 
 export const LEVELS: readonly LevelRule[] = [
-  { level: 1, generation: 1, generationLabel: "1st", requiredMembers: 3, rate: 0.08, rateLabel: "8%" },
-  { level: 2, generation: 2, generationLabel: "2nd", requiredMembers: 9, rate: 0.06, rateLabel: "6%" },
-  { level: 3, generation: 3, generationLabel: "3rd", requiredMembers: 27, rate: 0.03, rateLabel: "3%" },
-  { level: 4, generation: 4, generationLabel: "4th", requiredMembers: 54, rate: 0.02, rateLabel: "2%" },
-  { level: 5, generation: 5, generationLabel: "5th", requiredMembers: 108, rate: 0.012, rateLabel: "1.2%" },
-  { level: 6, generation: 6, generationLabel: "6th", requiredMembers: 162, rate: 0.01, rateLabel: "1%" },
-  { level: 7, generation: 7, generationLabel: "7th", requiredMembers: 216, rate: 0.01, rateLabel: "1%" },
-  { level: 8, generation: 8, generationLabel: "8th", requiredMembers: 270, rate: 0.01, rateLabel: "1%" },
-  { level: 9, generation: 9, generationLabel: "9th", requiredMembers: 324, rate: 0.01, rateLabel: "1%" },
+  { level: 1, generation: 1, generationLabel: "1st", requiredMembers: 2, rate: 0.09, rateLabel: "9%" },
+  { level: 2, generation: 2, generationLabel: "2nd", requiredMembers: 4, rate: 0.08, rateLabel: "8%" },
+  { level: 3, generation: 3, generationLabel: "3rd", requiredMembers: 8, rate: 0.07, rateLabel: "7%" },
+  { level: 4, generation: 4, generationLabel: "4th", requiredMembers: 16, rate: 0.06, rateLabel: "6%" },
+  { level: 5, generation: 5, generationLabel: "5th", requiredMembers: 32, rate: 0.05, rateLabel: "5%" },
+  { level: 6, generation: 6, generationLabel: "6th", requiredMembers: 64, rate: 0.04, rateLabel: "4%" },
+  { level: 7, generation: 7, generationLabel: "7th", requiredMembers: 128, rate: 0.03, rateLabel: "3%" },
+  { level: 8, generation: 8, generationLabel: "8th", requiredMembers: 256, rate: 0.02, rateLabel: "2%" },
+  { level: 9, generation: 9, generationLabel: "9th", requiredMembers: 512, rate: 0.01, rateLabel: "1%" },
 ] as const;
 
 export const MAX_GENERATION = 9;
@@ -106,7 +102,7 @@ export function getLevelByGeneration(generation: number): LevelRule {
   return rule;
 }
 
-/** Integer BDT. Locked examples: 8% × 11,000 = 880. */
+/** Integer BDT. Level 1 is 9% × 11,000 = 990. */
 export function commissionPerMember(
   joiningAmountBdt: number = STANDARD_ID_VALUE_BDT,
   rate: number,

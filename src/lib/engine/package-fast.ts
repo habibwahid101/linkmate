@@ -414,9 +414,10 @@ async function activatePlacedPackage(sql: Sql, placed: PlacedId[], memo: Activat
       if (!beneficiary) continue;
       gens.push([uid(), beneficiary.id, source.id, hop.generation]);
       if (beneficiary.progression === "GRADUATED") continue;
-      if (beneficiary.sponsorCount < 3) continue;
-      const level = beneficiary.currentLevel;
+      const level = hop.generation;
       if (level < 1 || level > 9) continue;
+      const snap = beneficiary.levels.get(level);
+      if (!snap || snap.status === "RELEASED" || snap.placement >= snap.required) continue;
       const rule = getLevel(level);
       const amount = commissionPerMember(STANDARD_ID_VALUE_BDT, rule.rate);
       const commId = uid();
@@ -455,24 +456,27 @@ async function activatePlacedPackage(sql: Sql, placed: PlacedId[], memo: Activat
       };
       held.amount += amount;
       heldAdd.set(heldKey, held);
-      const snap = beneficiary.levels.get(level);
-      if (!snap || snap.status === "RELEASED") continue;
       snap.placement += 1;
       snap.accumulated += amount;
       snap.status = "IN_PROGRESS";
       snap.dirty = true;
-      if (snap.placement >= snap.required && !completedKey.has(heldKey)) {
-        completedKey.add(heldKey);
+      for (let lv = 1; lv <= 9; lv += 1) {
+        const row = beneficiary.levels.get(lv);
+        if (!row || row.status === "RELEASED") continue;
+        if (row.placement < row.required) break;
+        const key = `${beneficiary.id}:${lv}`;
+        if (completedKey.has(key)) continue;
+        completedKey.add(key);
         completed.push({
           memberId: beneficiary.id,
           ownerUserId: beneficiary.ownerUserId,
-          level,
+          level: lv,
         });
-        if (level >= 9) {
+        if (lv >= 9) {
           beneficiary.progression = "GRADUATED";
           beneficiary.currentLevel = 9;
         } else {
-          beneficiary.currentLevel = level + 1;
+          beneficiary.currentLevel = lv + 1;
         }
       }
     }

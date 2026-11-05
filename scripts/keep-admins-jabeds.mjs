@@ -182,9 +182,20 @@ try {
   if (await exists("level_progress")) {
     await client.query(
       `update level_progress set
+         required_members = case level
+           when 1 then 2 when 2 then 4 when 3 then 8 when 4 then 16 when 5 then 32
+           when 6 then 64 when 7 then 128 when 8 then 256 when 9 then 512
+           else required_members end,
+         expected_full_commission = case level
+           when 1 then 1980 when 2 then 3520 when 3 then 6160 when 4 then 10560 when 5 then 17600
+           when 6 then 28160 when 7 then 42240 when 8 then 56320 when 9 then 56320
+           else expected_full_commission end,
          completed_members = 0,
          placement_completed_members = 0,
-         remaining_members = required_members,
+         remaining_members = case level
+           when 1 then 2 when 2 then 4 when 3 then 8 when 4 then 16 when 5 then 32
+           when 6 then 64 when 7 then 128 when 8 then 256 when 9 then 512
+           else required_members end,
          accumulated_commission = 0,
          status = case when level = 1 then 'IN_PROGRESS' else 'LOCKED' end,
          completed_at = null,

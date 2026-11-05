@@ -92,7 +92,6 @@ export const getAdminOverview = createServerFn({ method: "GET" })
           select 1 from level_progress lp
           where lp.member_id = m.id and lp.level = 9 and lp.status in ('COMPLETED','RELEASED')
         )
-        and (select count(*) from sponsor_relationships sr where sr.sponsor_id = m.id) >= ${LEVELS[0]!.requiredMembers}
     `;
     const recentAudit = await sql<{
       id: string;

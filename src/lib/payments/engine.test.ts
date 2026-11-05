@@ -203,19 +203,24 @@ describe("manual payment engine", () => {
       from commission_entries where beneficiary_user_id = ${"sponsor"}
       group by generation order by generation
     `;
-    assert.equal(commissions.length, 1);
+    assert.equal(commissions.length, 3);
     assert.equal(commissions[0]!.generation, 1);
     assert.equal(commissions[0]!.n, 1);
-    assert.equal(Number(commissions[0]!.amt), 880);
+    assert.equal(Number(commissions[0]!.amt), 990);
+    assert.equal(commissions[1]!.generation, 2);
+    assert.equal(commissions[1]!.n, 2);
+    assert.equal(Number(commissions[1]!.amt), 1760);
+    assert.equal(commissions[2]!.generation, 3);
+    assert.equal(Number(commissions[2]!.amt), 770);
     const held = await sql<{ v: number }>`
       select coalesce(sum(amount),0)::int as v from held_commissions where owner_user_id = ${"sponsor"}
     `;
-    assert.equal(Number(held[0]?.v ?? 0), 880);
+    assert.equal(Number(held[0]?.v ?? 0), 3520);
     const gens = await sql<{ generation: number; n: number }>`
       select generation, count(*)::int as n from generation_memberships
       where beneficiary_id = ${sponsor.rootId} group by generation order by generation
     `;
-    assert.deepEqual(gens.map((g) => [g.generation, g.n]), [[1, 1], [2, 3]]);
+    assert.deepEqual(gens.map((g) => [g.generation, g.n]), [[1, 1], [2, 2], [3, 1]]);
   });
 
   it("resolves an exact Membership ID referral code to that ID", async () => {
@@ -319,7 +324,7 @@ describe("manual payment engine", () => {
     `;
     assert.equal(sponsorPayRows[0]?.n, 0);
     assert.equal(placePayRows[0]?.n, 1);
-    assert.equal(Number(placePayRows[0]?.amount), 880);
+    assert.equal(Number(placePayRows[0]?.amount), 990);
     const credits = await sql<{ n: number }>`
       select count(*)::int as n from sponsor_designation_credits
       where sponsor_id = ${sponsor.rootId} and voided_at is null
@@ -491,7 +496,7 @@ describe("manual payment engine", () => {
     assert.ok(notes.some((n) => n.title === "Package activated"));
   });
 
-  it("hyper turbo approval places all 22 IDs; A2/B2/C2 sponsor the final 9", async () => {
+  it("hyper turbo approval places all 22 IDs and no parent has more than 2", async () => {
     const { sql } = await makeSql();
     await configureMethods(sql);
     await insertUser(sql, "sponsor", "Sponsor");
@@ -543,9 +548,9 @@ describe("manual payment engine", () => {
     const c2Kids = await sql<{ n: number }>`
       select count(*)::int as n from sponsor_relationships where sponsor_id = ${c2}
     `;
-    assert.equal(a2Kids[0]?.n, 3);
-    assert.equal(b2Kids[0]?.n, 3);
-    assert.equal(c2Kids[0]?.n, 3);
+    assert.equal(a2Kids[0]?.n, 2);
+    assert.equal(b2Kids[0]?.n, 2);
+    assert.equal(c2Kids[0]?.n, 0);
     const ext = await sql<{ sponsored_id: string }>`
       select sponsored_id from sponsor_relationships where sponsor_id = ${sponsor.rootId}
     `;

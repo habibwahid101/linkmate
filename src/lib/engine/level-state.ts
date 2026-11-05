@@ -31,7 +31,6 @@ export function canReleaseLevel(opts: {
   if (opts.alreadyReleased) return false;
   if (!opts.previousReleased) return false;
   if (opts.qualifying < opts.required) return false;
-  if (opts.level === 1 && opts.directCount < 3) return false;
   return true;
 }
 

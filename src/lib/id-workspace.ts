@@ -102,8 +102,7 @@ export function progressNounShort(level: number): string {
 
 export function levelRequirementCopy(level: number): string {
   const rule = getLevel(level);
-  if (level === 1) return `${rule.requiredMembers} placed downline IDs`;
-  return `${rule.requiredMembers} Eligible Downline IDs`;
+  return `${rule.requiredMembers} people on this level`;
 }
 
 export function progressFraction(p: CurrentProgress): string {

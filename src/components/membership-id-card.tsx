@@ -12,8 +12,6 @@ import {
   isGraduated,
   type CompactMembershipId,
 } from "@/lib/id-workspace";
-import { designationSummary } from "@/lib/engine/designations";
-import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function MembershipIdCard({
@@ -29,7 +27,6 @@ export function MembershipIdCard({
 }) {
   const graduated = isGraduated(row);
   const p = row.currentProgress;
-  const designation = designationSummary(row.designationCount);
   return (
     <Card
       tone={graduated ? "success" : row.held > 0 ? "held" : "info"}
@@ -52,8 +49,7 @@ export function MembershipIdCard({
         </div>
         <StatusBadge status={graduated ? "GRADUATED" : row.progression_status} />
       </div>
-      <p className="mt-2 text-[15px] font-semibold">{designation.label}</p>
-      <p className="text-[13px] text-muted">{designation.detail}</p>
+      <p className="mt-2 text-[13px] text-muted">Level 1 holds 2 people. Money stays held until that level is full.</p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[36rem] text-left">
           <thead>
@@ -109,8 +105,6 @@ export function MembershipIdRow({
 }) {
   const graduated = isGraduated(row);
   const p = row.currentProgress;
-  const designation = designationSummary(row.designationCount);
-  const t = useT();
   return (
     <div
       className={cn(
@@ -135,9 +129,6 @@ export function MembershipIdRow({
         </p>
         <p className="text-[13px] text-muted">
           {packageLabel(row.package_id)} · {originLabel(row)}
-        </p>
-        <p className="mt-0.5 text-[13px] font-semibold">
-          {t("dash.designation")}: {designation.label}
         </p>
       </div>
       <div>

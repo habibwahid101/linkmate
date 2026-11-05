@@ -64,7 +64,7 @@ function Qualification() {
           ids.data ? (
             <IdSwitcher ids={ids.data} selectedId={d.id} onSelectPath="/app/qualification" />
           ) : (
-            `${d.id} · 1 Decimal Land after 3 directs and Level 9.`
+            `${d.id} · 1 Decimal Land after Level 9 is complete.`
           )
         }
       />
@@ -72,7 +72,7 @@ function Qualification() {
       <Card className="mt-4" tone="progress">
         <p className="text-sm font-semibold">Level completion on {d.id}</p>
         <p className="mt-1 text-[15px] leading-relaxed text-muted">
-          Status is “Qualified” only when both mandatory conditions are complete on this ID.
+          Status is Qualified only when Level 9 is complete on this ID.
         </p>
         <ul className="mt-4 space-y-3">
           {LEVELS.map((rule) => {

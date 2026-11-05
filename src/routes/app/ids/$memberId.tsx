@@ -78,15 +78,10 @@ function IdDashboard() {
 
       <section className="mt-4">
         <Card tone="package">
-          <CardKicker tone="package">Direct-sponsor designation</CardKicker>
-          <p className="mt-1 text-lg font-semibold">{d.designation.label ?? "No designation yet"}</p>
+          <CardKicker tone="package">This BIN</CardKicker>
+          <p className="mt-1 text-lg font-semibold">{d.id}</p>
           <p className="mt-1 text-[15px] leading-relaxed text-muted">
-            {d.designation.count} activated personal referral{d.designation.count === 1 ? "" : "s"}.
-            {d.designation.nextLabel && d.designation.nextAt != null
-              ? ` Next title is ${d.designation.nextLabel} at ${d.designation.nextAt}.`
-              : " Highest title reached."}
-            {" "}
-            This title does not change level commission or land qualification. Every ID that lists this ID as sponsor counts, including IDs inside a package.
+            Held and wallet on this BIN stay here. Another BIN on the same account does not receive this money. Titles are unchanged for now.
           </p>
         </Card>
       </section>
@@ -108,7 +103,7 @@ function IdDashboard() {
                 Level {p.level} · {progressFraction(p)} complete
               </p>
               <p className="mt-1 text-[15px] leading-relaxed text-muted">
-                {levelRequirementCopy(p.level)}. Level income stays closed until this ID has 3 personal sponsors. After that, IDs placed below it count.
+                {levelRequirementCopy(p.level)}. Money already earned on this level is held. It moves to the wallet only when the level is full.
               </p>
               <ProgressBar className="mt-3" value={p.completed} max={p.required} tone={d.wallet.held > 0 ? "held" : "progress"} />
             </>
@@ -119,7 +114,7 @@ function IdDashboard() {
       <section className="mt-6">
         <CardTitle>Level journey</CardTitle>
         <p className="mt-1 text-[15px] leading-relaxed text-muted">
-          The number on an open level is placement progress. It does not move until this ID has 3 personal sponsors. Sponsor count and placement count are separate.
+          A person counts only on the level where they sit. One person shows held. The full count releases that level to the wallet. This BIN cannot hold 3 people on Level 1.
         </p>
         <div className="mt-3">
           <LevelJourney rows={d.journey} graduated={graduated} />
@@ -142,8 +137,7 @@ function IdDashboard() {
         <CardTitle>Direct sponsored IDs</CardTitle>
         <Card className="mt-3" tone="info">
           <p className="tabular text-sm font-medium">
-            {d.directs.count} personal sponsor{d.directs.count === 1 ? "" : "s"}
-            {d.directs.count >= 3 ? " · level income open" : " · level income opens at 3"}
+            {d.directs.count} personal sponsor{d.directs.count === 1 ? "" : "s"} on this BIN
           </p>
           {d.directs.members.length === 0 ? (
             <p className="mt-3 text-sm text-muted">Share this ID’s referral to sponsor direct IDs.</p>

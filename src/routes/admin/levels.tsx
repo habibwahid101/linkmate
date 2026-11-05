@@ -17,7 +17,7 @@ function Levels() {
   if (q.isError) return <QueryError error={q.error} retry={() => q.refetch()} />;
   return (
     <div>
-      <PageHeader title="Levels" hint="Locked rates. An ID earns nothing from placement until it has 3 personal sponsors. After that, placement downline counts 3, then 9, 27, and onward through level 9." />
+      <PageHeader title="Levels" hint="Each new person adds their amount to Held on the level where they sit. The wallet receives it only when that level is full: 2, then 4, then 8, through 512. A BIN cannot hold 3 people on Level 1." />
       <div className="space-y-2">
         {q.data.rules.map((r) => (
           <Card key={r.level} className="flex items-center justify-between gap-3" tone="progress">

@@ -1,4 +1,4 @@
-import { PACKAGES, type PackageId } from "../rules.ts";
+import { LEVELS, PACKAGES, type PackageId } from "../rules.ts";
 
 export type PlannedId = {
   index: number;
@@ -9,12 +9,12 @@ export type PlannedId = {
   placementStatus: "placed" | "pending_config";
 };
 
+/** Each BIN holds at most this many people on its own Level 1. */
+export const DIRECT_PLACEMENT_CAP = LEVELS[0]!.requiredMembers;
+
 /**
- * Internal package placement.
- * Turbo: root + 3 children (completes Level 1 of the root).
- * Super Turbo: 1 + 3 + 9.
- * Hyper Turbo v2: Super Turbo 13, then the middle ID of each gen-2 trio
- * (A2/B2/C2) sponsors 3 of the final 9. All 22 IDs are placed.
+ * Package IDs fill level by level. Level 1 holds 2 people under the root.
+ * The next ID sits on Level 2, under one of those two. No level is overfilled.
  */
 export function planPackagePlacement(
   packageId: PackageId,
@@ -29,36 +29,23 @@ export function planPackagePlacement(
     placementStatus: "placed" as const,
   }));
 
-  const placeUnder = (parent: number, children: number[]) => {
-    children.forEach((c, i) => {
-      if (!ids[c]) return;
-      ids[c].parentIndex = parent;
-      ids[c].sponsorIndex = parent;
-      ids[c].position = i + 1;
-      ids[c].placementStatus = "placed";
-    });
-  };
-
-  if (idCount >= 4) {
-    placeUnder(0, [1, 2, 3]);
-  }
-  if (idCount >= 13) {
-    placeUnder(1, [4, 5, 6]);
-    placeUnder(2, [7, 8, 9]);
-    placeUnder(3, [10, 11, 12]);
-  }
-  if (idCount >= 22) {
-    // A2=5, B2=8, C2=11 each sponsor three final IDs.
-    placeUnder(5, [13, 14, 15]);
-    placeUnder(8, [16, 17, 18]);
-    placeUnder(11, [19, 20, 21]);
-  } else if (idCount > 13) {
-    for (let i = 13; i < idCount; i++) {
-      ids[i].placementStatus = "pending_config";
-      ids[i].parentIndex = null;
-      ids[i].sponsorIndex = null;
-      ids[i].position = null;
+  const children = new Map<number, number>();
+  const birth: number[] = [0];
+  let cursor = 0;
+  for (let child = 1; child < idCount; child++) {
+    while (cursor < birth.length && (children.get(birth[cursor]!) ?? 0) >= DIRECT_PLACEMENT_CAP) cursor += 1;
+    if (cursor >= birth.length) {
+      ids[child]!.placementStatus = "pending_config";
+      continue;
     }
+    const parent = birth[cursor]!;
+    const taken = (children.get(parent) ?? 0) + 1;
+    children.set(parent, taken);
+    ids[child]!.parentIndex = parent;
+    ids[child]!.sponsorIndex = parent;
+    ids[child]!.position = taken;
+    ids[child]!.placementStatus = "placed";
+    birth.push(child);
   }
   return ids;
 }

@@ -31,7 +31,7 @@ export function evaluateLandQualification(input: {
 }): LandQualification {
   const sponsorProgress = Math.min(Math.max(0, input.directSponsors), REQUIRED_DIRECT_SPONSORS);
   const sponsorMet = input.directSponsors >= REQUIRED_DIRECT_SPONSORS;
-  const qualified = Boolean(input.hasMembership && sponsorMet && input.level9Released);
+  const qualified = Boolean(input.hasMembership && input.level9Released);
   return {
     hasMembership: input.hasMembership,
     sponsorProgress,
@@ -49,10 +49,10 @@ export function nextActionCopy(next: { level: number; remaining: number } | null
   if (!next) return "No further member milestone on this ID.";
   if (next.level === 1) {
     return next.remaining === 1
-      ? "1 more direct sponsor needed"
-      : `${next.remaining} more direct sponsors needed`;
+      ? "1 more person needed on Level 1. Their amount stays held until the level is full."
+      : `${next.remaining} more people needed on Level 1. Each amount stays held until the level is full.`;
   }
   return next.remaining === 1
-    ? `1 more eligible downline ID needed`
-    : `${next.remaining} more eligible downline IDs needed`;
+    ? "1 more person needed on this level. Their amount stays held until the level is full."
+    : `${next.remaining} more people needed on this level. Each amount stays held until the level is full.`;
 }

@@ -63,22 +63,23 @@ test("turbo: internals complete buyer L1; sponsor stays L1 1/3 (no retroactive L
   const buyer = await createIdsForPurchase(sql, { userId: "u-buyer", packageId: "turbo", purchaseId: "p-turbo", externalSponsorId: sponsor.rootId });
   assert.equal(buyer.ids.length, 4);
   const sponsorComm = await commissionsFrom(sql, sponsor.rootId);
-  assert.equal(sponsorComm.length, 1);
-  assert.equal(sponsorComm[0]!.source_id, buyer.rootId);
-  assert.equal(sponsorComm[0]!.level, 1);
-  assert.equal(Number(sponsorComm[0]!.commission_amount), 880);
-  assert.equal(sponsorComm[0]!.status, "HELD");
+  assert.equal(sponsorComm.length, 4);
+  const level1 = sponsorComm.filter((row) => row.level === 1);
+  assert.equal(level1.length, 1);
+  assert.equal(level1[0]!.source_id, buyer.rootId);
+  assert.equal(Number(level1[0]!.commission_amount), 990);
+  assert.equal(level1[0]!.status, "HELD");
   const directs = await sql<{ n: number }>`select count(*)::int as n from sponsor_relationships where sponsor_id = ${sponsor.rootId}`;
   assert.equal(directs[0]!.n, 1);
   const l1 = await progress(sql, sponsor.rootId, 1);
   const l2 = await progress(sql, sponsor.rootId, 2);
   assert.equal(l1.completed_members, 1);
   assert.equal(l1.status, "IN_PROGRESS");
-  assert.equal(Number(l1.accumulated_commission), 880);
-  assert.equal(l2.completed_members, 0);
-  assert.equal(l2.status, "LOCKED");
+  assert.equal(Number(l1.accumulated_commission), 990);
+  assert.equal(l2.completed_members, 2);
+  assert.equal(l2.status, "IN_PROGRESS");
   const rootW = await wallet(sql, buyer.rootId);
-  assert.equal(rootW.available, 2640);
+  assert.equal(rootW.available, 1980);
 });
 test("replaying processNewId does not duplicate commission or progress", async () => {
   const sql = await makeSql();
@@ -88,11 +89,11 @@ test("replaying processNewId does not duplicate commission or progress", async (
   const buyer = await createIdsForPurchase(sql, { userId: "u-b", packageId: "turbo", purchaseId: "p2", externalSponsorId: sponsor.rootId });
   const beforeSponsor = (await commissionsFrom(sql, sponsor.rootId)).length;
   const beforeBuyer = (await commissionsFrom(sql, buyer.rootId)).length;
-  assert.equal(beforeSponsor, 1);
+  assert.equal(beforeSponsor, 4);
   assert.equal(beforeBuyer, 3);
   await processNewId(sql, buyer.rootId);
   await processNewId(sql, buyer.ids[1]!);
-  assert.equal((await commissionsFrom(sql, sponsor.rootId)).length, 1);
+  assert.equal((await commissionsFrom(sql, sponsor.rootId)).length, 4);
   assert.equal((await commissionsFrom(sql, buyer.rootId)).length, 3);
 });
 test("super turbo places 1+3+9 and completes root L1+L2", async () => {
@@ -115,7 +116,7 @@ test("hyper turbo: all 22 placed; middle gen-2 IDs sponsor the final 9", async (
   const placed = await sql<{ n: number }>`select count(*)::int as n from member_ids where purchase_id = ${"p-ht"} and placement_status = 'placed'`;
   assert.equal(placed[0]?.n, 22);
   const placements = await sql<{ n: number }>`select count(*)::int as n from placement_relationships where parent_id = ${created.ids[5]!}`;
-  assert.equal(placements[0]?.n, 3);
+  assert.equal(placements[0]?.n, 2);
 });
 test("sample turbo: L1 released 2640, L2 6/9 held 3960, then 9/9 releases 5940 once", async () => {
   const sql = await makeSql();
@@ -128,14 +129,8 @@ test("sample turbo: L1 released 2640, L2 6/9 held 3960, then 9/9 releases 5940 o
     await attachExternalMember(sql, { ownerUserId: synth, displayName: "Member", email: null, packageId: "builder", sponsorMemberId: internals[i % 3]!, parentMemberId: internals[i % 3]! });
   }
   const l2 = await progress(sql, turbo.rootId, 2);
-  assert.equal(l2.completed_members, 6);
-  for (let i = 0; i < 3; i++) {
-    const synth = `closer-${i}`;
-    await sql`insert into app_users (user_id, display_name, role, referral_code, is_synthetic) values (${synth}, ${"Closer " + i}, 'member', ${"CL" + i + "XX"}, true)`;
-    await attachExternalMember(sql, { ownerUserId: synth, displayName: "Closer", email: null, packageId: "builder", sponsorMemberId: internals[i]!, parentMemberId: internals[i]! });
-  }
-  const l2b = await progress(sql, turbo.rootId, 2);
-  assert.equal(l2b.status, "RELEASED");
+  assert.equal(l2.completed_members, 4);
+  assert.equal(l2.status, "RELEASED");
 });
 test("generation identities are not reclassified after later levels complete", async () => {
   const sql = await makeSql();
@@ -159,7 +154,8 @@ test("reversal preserves ledger rows, claws back released wallet, reopens incomp
   }
   await reverseJoin(sql, { sourceId: sources[0]!, actorUserId: "u-r", reason: "QA reverse" });
   const l2 = await progress(sql, turbo.rootId, 2);
-  assert.equal(l2.completed_members, 8);
+  assert.equal(l2.completed_members, 3);
+  assert.equal(l2.status, "RELEASED");
 });
 test("Level 1 0/1/2/3 hold then full release, no partial", async () => {
   const sql = await makeSql();

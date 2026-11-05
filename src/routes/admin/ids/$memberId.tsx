@@ -47,15 +47,9 @@ function IdDetail() {
         <Row label="Referral code" value={d.referral_code ?? "—"} />
         <Row label="Sponsor" value={d.sponsor_id ?? "—"} />
         <Row label="Placement parent" value={d.parent_id ?? "—"} />
-        <Row label="Designation" value={d.designation.label} />
-        <Row label="Designation progress" value={d.designation.detail} />
         <Row
           label="Level income"
-          value={
-            d.network.directIds >= 3
-              ? `Open · ${d.network.directIds} sponsors`
-              : `Closed until 3 sponsors · ${d.network.directIds}/3`
-          }
+          value={`${d.network.directIds} on Level 1 · max 2. Held shows before the level is full. Wallet updates after release.`}
         />
         <Row label="Placement" value={d.placement_status} />
         <Row label="Current level" value={`Level ${d.current_level}`} />

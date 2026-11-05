@@ -13,7 +13,6 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { MembershipIdCard, MembershipIdRow } from "@/components/membership-id-card";
 import { AccountAvatar } from "@/components/avatar";
 import { LocalDate } from "@/components/local-date";
-import { designationSummary } from "@/lib/engine/designations";
 import { formatBdt } from "@/lib/money";
 import { PACKAGES } from "@/lib/rules";
 import { DASHBOARD_ID_PREVIEW, usesCompactList, parseMemberIdSearch, isGraduated, progressFraction } from "@/lib/id-workspace";
@@ -192,7 +191,6 @@ function Home() {
     d.ids.find((row) => row.id === d.profile.activeId) ??
     d.ids.find((row) => row.is_root) ??
     d.ids[0];
-  const designation = designationSummary(active?.designationCount ?? 0);
   const releases = active ? d.recentTx.filter((tx) => tx.member_id === active.id) : d.recentTx;
   const idPkg = active ? PACKAGES[active.package_id as PackageId] : null;
   const graduated = active ? isGraduated(active) : false;
@@ -201,7 +199,7 @@ function Home() {
   return (
     <div>
       <PageHeader title={t("dash.title")} hint={t("dash.hint")} />
-      <IdentityCard profile={d.profile} designation={designation.label} membershipId={active?.id} />
+      <IdentityCard profile={d.profile} membershipId={active?.id} />
       {active ? (
         <div className="mb-4">
           <IdSwitcher ids={d.ids} selectedId={active.id} onSelectPath="/app" />

@@ -17,26 +17,26 @@ test("locked packages", () => {
   assert.equal(PACKAGES.super_turbo.idCount, 13);
   assert.equal(PACKAGES.hyper_turbo.amountBdt, 242000);
   assert.equal(PACKAGES.hyper_turbo.idCount, 22);
-  assert.equal(PACKAGES.hyper_turbo.placementRuleVersion, "v2-middle-sponsors-final-9");
+  assert.equal(PACKAGES.hyper_turbo.placementRuleVersion, "v3-level-caps");
 });
 
 test("locked commissions on standard ID", () => {
   assert.equal(STANDARD_ID_VALUE_BDT, 11000);
-  assert.equal(commissionPerMember(11000, 0.08), 880);
-  assert.equal(fullLevelCommission(1), 2640);
-  assert.equal(fullLevelCommission(2), 5940);
-  assert.equal(fullLevelCommission(3), 8910);
-  assert.equal(fullLevelCommission(4), 11880);
-  assert.equal(fullLevelCommission(5), 14256);
-  assert.equal(fullLevelCommission(6), 17820);
-  assert.equal(fullLevelCommission(7), 23760);
-  assert.equal(fullLevelCommission(8), 29700);
-  assert.equal(fullLevelCommission(9), 35640);
+  assert.equal(commissionPerMember(11000, 0.09), 990);
+  assert.equal(fullLevelCommission(1), 1980);
+  assert.equal(fullLevelCommission(2), 3520);
+  assert.equal(fullLevelCommission(3), 6160);
+  assert.equal(fullLevelCommission(4), 10560);
+  assert.equal(fullLevelCommission(5), 17600);
+  assert.equal(fullLevelCommission(6), 28160);
+  assert.equal(fullLevelCommission(7), 42240);
+  assert.equal(fullLevelCommission(8), 56320);
+  assert.equal(fullLevelCommission(9), 56320);
 });
 
 test("level table", () => {
   assert.deepEqual(
     LEVELS.map((l) => l.requiredMembers),
-    [3, 9, 27, 54, 108, 162, 216, 270, 324],
+    [2, 4, 8, 16, 32, 64, 128, 256, 512],
   );
 });

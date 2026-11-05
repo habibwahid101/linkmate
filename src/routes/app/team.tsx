@@ -108,7 +108,7 @@ function Team() {
       />
 
       <p className="mb-4 text-[15px] leading-relaxed text-muted">
-        This list is the personal sponsors of {team.data.activeId}. Three sponsors open this ID’s level income. The level count itself is the placement downline, not this list.
+        These are the personal sponsors of {team.data.activeId}. Level count is separate: a person counts only on the level where they are placed. This BIN’s held money and wallet stay separate from your other BINs.
       </p>
 
       <CardTitle>Direct sponsored IDs</CardTitle>
